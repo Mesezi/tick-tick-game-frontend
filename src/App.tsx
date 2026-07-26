@@ -5,13 +5,14 @@ import { Volume2, VolumeX, Home } from 'lucide-react';
 import { ScreenRouter } from './router/ScreenRouter.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConnectionLostOverlay } from './components/ConnectionLostOverlay';
+import { RejoinPrompt } from './components/RejoinPrompt';
 import { useGameStore } from './store/gameStore';
 import { socketHandler } from './socket/socketHandler';
 import { registerEventHandlers, unregisterEventHandlers } from './socket/eventHandlers';
 import { persistenceLayer } from './persistence/persistenceLayer';
 import { apiClient } from './api/client';
 import { deriveScreen } from './router/screenRouter';
-import { isMuted, toggleMute, playSound } from './audio/soundManager';
+import { isMuted, toggleMute, playSound, preloadSounds } from './audio/soundManager';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -20,6 +21,7 @@ function App() {
   const connectionStatus = useGameStore((s) => s.connection.status);
   const reconnectAttempts = useGameStore((s) => s.connection.reconnectAttempts);
   const [soundMuted, setSoundMuted] = useState(isMuted());
+  const [pendingRejoinRoom, setPendingRejoinRoom] = useState<string | null>(null);
 
   const session = useGameStore((s) => s.session);
   const room = useGameStore((s) => s.room);
@@ -47,6 +49,16 @@ function App() {
           deviceId: savedSession.deviceId,
         });
         socketHandler.connect(SOCKET_URL, savedSession.token);
+
+        // Check if user has an active room to rejoin
+        try {
+          const meRes = await apiClient.getCurrentUser();
+          if (meRes.data.activeRoom) {
+            setPendingRejoinRoom(meRes.data.activeRoom);
+          }
+        } catch {
+          // Silently ignore — user can still play normally
+        }
       } else {
         try {
           const deviceId = persistenceLayer.getDeviceId();
@@ -77,8 +89,14 @@ function App() {
   }, []);
 
   // Global button click sound — plays for any <button> tap
+  // Also initializes sound system on first user interaction (mobile autoplay policy)
   useEffect(() => {
+    let hasInitialized = false;
     const handleClick = (e: MouseEvent) => {
+      if (!hasInitialized) {
+        preloadSounds();
+        hasInitialized = true;
+      }
       const target = e.target as HTMLElement;
       if (target.closest('button')) {
         playSound('buttonClick');
@@ -105,7 +123,18 @@ function App() {
     if (currentSession) {
       useGameStore.getState().setSession(currentSession);
     }
-    // hasPassedLanding is reset to false by reset(), so router goes to landing
+    setPendingRejoinRoom(null);
+  };
+
+  const handleRejoin = () => {
+    if (!pendingRejoinRoom) return;
+    socketHandler.emit('join-room', { roomCode: pendingRejoinRoom });
+    useGameStore.getState().setHasPassedLanding(true);
+    setPendingRejoinRoom(null);
+  };
+
+  const handleDismissRejoin = () => {
+    setPendingRejoinRoom(null);
   };
 
   return (
@@ -121,43 +150,44 @@ function App() {
         className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-[480px] md:max-w-[540px] lg:max-w-[600px] sm:h-[95vh] sm:rounded-3xl sm:shadow-2xl sm:border sm:border-[#1a3528]/50"
         style={{ background: '#081510' }}
       >
-        {/* Live indicator */}
-        <div className="absolute top-3.5 right-4 z-50 flex items-center gap-1.5 pointer-events-none">
-          <div
-            className="w-1.5 h-1.5 rounded-full"
-            style={{
-              background: connectionStatus === 'connected' ? '#00d060' : connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c',
-              animation: 'ping-dot 2s ease-in-out infinite',
-            }}
-          />
-          <span
-            className="text-[9px] font-bold tracking-widest"
-            style={{ color: connectionStatus === 'connected' ? '#00d060' : connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c' }}
-          >
-            {connectionStatus === 'connected' ? 'LIVE' : connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
-          </span>
-        </div>
-
-        {/* Sound mute toggle + Home button */}
-        <div className="absolute top-3.5 left-4 z-50 flex items-center gap-1.5">
-          <button
-            onClick={() => setSoundMuted(toggleMute())}
-            className="w-7 h-7 flex items-center justify-center rounded-lg transition-all active:scale-90"
-            style={{ background: '#0d2018' }}
-            aria-label={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
-          >
-            {soundMuted ? <VolumeX className="w-3.5 h-3.5" style={{ color: '#6baf80' }} /> : <Volume2 className="w-3.5 h-3.5" style={{ color: '#00d060' }} />}
-          </button>
-          {activeScreen !== 'landing' && (
+        {/* Top bar — volume/home left, connectivity right */}
+        <div className="flex items-center justify-between px-4 py-3.5 shrink-0 z-40">
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={handleGoHome}
+              onClick={() => setSoundMuted(toggleMute())}
               className="w-7 h-7 flex items-center justify-center rounded-lg transition-all active:scale-90"
               style={{ background: '#0d2018' }}
-              aria-label="Go home"
+              aria-label={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
             >
-              <Home className="w-3.5 h-3.5" style={{ color: '#6baf80' }} />
+              {soundMuted ? <VolumeX className="w-5 h-5" style={{ color: '#6baf80' }} /> : <Volume2 className="w-5 h-5" style={{ color: '#00d060' }} />}
             </button>
-          )}
+            {activeScreen !== 'landing' && (
+              <button
+                onClick={handleGoHome}
+                className="w-7 h-7 flex items-center justify-center rounded-lg transition-all active:scale-90"
+                style={{ background: '#0d2018' }}
+                aria-label="Go home"
+              >
+                <Home className="w-3.5 h-3.5" style={{ color: '#6baf80' }} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: connectionStatus === 'connected' ? '#00d060' : connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c',
+                animation: 'ping-dot 2s ease-in-out infinite',
+              }}
+            />
+            <span
+              className="text-[9px] font-bold tracking-widest"
+              style={{ color: connectionStatus === 'connected' ? '#00d060' : connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c' }}
+            >
+              {connectionStatus === 'connected' ? 'LIVE' : connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
+            </span>
+          </div>
         </div>
 
         <AnimatePresence mode="wait">
@@ -173,6 +203,17 @@ function App() {
               <ScreenRouter />
             </ErrorBoundary>
           </motion.div>
+        </AnimatePresence>
+
+        {/* Rejoin prompt — shown when user has an active room from previous session */}
+        <AnimatePresence>
+          {pendingRejoinRoom && !room && (
+            <RejoinPrompt
+              roomCode={pendingRejoinRoom}
+              onRejoin={handleRejoin}
+              onDismiss={handleDismissRejoin}
+            />
+          )}
         </AnimatePresence>
       </div>
 

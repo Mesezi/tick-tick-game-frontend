@@ -1,20 +1,12 @@
 /**
  * Sound Manager - File-based audio playback using HTML Audio elements.
- * Preloads audio files from /audio/ directory.
- * Supports mute toggle persisted to localStorage.
+ * Sounds are only created/played AFTER preloadSounds() is called (user gesture required).
  *
- * AUDIO FILES TO DOWNLOAD:
- * Place these in /public/audio/:
- *   - tick-soft.mp3       (soft clock tick, ~0.1s)
- *   - tick-medium.mp3     (slightly louder/faster tick, ~0.1s)
- *   - tick-urgent.mp3     (fast urgent tick, ~0.08s)
- *   - heartbeat.mp3       (subtle heartbeat pulse, ~0.4s)
- *   - round-start.mp3     (energetic short whoosh, ~0.5s)
- *   - stop-buzzer.mp3     (air horn / buzzer burst, ~0.4s)
- *   - grace-tick.mp3      (ticking clock for grace period, ~0.1s)
- *   - results-reveal.mp3  (swoosh + sparkle reveal, ~0.5s)
- *   - player-join.mp3     (friendly pop/notification, ~0.3s)
- *   - button-click.mp3    (subtle click, ~0.05s)
+ * AUDIO FILES (place in /public/audio/):
+ *   - tick-soft.mp3, tick-medium.mp3, tick-urgent.mp3
+ *   - heartbeat.mp3, round-start.mp3, stop-buzzer.mp3
+ *   - results-reveal.mp3, player-join.mp3, button-click.mp3
+ *   - fah.mp3, winner.mp3
  */
 
 const STORAGE_KEY = 'naija_sound_muted';
@@ -46,11 +38,11 @@ const SOUND_FILES: Record<SoundName, string> = {
   winner: '/audio/winner.mp3',
 };
 
-// Pool of Audio elements per sound (allows overlapping playback)
-const audioPools: Map<SoundName, HTMLAudioElement[]> = new Map();
-const POOL_SIZE = 3;
+// Audio elements created lazily
+const audioCache: Map<SoundName, HTMLAudioElement> = new Map();
 
 let muted = false;
+let initialized = false; // Only true after preloadSounds() is called
 
 // Initialize mute state from localStorage
 try {
@@ -60,51 +52,39 @@ try {
 }
 
 /**
- * Get or create an available Audio element from the pool
+ * Get or create an Audio element for a given sound.
+ * Returns null if not yet initialized.
  */
-function getAudioFromPool(name: SoundName): HTMLAudioElement | null {
-  let pool = audioPools.get(name);
+function getAudio(name: SoundName): HTMLAudioElement | null {
+  if (!initialized) return null;
 
-  if (!pool) {
-    pool = [];
-    for (let i = 0; i < POOL_SIZE; i++) {
-      const audio = new Audio(SOUND_FILES[name]);
-      audio.preload = 'auto';
-      pool.push(audio);
-    }
-    audioPools.set(name, pool);
+  let audio = audioCache.get(name);
+  if (!audio) {
+    audio = new Audio(SOUND_FILES[name]);
+    audio.preload = 'auto';
+    audioCache.set(name, audio);
   }
-
-  // Find one that's not currently playing
-  for (const audio of pool) {
-    if (audio.paused || audio.ended) {
-      return audio;
-    }
-  }
-
-  // All busy — reset the first one
-  const audio = pool[0];
-  audio.currentTime = 0;
   return audio;
 }
 
 /**
- * Play a sound by name. No-op if muted.
+ * Play a sound by name. No-op if muted or not initialized.
  */
 export function playSound(name: SoundName): void {
-  if (muted) return;
+  if (muted || !initialized) return;
 
   try {
-    const audio = getAudioFromPool(name);
-    if (audio) {
-      audio.currentTime = 0;
-      audio.volume = getVolume(name);
-      audio.play().catch(() => {
-        // Autoplay blocked — ignore silently
-      });
-    }
-  } catch (e) {
-    console.warn('[SoundManager] Failed to play sound:', name, e);
+    const audio = getAudio(name);
+    if (!audio) return;
+
+    // Clone the audio node for overlapping playback
+    const clone = audio.cloneNode() as HTMLAudioElement;
+    clone.volume = getVolume(name);
+    clone.play().catch(() => {
+      // Autoplay blocked — silently ignore
+    });
+  } catch {
+    // Ignore errors — sound is non-critical
   }
 }
 
@@ -142,23 +122,19 @@ function getVolume(name: SoundName): number {
 
 /**
  * Play the appropriate timer tick based on remaining seconds.
- * Call this every second from the game timer.
  */
 export function playTimerTick(secondsLeft: number): void {
-  if (muted) return;
-  if (secondsLeft > 30) return; // No sound above 30s
+  if (muted || !initialized) return;
+  if (secondsLeft > 30) return;
 
   if (secondsLeft <= 5) {
-    // Last 5s: urgent tick + heartbeat
     playSound('tickUrgent');
     if (secondsLeft % 2 === 0) {
       playSound('heartbeat');
     }
   } else if (secondsLeft <= 10) {
-    // 10-5s: medium tick every second
     playSound('tickMedium');
   } else if (secondsLeft <= 30) {
-    // 30-10s: soft tick every 2 seconds
     if (secondsLeft % 2 === 0) {
       playSound('tickSoft');
     }
@@ -198,12 +174,12 @@ export function setMuted(val: boolean): void {
 }
 
 /**
- * Preload all sounds (call after first user interaction)
+ * Initialize the sound system. MUST be called from a user gesture (tap/click).
+ * After this, all playSound calls will work.
  */
 export function preloadSounds(): void {
-  const names = Object.keys(SOUND_FILES) as SoundName[];
-  names.forEach((name) => {
-    // Creating the pool triggers preload
-    getAudioFromPool(name);
-  });
+  initialized = true;
+  // Pre-create audio elements for commonly used sounds
+  const priority: SoundName[] = ['buttonClick', 'roundStart', 'stop', 'tickUrgent'];
+  priority.forEach(getAudio);
 }

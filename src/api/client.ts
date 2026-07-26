@@ -78,6 +78,7 @@ class ApiClient {
           weeklyScore: number;
           createdAt: string;
         };
+        activeRoom: string | null;
       };
     }>('/api/auth/me');
   }

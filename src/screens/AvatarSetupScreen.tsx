@@ -31,7 +31,7 @@ export function AvatarSetupScreen() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" data-testid="screen-avatar-setup">
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-6 pt-8 pb-4">
         <p
           className="text-xs font-bold tracking-widest uppercase mb-1"
           style={{ color: '#00d060' }}
