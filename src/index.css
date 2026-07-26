@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Dark Gaming palette */
+  --color-dark-bg: #0a1a0f;
+  --color-dark-surface: #1a2e1f;
+  --color-dark-input: #0f2518;
+  --color-dark-border: #2a4a32;
+  --color-neon-green: #00ff88;
+  --color-neon-orange: #FF6B35;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #8aaa8a;
+  --color-text-muted: #5a7a5a;
+
+  /* Keep legacy aliases mapped to new palette for any stragglers */
+  --color-slate-blue: #ffffff;
+  --color-chalk: #1a2e1f;
+  --color-beige: #0a1a0f;
+  --color-pencil: #8aaa8a;
+
+  /* Extended scale (dark theme mapped) */
+  --color-slate-50: #0f2518;
+  --color-slate-100: #1a2e1f;
+  --color-slate-200: #2a4a32;
+  --color-slate-300: #3a5a42;
+  --color-slate-400: #5a7a5a;
+  --color-slate-500: #8aaa8a;
+  --color-slate-600: #aaccaa;
+  --color-slate-700: #ccddcc;
+  --color-slate-800: #e0e0e0;
+  --color-slate-900: #ffffff;
+  --color-slate-950: #ffffff;
+
+  /* Accent — neon orange for urgent states */
+  --color-redmark-50: #2a1a10;
+  --color-redmark-100: #3a2010;
+  --color-redmark-200: #4a2a15;
+  --color-redmark-300: #6a3a1a;
+  --color-redmark-400: #cc5522;
+  --color-redmark-500: #FF6B35;
+  --color-redmark-600: #ff8855;
+  --color-redmark-700: #ffaa77;
+  --color-redmark-800: #ffccaa;
+  --color-redmark-900: #ffeedd;
+
+  /* Green — neon green for correct marks */
+  --color-greenmark-500: #00ff88;
+  --color-greenmark-600: #00cc6a;
+  --color-greenmark-700: #00aa55;
+
+  /* Brand mapped to dark palette */
+  --color-brand-50: #0f2518;
+  --color-brand-100: #1a2e1f;
+  --color-brand-200: #2a4a32;
+  --color-brand-300: #3a5a42;
+  --color-brand-400: #5a7a5a;
+  --color-brand-500: #8aaa8a;
+  --color-brand-600: #aaccaa;
+  --color-brand-700: #ccddcc;
+  --color-brand-800: #e0e0e0;
+  --color-brand-900: #ffffff;
+  --color-brand-950: #ffffff;
+
+  /* Accent alias */
+  --color-accent-500: #FF6B35;
+  --color-accent-600: #ff8855;
+
+  /* Mobile-first breakpoints */
+  --breakpoint-xs: 375px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+
+  /* Font families */
+  --font-heading: 'Libre Baskerville', Georgia, serif;
+  --font-body: 'Courier Prime', 'Courier New', monospace;
+  --font-mono: 'Courier Prime', monospace;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+:root {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #ffffff;
+  background: radial-gradient(ellipse at 50% 0%, #0d2a18 0%, #050f09 50%, #020804 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at 50% 0%, #0d2a18 0%, #050f09 50%, #020804 100%);
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Notebook paper line effect — repurposed for dark theme */
+.notebook-lines {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    #2a4a32 31px,
+    #2a4a32 32px
+  );
+}
+
+/* Dark card effect (replaces chalkboard) */
+.chalkboard {
+  background-color: #1a2e1f;
+  border: 1px solid #2a4a32;
+  color: #ffffff;
+}
+
+/* Hand-drawn underline effect — neon green */
+.underline-hand {
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #00ff88;
+  text-underline-offset: 4px;
+}

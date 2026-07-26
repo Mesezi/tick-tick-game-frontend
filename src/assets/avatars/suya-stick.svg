@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Stick -->
+  <rect x="30" y="8" width="4" height="48" rx="2" fill="#92400E"/>
+  <!-- Meat chunks -->
+  <rect x="24" y="12" width="16" height="8" rx="3" fill="#E04A2F"/>
+  <rect x="24" y="22" width="16" height="8" rx="3" fill="#C73A22"/>
+  <rect x="24" y="32" width="16" height="8" rx="3" fill="#E04A2F"/>
+  <!-- Char marks -->
+  <rect x="26" y="14" width="3" height="2" rx="1" fill="#6F271C"/>
+  <rect x="34" y="25" width="3" height="2" rx="1" fill="#6F271C"/>
+  <rect x="28" y="34" width="3" height="2" rx="1" fill="#6F271C"/>
+  <!-- Spice specks -->
+  <circle cx="27" cy="18" r="1" fill="#F59E0B"/>
+  <circle cx="35" cy="28" r="1" fill="#F59E0B"/>
+  <circle cx="30" cy="37" r="1" fill="#F59E0B"/>
+  <!-- Onion ring -->
+  <circle cx="32" cy="44" r="4" stroke="#FDE68A" stroke-width="2" fill="none"/>
+</svg>

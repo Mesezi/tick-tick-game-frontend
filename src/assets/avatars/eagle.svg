@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Body -->
+  <ellipse cx="32" cy="38" rx="12" ry="14" fill="#008751"/>
+  <!-- Head -->
+  <circle cx="32" cy="20" r="10" fill="#F9FAFB"/>
+  <!-- Beak -->
+  <path d="M32 26 L36 30 L32 28 L28 30 Z" fill="#F59E0B"/>
+  <!-- Eyes -->
+  <circle cx="28" cy="18" r="2" fill="#1F2937"/>
+  <circle cx="36" cy="18" r="2" fill="#1F2937"/>
+  <circle cx="28.5" cy="17.5" r="0.8" fill="#FFFFFF"/>
+  <circle cx="36.5" cy="17.5" r="0.8" fill="#FFFFFF"/>
+  <!-- Wings spread -->
+  <path d="M20 38 Q8 28 6 20 Q10 26 20 30 Z" fill="#005735"/>
+  <path d="M44 38 Q56 28 58 20 Q54 26 44 30 Z" fill="#005735"/>
+  <!-- Tail feathers -->
+  <path d="M28 52 L32 56 L36 52" stroke="#005735" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Crown/crest -->
+  <path d="M29 12 L32 8 L35 12" stroke="#F59E0B" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Canopy frame -->
+  <path d="M12 18 Q32 6 52 18 L52 22 L12 22 Z" fill="#008751"/>
+  <!-- Body/cabin -->
+  <rect x="14" y="22" width="36" height="20" rx="3" fill="#F59E0B"/>
+  <!-- Windshield -->
+  <path d="M16 24 L32 24 L32 38 L16 38 Z" fill="#BFDBFE" rx="2"/>
+  <!-- Passenger area -->
+  <rect x="34" y="24" width="14" height="14" rx="2" fill="#BFDBFE"/>
+  <!-- Support poles -->
+  <rect x="14" y="18" width="2" height="24" fill="#374151"/>
+  <rect x="48" y="18" width="2" height="24" fill="#374151"/>
+  <rect x="32" y="18" width="2" height="4" fill="#374151"/>
+  <!-- Front wheel -->
+  <circle cx="20" cy="48" r="6" fill="#374151"/>
+  <circle cx="20" cy="48" r="2.5" fill="#9CA3AF"/>
+  <!-- Rear wheels -->
+  <circle cx="42" cy="48" r="5" fill="#374151"/>
+  <circle cx="42" cy="48" r="2" fill="#9CA3AF"/>
+  <circle cx="52" cy="48" r="5" fill="#374151"/>
+  <circle cx="52" cy="48" r="2" fill="#9CA3AF"/>
+  <!-- Handlebar -->
+  <path d="M18 22 L14 14" stroke="#374151" stroke-width="2" stroke-linecap="round"/>
+  <!-- Headlight -->
+  <circle cx="16" cy="34" r="2" fill="#FEF3C7"/>
+</svg>

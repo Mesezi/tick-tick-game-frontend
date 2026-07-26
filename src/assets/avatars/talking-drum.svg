@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Drum body (hourglass shape) -->
+  <path d="M20 12 Q20 32 20 52 Q32 46 44 52 Q44 32 44 12 Q32 18 20 12 Z" fill="#92400E"/>
+  <!-- Drum heads -->
+  <ellipse cx="32" cy="12" rx="12" ry="4" fill="#D97706"/>
+  <ellipse cx="32" cy="52" rx="12" ry="4" fill="#D97706"/>
+  <!-- Tension strings -->
+  <line x1="21" y1="14" x2="21" y2="50" stroke="#FDE68A" stroke-width="1.5"/>
+  <line x1="27" y1="16" x2="27" y2="48" stroke="#FDE68A" stroke-width="1.5"/>
+  <line x1="37" y1="16" x2="37" y2="48" stroke="#FDE68A" stroke-width="1.5"/>
+  <line x1="43" y1="14" x2="43" y2="50" stroke="#FDE68A" stroke-width="1.5"/>
+  <!-- Decorative pattern -->
+  <path d="M22 28 L26 32 L22 36" stroke="#F59E0B" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M42 28 L38 32 L42 36" stroke="#F59E0B" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Drumstick -->
+  <line x1="48" y1="8" x2="38" y2="20" stroke="#6F271C" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="48" cy="8" r="3" fill="#A52F1C"/>
+</svg>
