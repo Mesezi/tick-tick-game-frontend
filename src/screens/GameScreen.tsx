@@ -98,7 +98,13 @@ export function GameScreen() {
         // Play sound based on user's position
         if (displayResults.players.length > 1 && session?.userId) {
           const sorted = [...displayResults.players].sort((a, b) => b.totalScore - a.totalScore);
-          const userIndex = sorted.findIndex(p => p.playerId === session.userId);
+          // Match current user — try multiple ID fields
+          const store = useGameStore.getState();
+          const roomPlayer = store.room?.players.find((p) => p.userId === session.userId);
+          const myPlayerId = roomPlayer?.id ?? session.userId;
+          const userIndex = sorted.findIndex(
+            (p) => p.playerId === session.userId || p.playerId === myPlayerId || p.displayName === session.displayName
+          );
           if (userIndex >= 0 && userIndex <= 2) {
             playSound('winner');
           } else if (userIndex === sorted.length - 1) {
@@ -653,75 +659,66 @@ function ResultsTabsView({
       {/* Tab content */}
       <div className="flex-1 overflow-auto px-5 pb-2" style={{ scrollbarWidth: 'none' }}>
         {activeTab === 'answers' ? (
-          /* ─── Answers Table ─── */
+          /* ─── Answers — card layout per category ─── */
           <div>
-            <table className="w-full text-xs" style={{ minWidth: '320px' }}>
-              <thead>
-                <tr>
-                  <th
-                    className="text-left py-2 pr-3 sticky left-0 w-[88px]"
-                    style={{ color: '#6baf80', fontWeight: 700, background: '#081510' }}
-                  >
-                    Category
-                  </th>
-                  {displayResults.players.map((p) => (
-                    <th
-                      key={p.playerId}
-                      className="text-center py-2 px-1 w-[88px]"
-                      style={{ color: '#6baf80', fontWeight: 700 }}
-                    >
-                      <span className="text-sm">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
-                      <br />
-                      <span style={{ fontSize: '9px' }}>{p.displayName.split('_')[0].slice(0, 8)}</span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayResults.categories.map((cat) => (
-                  <tr key={cat} style={{ borderTop: '1px solid #0d2018' }}>
-                    <td
-                      className="py-2.5 pr-3 sticky left-0 text-[10px] font-bold"
-                      style={{ color: '#a0c8a8', background: '#081510' }}
-                    >
-                      {cat}
-                    </td>
+            <div className="space-y-3">
+              {displayResults.categories.map((cat) => (
+                <div key={cat} className="rounded-xl border p-3" style={{ background: '#0d2018', borderColor: '#1a3528' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#6baf80' }}>
+                    {cat}
+                  </p>
+                  <div className="space-y-1.5">
                     {displayResults.players.map((p) => {
                       const ans = p.answers.find((a) => a.category === cat);
                       const status = ans
                         ? ans.isDuplicate ? 'duplicate' : ans.severity === 'minor_typo' || ans.severity === 'major_typo' ? 'typo' : ans.isValid ? 'valid' : 'invalid'
                         : 'invalid';
+                      const statusStyle =
+                        status === 'valid' ? { bg: 'rgba(0,208,96,0.1)', color: '#00d060' }
+                        : status === 'typo' ? { bg: 'rgba(255,150,0,0.1)', color: '#ff9600' }
+                        : status === 'duplicate' ? { bg: 'rgba(255,184,0,0.1)', color: '#ffb800' }
+                        : { bg: 'rgba(255,59,92,0.1)', color: '#ff3b5c' };
+                      const isYou = p.playerId === session?.userId;
                       return (
-                        <td key={p.playerId} className="text-center py-2.5 px-1">
-                          <span
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-block"
-                            style={
-                              status === 'valid' ? { background: 'rgba(0,208,96,0.14)', color: '#00d060' }
-                              : status === 'typo' ? { background: 'rgba(255,150,0,0.14)', color: '#ff9600' }
-                              : status === 'duplicate' ? { background: 'rgba(255,184,0,0.14)', color: '#ffb800' }
-                              : { background: 'rgba(255,59,92,0.14)', color: '#ff3b5c' }
-                            }
-                          >
-                            {ans?.rawAnswer ? ans.rawAnswer.split(' ')[0].slice(0, 9) : '—'}
-                            {status === 'typo' && ' ~'}
+                        <div
+                          key={p.playerId}
+                          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+                          style={{ background: statusStyle.bg }}
+                        >
+                          <span className="text-sm shrink-0">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
+                          <span className="text-[10px] font-bold shrink-0 w-14 truncate" style={{ color: isYou ? '#00d060' : '#6baf80' }}>
+                            {isYou ? 'You' : p.displayName.split('_')[0].slice(0, 8)}
                           </span>
-                        </td>
+                          <p className="flex-1 text-xs text-white truncate min-w-0">
+                            {ans?.rawAnswer || '—'}
+                          </p>
+                          {status === 'typo' && <span className="text-[9px]" style={{ color: '#ff9600' }}>~</span>}
+                          <span className="text-[9px] font-bold shrink-0" style={{ color: statusStyle.color }}>
+                            +{ans?.score ?? 0}
+                          </span>
+                        </div>
                       );
                     })}
-                  </tr>
-                ))}
-                <tr style={{ borderTop: '2px solid #1a3528' }}>
-                  <td className="py-3 sticky left-0 text-[10px] font-bold" style={{ color: '#a0c8a8', background: '#081510' }}>
-                    Score
-                  </td>
-                  {displayResults.players.map((p) => (
-                    <td key={p.playerId} className="text-center py-3 font-bold text-base" style={{ fontFamily: "'Dela Gothic One', sans-serif", color: '#ffb800' }}>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Score summary row */}
+            <div className="flex items-center justify-between mt-3 px-2 py-3 rounded-xl" style={{ background: '#0d2018' }}>
+              {displayResults.players.map((p) => {
+                const isYou = p.playerId === session?.userId;
+                return (
+                  <div key={p.playerId} className="flex flex-col items-center gap-0.5">
+                    <span className="text-sm">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
+                    <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: isYou ? '#00d060' : '#ffb800' }}>
                       {p.roundScore}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Legend */}
             <div className="flex flex-wrap gap-3 mt-3 justify-center">
               {[
