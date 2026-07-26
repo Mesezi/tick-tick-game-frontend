@@ -1,60 +1,56 @@
 /**
- * Sound Manager - File-based audio playback using HTML Audio elements.
- * Sounds are only created/played AFTER preloadSounds() is called (user gesture required).
+ * Sound Manager - File-based audio + Web Audio API oscillator for button clicks.
+ * Sounds only play AFTER preloadSounds() is called (requires user gesture on mobile).
  *
  * AUDIO FILES (place in /public/audio/):
- *   - tick-soft.mp3, tick-medium.mp3, tick-urgent.mp3
- *   - heartbeat.mp3, round-start.mp3, stop-buzzer.mp3
- *   - results-reveal.mp3, player-join.mp3, button-click.mp3
- *   - fah.mp3, winner.mp3
+ *   - tick.mp3, heartbeat.mp3, round-start.mp3, stop-buzzer.mp3
+ *   - results-reveal.mp3, player-join.mp3, fah.mp3, winner.mp3
  */
 
 const STORAGE_KEY = 'naija_sound_muted';
 
 export type SoundName =
-  | 'tickSoft'
-  | 'tickMedium'
-  | 'tickUrgent'
+  | 'tick'
   | 'heartbeat'
   | 'roundStart'
   | 'stop'
   | 'resultsReveal'
   | 'playerJoin'
-  | 'buttonClick'
   | 'lastPlace'
   | 'winner';
 
 const SOUND_FILES: Record<SoundName, string> = {
-  tickSoft: '/audio/tick-soft.mp3',
-  tickMedium: '/audio/tick-medium.mp3',
-  tickUrgent: '/audio/tick-urgent.mp3',
+  tick: '/audio/tick.mp3',
   heartbeat: '/audio/heartbeat.mp3',
   roundStart: '/audio/round-start.mp3',
   stop: '/audio/stop-buzzer.mp3',
   resultsReveal: '/audio/results-reveal.mp3',
   playerJoin: '/audio/player-join.mp3',
-  buttonClick: '/audio/button-click.mp3',
   lastPlace: '/audio/fah.mp3',
   winner: '/audio/winner.mp3',
 };
 
-// Audio elements created lazily
 const audioCache: Map<SoundName, HTMLAudioElement> = new Map();
 
 let muted = false;
-let initialized = false; // Only true after preloadSounds() is called
+let initialized = false;
+let audioCtx: AudioContext | null = null;
 
-// Initialize mute state from localStorage
 try {
   muted = localStorage.getItem(STORAGE_KEY) === 'true';
-} catch {
-  // localStorage unavailable
+} catch {}
+
+function getContext(): AudioContext | null {
+  if (!initialized) return null;
+  if (!audioCtx) {
+    audioCtx = new AudioContext();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
 }
 
-/**
- * Get or create an Audio element for a given sound.
- * Returns null if not yet initialized.
- */
 function getAudio(name: SoundName): HTMLAudioElement | null {
   if (!initialized) return null;
 
@@ -68,7 +64,7 @@ function getAudio(name: SoundName): HTMLAudioElement | null {
 }
 
 /**
- * Play a sound by name. No-op if muted or not initialized.
+ * Play a file-based sound. No-op if muted or not initialized.
  */
 export function playSound(name: SoundName): void {
   if (muted || !initialized) return;
@@ -77,32 +73,51 @@ export function playSound(name: SoundName): void {
     const audio = getAudio(name);
     if (!audio) return;
 
-    // Clone the audio node for overlapping playback
     const clone = audio.cloneNode() as HTMLAudioElement;
     clone.volume = getVolume(name);
-    clone.play().catch(() => {
-      // Autoplay blocked — silently ignore
-    });
+    clone.play().catch(() => {});
   } catch {
-    // Ignore errors — sound is non-critical
+    // Non-critical — ignore
   }
 }
 
 /**
- * Get volume level for each sound type
+ * Play a synthesized button click using Web Audio API oscillator.
+ * No file needed — generates a 6ms sine burst at 1000Hz.
+ * Safe on iPhone since it uses the same AudioContext initialized on first tap.
  */
+export function playClick(): void {
+  if (muted || !initialized) return;
+
+  try {
+    const ctx = getContext();
+    if (!ctx) return;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.value = 1000;
+
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.006);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.006);
+  } catch {
+    // Non-critical — ignore
+  }
+}
+
 function getVolume(name: SoundName): number {
   switch (name) {
-    case 'buttonClick':
-      return 0.3;
-    case 'tickSoft':
-      return 0.35;
-    case 'tickMedium':
+    case 'tick':
       return 0.5;
-    case 'tickUrgent':
-      return 0.6;
     case 'heartbeat':
-      return 0.45;
+      return 0.4;
     case 'playerJoin':
       return 0.5;
     case 'roundStart':
@@ -121,65 +136,44 @@ function getVolume(name: SoundName): number {
 }
 
 /**
- * Play the appropriate timer tick based on remaining seconds.
+ * Play tick sound for the round timer. Only ticks when ≤15 seconds remain.
+ * Adds heartbeat in the last 5 seconds.
  */
 export function playTimerTick(secondsLeft: number): void {
   if (muted || !initialized) return;
-  if (secondsLeft > 30) return;
+  if (secondsLeft > 15 || secondsLeft <= 0) return;
+
+  playSound('tick');
 
   if (secondsLeft <= 5) {
-    playSound('tickUrgent');
-    if (secondsLeft % 2 === 0) {
-      playSound('heartbeat');
-    }
-  } else if (secondsLeft <= 10) {
-    playSound('tickMedium');
-  } else if (secondsLeft <= 30) {
-    if (secondsLeft % 2 === 0) {
-      playSound('tickSoft');
-    }
+    playSound('heartbeat');
   }
 }
 
-/**
- * Check if sound is muted
- */
 export function isMuted(): boolean {
   return muted;
 }
 
-/**
- * Toggle mute state
- */
 export function toggleMute(): boolean {
   muted = !muted;
   try {
     localStorage.setItem(STORAGE_KEY, String(muted));
-  } catch {
-    // localStorage unavailable
-  }
+  } catch {}
   return muted;
 }
 
-/**
- * Set mute state explicitly
- */
 export function setMuted(val: boolean): void {
   muted = val;
   try {
     localStorage.setItem(STORAGE_KEY, String(muted));
-  } catch {
-    // localStorage unavailable
-  }
+  } catch {}
 }
 
 /**
- * Initialize the sound system. MUST be called from a user gesture (tap/click).
- * After this, all playSound calls will work.
+ * Initialize sound system. Must be called from a user gesture.
  */
 export function preloadSounds(): void {
   initialized = true;
-  // Pre-create audio elements for commonly used sounds
-  const priority: SoundName[] = ['buttonClick', 'roundStart', 'stop', 'tickUrgent'];
+  const priority: SoundName[] = ['tick', 'roundStart', 'stop'];
   priority.forEach(getAudio);
 }

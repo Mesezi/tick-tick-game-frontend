@@ -12,7 +12,7 @@ import { registerEventHandlers, unregisterEventHandlers } from './socket/eventHa
 import { persistenceLayer } from './persistence/persistenceLayer';
 import { apiClient } from './api/client';
 import { deriveScreen } from './router/screenRouter';
-import { isMuted, toggleMute, playSound, preloadSounds } from './audio/soundManager';
+import { isMuted, toggleMute, preloadSounds, playClick } from './audio/soundManager';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -88,20 +88,20 @@ function App() {
     };
   }, []);
 
-  // Global button click sound — plays for any <button> tap
-  // Also initializes sound system on first user interaction (mobile autoplay policy)
+  // Initialize sound system on first user interaction (mobile autoplay policy)
+  // Also plays a synthesized click on every button tap (no file needed)
   useEffect(() => {
-    let hasInitialized = false;
-    const handleClick = (e: MouseEvent) => {
-      if (!hasInitialized) {
+    const handleClick = (e: Event) => {
+      if (!initialized) {
         preloadSounds();
-        hasInitialized = true;
+        initialized = true;
       }
       const target = e.target as HTMLElement;
       if (target.closest('button')) {
-        playSound('buttonClick');
+        playClick();
       }
     };
+    let initialized = false;
     document.addEventListener('pointerdown', handleClick);
     return () => document.removeEventListener('pointerdown', handleClick);
   }, []);

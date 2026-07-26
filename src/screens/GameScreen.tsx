@@ -77,10 +77,15 @@ export function GameScreen() {
     } else if (round.phase === 'results') {
       // Server sent results — show results overlay
       setSubPhase('results');
-      // 🔊 Results reveal sound
-      playSound('resultsReveal');
     }
   }, [round?.phase]);
+
+  // 🔊 Results reveal — only when roundResults arrives from websocket
+  useEffect(() => {
+    if (roundResults) {
+      playSound('resultsReveal');
+    }
+  }, [roundResults]);
 
   // Auto-transition: my answers reveal (10s) → tabbed results+leaderboard (20s)
   useEffect(() => {
@@ -133,19 +138,19 @@ export function GameScreen() {
     }
   }, [round?.phase, round?.endsAt, round?.graceEndsAt]);
 
-  // 🔊 Timer tick sounds — tiered urgency based on seconds remaining
+  // 🔊 Timer tick — only when ≤15 seconds remain, with heartbeat at ≤5s
   useEffect(() => {
     if (subPhase !== 'input') return;
-    if (timer > 30 || timer <= 0) return;
-    // Fire once per second value change
+    if (timer > 15 || timer <= 0) return;
     playTimerTick(timer);
   }, [timer, subPhase]);
 
-  // 🔊 Grace period tick sound (reuses tick-urgent for consistency)
+  // 🔊 Grace period — tick + heartbeat every second
   useEffect(() => {
     if (subPhase !== 'grace') return;
     const tickInterval = setInterval(() => {
-      playSound('tickUrgent');
+      playSound('tick');
+      playSound('heartbeat');
     }, 1000);
     return () => clearInterval(tickInterval);
   }, [subPhase]);
@@ -306,7 +311,7 @@ export function GameScreen() {
                 onChange={(e) => handleAnswerChange(cat, e.target.value)}
                 readOnly={hasStopped || (subPhase !== 'input' && subPhase !== 'grace')}
                 placeholder={`${round.letter.toUpperCase()}...`}
-                className="flex-1 bg-transparent text-white text-sm outline-none min-w-0 placeholder-[#2a4a33]"
+                className="flex-1 bg-transparent text-white outline-none min-w-0 placeholder-[#2a4a33]"
                 style={{ caretColor: '#00d060' }}
               />
               {answers[cat] && (
@@ -503,7 +508,18 @@ function MyAnswersReveal({
   results: RoundResultsPayload;
   currentUserId: string;
 }) {
-  const myResult = results.players.find((p) => p.playerId === currentUserId);
+  // Match current user in results — server may use different ID field
+  const store = useGameStore.getState();
+  const sessionUserId = store.session?.userId ?? '';
+  const roomPlayer = store.room?.players.find((p) => p.userId === sessionUserId);
+  const myPlayerId = roomPlayer?.id ?? sessionUserId;
+
+  const myResult = results.players.find(
+    (p) => p.playerId === currentUserId || p.playerId === sessionUserId || p.playerId === myPlayerId
+  ) || results.players.find(
+    (p) => p.displayName === store.session?.displayName
+  );
+
   if (!myResult) return null;
 
   return (
