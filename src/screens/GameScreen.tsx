@@ -738,6 +738,12 @@ function ResultsTabsView({
           <div className="space-y-2">
             {sortedPlayers.map((p, i) => {
               const isYou = p.playerId === session?.userId;
+              // Calculate rank with ties — same score = same rank
+              const rank = i === 0 ? 1 : sortedPlayers[i - 1].totalScore === p.totalScore
+                ? (sortedPlayers.findIndex(x => x.totalScore === p.totalScore) + 1)
+                : i + 1;
+              const isTied = i > 0 && sortedPlayers[i - 1].totalScore === p.totalScore
+                || (i < sortedPlayers.length - 1 && sortedPlayers[i + 1]?.totalScore === p.totalScore);
               return (
                 <motion.div
                   key={p.playerId}
@@ -755,22 +761,29 @@ function ResultsTabsView({
                     style={{
                       fontFamily: "'Dela Gothic One', sans-serif",
                       fontSize: '20px',
-                      color: i === 0 ? '#ffb800' : '#3a5a45',
+                      color: rank === 1 ? '#ffb800' : '#3a5a45',
                     }}
                   >
-                    {i === 0 ? '👑' : i + 1}
+                    {rank === 1 ? '👑' : rank}
                   </span>
                   <span className="text-xl">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
-                  <p className="flex-1 text-white text-sm font-bold truncate">
-                    {p.displayName}
-                    {isYou && <span className="text-xs font-normal ml-1" style={{ color: '#00d060' }}>(you)</span>}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-bold truncate">
+                      {p.displayName}
+                      {isYou && <span className="text-xs font-normal ml-1" style={{ color: '#00d060' }}>(you)</span>}
+                    </p>
+                    {isTied && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,184,0,0.15)', color: '#ffb800' }}>
+                        TIE
+                      </span>
+                    )}
+                  </div>
                   <div className="text-right">
                     <p style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '18px', color: '#fff' }}>
                       {p.totalScore}
                     </p>
-                    <div className="flex items-center justify-end gap-0.5 text-[10px]" style={{ color: i < 2 ? '#00d060' : '#3a5a45' }}>
-                      {i < 2 ? <TrendingUp className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+                    <div className="flex items-center justify-end gap-0.5 text-[10px]" style={{ color: rank <= 2 ? '#00d060' : '#3a5a45' }}>
+                      {rank <= 2 ? <TrendingUp className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
                       <span>+{p.roundScore}</span>
                     </div>
                   </div>

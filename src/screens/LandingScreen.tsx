@@ -786,7 +786,7 @@ function ProfileEditOverlay({ onClose }: { onClose: () => void }) {
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Your game name..."
-          className="w-full rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all"
+          className="w-full rounded-xl px-4 py-3.5 text-white outline-none transition-all"
           style={{
             background: '#0d2018',
             border: `1.5px solid ${displayName.length >= 2 ? '#00d060' : '#1a3528'}`,

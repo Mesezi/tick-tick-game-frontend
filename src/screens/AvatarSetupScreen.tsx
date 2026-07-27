@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
+import { apiClient } from '../api/client';
 
 const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'];
 
@@ -15,18 +16,33 @@ export function AvatarSetupScreen() {
 
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [playerName, setPlayerName] = useState(session?.displayName || '');
+  const [isSaving, setIsSaving] = useState(false);
 
   const canContinue = selectedAvatar !== null && playerName.length >= 2;
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!canContinue || !session) return;
 
-    toast.success(`Welcome, ${playerName}! 🎮`);
+    setIsSaving(true);
+    const avatarId = AVATARS[selectedAvatar!];
+
+    try {
+      // Save to backend immediately
+      await apiClient.updateProfile({ displayName: playerName, avatarId });
+    } catch {
+      // Non-critical — continue even if backend save fails (will sync later)
+      console.warn('[AvatarSetup] Failed to save profile to backend');
+    }
+
+    // Update local session
     setSession({
       ...session,
       displayName: playerName,
-      avatarId: AVATARS[selectedAvatar!],
+      avatarId,
     });
+
+    toast.success(`Welcome, ${playerName}! 🎮`);
+    setIsSaving(false);
   };
 
   return (
@@ -94,7 +110,7 @@ export function AvatarSetupScreen() {
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
           placeholder="Your game name..."
-          className="w-full rounded-xl px-4 py-3.5 text-sm text-white outline-none transition-all"
+          className="w-full rounded-xl px-4 py-3.5 text-white outline-none transition-all"
           style={{
             background: '#0d2018',
             border: `1.5px solid ${playerName.length >= 2 ? '#00d060' : '#1a3528'}`,
@@ -114,17 +130,17 @@ export function AvatarSetupScreen() {
       <div className="px-6 pb-8">
         <motion.button
           whileTap={{ scale: 0.96 }}
-          disabled={!canContinue}
+          disabled={!canContinue || isSaving}
           onClick={handleContinue}
           className="w-full rounded-2xl py-4 text-black font-bold transition-all"
           style={{
             fontFamily: "'Dela Gothic One', sans-serif",
             fontSize: '22px',
-            background: canContinue ? '#00d060' : '#122318',
-            color: canContinue ? '#000' : '#2a4a33',
+            background: canContinue && !isSaving ? '#00d060' : '#122318',
+            color: canContinue && !isSaving ? '#000' : '#2a4a33',
           }}
         >
-          Continue →
+          {isSaving ? 'Saving...' : 'Continue →'}
         </motion.button>
       </div>
     </div>

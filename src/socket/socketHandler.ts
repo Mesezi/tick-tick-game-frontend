@@ -25,9 +25,12 @@ const TIME_SYNC_INTERVAL_MS = 30000;
 class SocketHandlerImpl implements SocketHandler {
   private socket: Socket | null = null;
   private latencyMs: number = 0;
-  private timeOffset: number = 0; // serverTime - clientTime
+  private timeOffset: number = 0;
   private timeSyncTimer: ReturnType<typeof setInterval> | null = null;
   private eventHandlers: Map<string, (payload: unknown) => void> = new Map();
+  private lastUrl: string = '';
+  private lastToken: string = '';
+  private visibilityHandler: (() => void) | null = null;
 
   connect(url: string, token: string): void {
     // Disconnect existing socket if any
@@ -35,12 +38,15 @@ class SocketHandlerImpl implements SocketHandler {
       this.disconnect();
     }
 
+    this.lastUrl = url;
+    this.lastToken = token;
+
     this.socket = io(url, {
       auth: { token },
       reconnection: true,
-      reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 16000,
+      reconnectionDelayMax: 10000,
       transports: ['websocket', 'polling'],
     });
 
@@ -52,10 +58,14 @@ class SocketHandlerImpl implements SocketHandler {
     for (const [event, handler] of this.eventHandlers) {
       this.socket.on(event, handler);
     }
+
+    // Listen for tab visibility changes to reconnect on resume
+    this.setupVisibilityListener();
   }
 
   disconnect(): void {
     this.stopTimeSyncInterval();
+    this.removeVisibilityListener();
     if (this.socket) {
       this.socket.removeAllListeners();
       this.socket.disconnect();
@@ -106,6 +116,29 @@ class SocketHandlerImpl implements SocketHandler {
     return this.timeOffset;
   }
 
+  private setupVisibilityListener(): void {
+    this.removeVisibilityListener();
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'visible') {
+        // Tab became visible — check if socket is disconnected and reconnect
+        if (this.socket && !this.socket.connected) {
+          console.info('[SocketHandler] Tab visible, reconnecting...');
+          this.socket.connect();
+        }
+        // Also do a time sync to recalibrate
+        setTimeout(() => this.sendTimeSync(), 500);
+      }
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+
+  private removeVisibilityListener(): void {
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+  }
+
   private handleConnect(): void {
     console.info('[SocketHandler] Connected:', this.socket?.id);
 
@@ -125,6 +158,16 @@ class SocketHandlerImpl implements SocketHandler {
     this.stopTimeSyncInterval();
 
     useGameStore.getState().setConnection({ status: 'disconnected' });
+
+    // If the server closed the connection, try reconnecting manually
+    if (reason === 'io server disconnect' || reason === 'transport close') {
+      setTimeout(() => {
+        if (this.socket && !this.socket.connected) {
+          console.info('[SocketHandler] Attempting manual reconnect...');
+          this.socket.connect();
+        }
+      }, 1000);
+    }
   }
 
   private handleConnectError(err: Error): void {
