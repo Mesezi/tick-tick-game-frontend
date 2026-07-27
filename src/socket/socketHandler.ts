@@ -19,7 +19,6 @@ export interface SocketHandler {
   getTimeOffset(): number;
 }
 
-const MAX_RECONNECT_ATTEMPTS = 5;
 const TIME_SYNC_INTERVAL_MS = 30000;
 
 class SocketHandlerImpl implements SocketHandler {
@@ -28,8 +27,6 @@ class SocketHandlerImpl implements SocketHandler {
   private timeOffset: number = 0;
   private timeSyncTimer: ReturnType<typeof setInterval> | null = null;
   private eventHandlers: Map<string, (payload: unknown) => void> = new Map();
-  private lastUrl: string = '';
-  private lastToken: string = '';
   private visibilityHandler: (() => void) | null = null;
 
   connect(url: string, token: string): void {
@@ -37,9 +34,6 @@ class SocketHandlerImpl implements SocketHandler {
     if (this.socket) {
       this.disconnect();
     }
-
-    this.lastUrl = url;
-    this.lastToken = token;
 
     this.socket = io(url, {
       auth: { token },
