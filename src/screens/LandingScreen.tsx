@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Radio, Trophy, ArrowLeft, User, Pencil, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
-import { useLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
+import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
 import { preloadSounds } from '../audio/soundManager';
 
@@ -195,23 +195,37 @@ export function LandingScreen() {
 function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
   const session = useGameStore((s) => s.session);
   const [tab, setTab] = useState<'weekly' | 'alltime'>('weekly');
-  const [page, setPage] = useState(1);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const apiType = tab === 'alltime' ? 'all-time' as const : 'weekly' as const;
-  const { data, isLoading } = useLeaderboard(apiType, page, 10);
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteLeaderboard(apiType);
   const { data: myRankData } = useMyLeaderboardRank(apiType, !!session?.token);
 
-  const entries = data?.data.entries ?? [];
-  const totalPages = data?.data.pagination.totalPages ?? 1;
+  const entries = data?.pages.flatMap((p) => p.data.entries) ?? [];
   const myRank = myRankData?.data.userRank ?? null;
-
-  // Check if current user already appears on the visible page
   const myEntryVisible = myRank ? entries.some((e) => e.id === myRank.id) : false;
 
-  const handleTabChange = (t: 'weekly' | 'alltime') => {
-    setTab(t);
-    setPage(1);
-  };
+  // Intersection observer — load next page when sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (obs) => {
+        if (obs[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <motion.div
@@ -260,7 +274,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
           {(['weekly', 'alltime'] as const).map((t) => (
             <button
               key={t}
-              onClick={() => handleTabChange(t)}
+              onClick={() => setTab(t)}
               className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
               style={{
                 background: tab === t ? '#00d060' : 'transparent',
@@ -291,7 +305,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="space-y-2">
             {entries.map((entry, i) => {
-              const rank = (page - 1) * 10 + i + 1;
+              const rank = i + 1;
               const score = tab === 'weekly' ? entry.weeklyScore : entry.totalScore;
               return (
                 <motion.div
@@ -351,31 +365,15 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
                 </motion.div>
               );
             })}
-          </div>
-        )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 py-4 mt-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="px-4 py-2 rounded-lg text-xs font-bold transition-all disabled:opacity-30"
-              style={{ background: '#0d2018', color: '#6baf80' }}
-            >
-              ← Prev
-            </button>
-            <span className="text-xs" style={{ color: '#3a5a45' }}>
-              {page} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="px-4 py-2 rounded-lg text-xs font-bold transition-all disabled:opacity-30"
-              style={{ background: '#0d2018', color: '#6baf80' }}
-            >
-              Next →
-            </button>
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="py-2 flex justify-center">
+              {isFetchingNextPage && (
+                <p className="text-xs animate-pulse" style={{ color: '#6baf80' }}>
+                  Loading more...
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>
