@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useGameStore } from '../store/gameStore';
-import { useLeaderboard, useMyLeaderboardRank } from '../api/queries';
+import { useInfiniteLeaderboard, useMyLeaderboardRank } from '../api/queries';
 
 interface LeaderboardEntry {
   id: string;
@@ -13,25 +13,39 @@ interface LeaderboardEntry {
 
 export function LeaderboardScreen() {
   const session = useGameStore((s) => s.session);
-  const reset = useGameStore((s) => s.reset);
 
   const [lbTab, setLbTab] = useState<'weekly' | 'alltime'>('weekly');
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const apiType = lbTab === 'alltime' ? 'all-time' as const : 'weekly' as const;
-  const { data, isLoading } = useLeaderboard(apiType, 1, 20);
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteLeaderboard(apiType);
   const { data: myRankData } = useMyLeaderboardRank(apiType, !!session?.token);
 
-  const entries: LeaderboardEntry[] = (data?.data.entries ?? []) as LeaderboardEntry[];
+  const entries: LeaderboardEntry[] = (data?.pages.flatMap((p) => p.data.entries) ?? []) as LeaderboardEntry[];
   const myRank = myRankData?.data.userRank ?? null;
   const myEntryVisible = myRank ? entries.some((e) => e.id === myRank.id) : false;
 
-  const handlePlayAgain = useCallback(() => {
-    const currentSession = useGameStore.getState().session;
-    reset();
-    if (currentSession) {
-      useGameStore.getState().setSession(currentSession);
-    }
-  }, [reset]);
+  // Intersection observer — triggers next page fetch when sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" data-testid="screen-leaderboard">
@@ -103,7 +117,7 @@ export function LeaderboardScreen() {
                   key={entry.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: Math.min(i * 0.05, 0.5) }}
                   className="flex items-center gap-3 p-4 rounded-xl border"
                   style={{
                     background: isYou ? 'rgba(0,208,96,0.09)' : '#0d2018',
@@ -147,6 +161,15 @@ export function LeaderboardScreen() {
                 </motion.div>
               );
             })}
+
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="py-2 flex justify-center">
+              {isFetchingNextPage && (
+                <p className="text-xs animate-pulse" style={{ color: '#6baf80' }}>
+                  Loading more...
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -180,20 +203,6 @@ export function LeaderboardScreen() {
         </div>
       )}
 
-      <div className="px-6 pb-8 pt-3 shrink-0">
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={handlePlayAgain}
-          className="w-full rounded-2xl py-4 text-black"
-          style={{
-            background: '#00d060',
-            fontFamily: "'Dela Gothic One', sans-serif",
-            fontSize: '22px',
-          }}
-        >
-          Play Again
-        </motion.button>
-      </div>
     </div>
     </div>
   );

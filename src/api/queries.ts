@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { apiClient } from './client';
 
 // ===== Query Keys =====
@@ -6,6 +6,8 @@ import { apiClient } from './client';
 export const queryKeys = {
   leaderboard: (type: 'all-time' | 'weekly', page: number) =>
     ['leaderboard', type, page] as const,
+  leaderboardInfinite: (type: 'all-time' | 'weekly') =>
+    ['leaderboard', type, 'infinite'] as const,
   myRank: (type: 'all-time' | 'weekly') =>
     ['leaderboard', type, 'me'] as const,
   categoryPacks: ['categoryPacks'] as const,
@@ -19,6 +21,20 @@ export function useLeaderboard(type: 'all-time' | 'weekly', page = 1, limit = 10
   return useQuery({
     queryKey: queryKeys.leaderboard(type, page),
     queryFn: () => apiClient.getLeaderboard(type, page, limit),
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
+export function useInfiniteLeaderboard(type: 'all-time' | 'weekly', limit = 20) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.leaderboardInfinite(type),
+    queryFn: ({ pageParam = 1 }) => apiClient.getLeaderboard(type, pageParam as number, limit),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const { page, totalPages } = lastPage.data.pagination;
+      return page < totalPages ? page + 1 : undefined;
+    },
     staleTime: 30_000,
     gcTime: 5 * 60_000,
   });

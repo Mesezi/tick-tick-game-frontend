@@ -223,7 +223,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
       style={{ background: '#081510' }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 pt-12 pb-4 shrink-0">
+      <div className="flex items-center gap-3 px-6 pt-8 pb-4 shrink-0">
         <button
           onClick={onClose}
           className="p-2 rounded-xl border transition-all active:scale-95"
@@ -414,7 +414,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
       )}
 
       {/* Bottom CTA */}
-      <div className="px-6 pb-6 pt-3 shrink-0">
+      {/* <div className="px-6 pb-6 pt-3 shrink-0">
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={onClose}
@@ -427,7 +427,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
         >
           Play Now
         </motion.button>
-      </div>
+      </div> */}
     </motion.div>
   );
 }
@@ -454,7 +454,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       style={{ background: '#081510' }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 pt-12 pb-4 shrink-0">
+      <div className="flex items-center gap-3 px-6 pt-8 pb-4 shrink-0">
         <button
           onClick={onClose}
           className="p-2 rounded-xl border transition-all active:scale-95"
@@ -753,7 +753,7 @@ function ProfileEditOverlay({ onClose }: { onClose: () => void }) {
       style={{ background: '#081510' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-12 pb-4">
+      <div className="flex items-center justify-between px-6 pt-8 pb-4">
         <div>
           <p
             className="text-xs font-bold tracking-widest uppercase mb-1"
