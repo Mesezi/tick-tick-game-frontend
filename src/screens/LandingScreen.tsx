@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Radio, Trophy, ArrowLeft, User, Pencil, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
-import { useLeaderboard, usePlayerStats } from '../api/queries';
+import { useLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
 import { preloadSounds } from '../audio/soundManager';
 
@@ -70,7 +70,7 @@ export function LandingScreen() {
 
       <div className="text-center z-10 w-full max-w-[290px] sm:max-w-[360px]">
         <div
-          className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-8 border"
+          className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-4 border"
           style={{
             background: 'rgba(0,208,96,0.12)',
             borderColor: 'rgba(0,208,96,0.25)',
@@ -193,14 +193,20 @@ export function LandingScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
+  const session = useGameStore((s) => s.session);
   const [tab, setTab] = useState<'weekly' | 'alltime'>('weekly');
   const [page, setPage] = useState(1);
 
   const apiType = tab === 'alltime' ? 'all-time' as const : 'weekly' as const;
   const { data, isLoading } = useLeaderboard(apiType, page, 10);
+  const { data: myRankData } = useMyLeaderboardRank(apiType, !!session?.token);
 
   const entries = data?.data.entries ?? [];
   const totalPages = data?.data.pagination.totalPages ?? 1;
+  const myRank = myRankData?.data.userRank ?? null;
+
+  // Check if current user already appears on the visible page
+  const myEntryVisible = myRank ? entries.some((e) => e.id === myRank.id) : false;
 
   const handleTabChange = (t: 'weekly' | 'alltime') => {
     setTab(t);
@@ -374,8 +380,41 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
         )}
       </div>
 
+      {/* Pinned: current user's rank (shown when not visible on current page) */}
+      {myRank && !myEntryVisible && (
+        <div className="px-6 pt-2 pb-1 shrink-0">
+          <div
+            className="flex items-center gap-3 p-3.5 rounded-xl border"
+            style={{ background: 'rgba(0,208,96,0.09)', borderColor: 'rgba(0,208,96,0.3)' }}
+          >
+            <span
+              className="w-8 text-center text-xs font-bold"
+              style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: '#6baf80' }}
+            >
+              #{myRank.rank}
+            </span>
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
+              style={{ background: 'rgba(0,208,96,0.15)', color: '#00d060' }}
+            >
+              {myRank.displayName ? myRank.displayName.slice(0, 2).toUpperCase() : '??'}
+            </div>
+            <p className="flex-1 text-sm font-bold truncate" style={{ color: '#00d060' }}>
+              {myRank.displayName || 'You'}
+              <span className="text-[10px] font-normal ml-1" style={{ color: '#3a7a55' }}>(you)</span>
+            </p>
+            <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: '#00d060' }}>
+              {tab === 'weekly' ? myRank.weeklyScore.toLocaleString() : myRank.totalScore.toLocaleString()}
+            </span>
+          </div>
+          <p className="text-[10px] text-center mt-1" style={{ color: '#3a5a45' }}>
+            Your position · not on this page
+          </p>
+        </div>
+      )}
+
       {/* Bottom CTA */}
-      {/* <div className="px-6 pb-8 pt-4 shrink-0">
+      <div className="px-6 pb-6 pt-3 shrink-0">
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={onClose}
@@ -388,7 +427,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
         >
           Play Now
         </motion.button>
-      </div> */}
+      </div>
     </motion.div>
   );
 }

@@ -40,29 +40,60 @@ function App() {
 
       if (savedSession?.token) {
         apiClient.setToken(savedSession.token);
-        useGameStore.getState().setSession({
-          token: savedSession.token,
-          userId: savedSession.userId,
-          displayName: savedSession.displayName,
-          avatarId: savedSession.avatarId,
-          isAuthenticated: savedSession.isAuthenticated,
-          deviceId: savedSession.deviceId,
-        });
-        socketHandler.connect(SOCKET_URL, savedSession.token);
 
-        // Check if user has an active room to rejoin
+        // Verify token is still valid
         try {
           const meRes = await apiClient.getCurrentUser();
+
+          useGameStore.getState().setSession({
+            token: savedSession.token,
+            userId: savedSession.userId,
+            displayName: savedSession.displayName,
+            avatarId: savedSession.avatarId,
+            isAuthenticated: savedSession.isAuthenticated,
+            deviceId: savedSession.deviceId,
+          });
+          socketHandler.connect(SOCKET_URL, savedSession.token);
+
           if (meRes.data.activeRoom) {
             setPendingRejoinRoom(meRes.data.activeRoom);
           }
-        } catch {
-          // Silently ignore — user can still play normally
+        } catch (error) {
+          // Token is stale/invalid — clear everything and start fresh
+          console.warn('[App] Saved session invalid, starting fresh:', error);
+          persistenceLayer.clearSession();
+          apiClient.setToken(null);
+          await loginAsGuest();
         }
       } else {
+        await loginAsGuest();
+      }
+    };
+
+    const loginAsGuest = async () => {
+      try {
+        const deviceId = persistenceLayer.getDeviceId();
+        const { token, guestId } = await apiClient.guestLogin(deviceId);
+
+        useGameStore.getState().setSession({
+          token,
+          userId: guestId,
+          displayName: null,
+          avatarId: '',
+          isAuthenticated: false,
+          deviceId,
+        });
+
+        socketHandler.connect(SOCKET_URL, token);
+      } catch (error) {
+        console.warn('[App] Guest login failed, resetting device ID:', error);
+        // Device ID might be stale (deleted from DB) — clear and retry once
+        persistenceLayer.clearSession();
         try {
-          const deviceId = persistenceLayer.getDeviceId();
-          const { token, guestId } = await apiClient.guestLogin(deviceId);
+          // Force a new device ID by clearing the old one
+          localStorage.removeItem('naija_device_id');
+          const newDeviceId = persistenceLayer.getDeviceId();
+          const { token, guestId } = await apiClient.guestLogin(newDeviceId);
 
           useGameStore.getState().setSession({
             token,
@@ -70,12 +101,12 @@ function App() {
             displayName: null,
             avatarId: '',
             isAuthenticated: false,
-            deviceId,
+            deviceId: newDeviceId,
           });
 
           socketHandler.connect(SOCKET_URL, token);
-        } catch (error) {
-          console.error('[App] Guest login failed:', error);
+        } catch (retryError) {
+          console.error('[App] Guest login retry failed:', retryError);
         }
       }
     };

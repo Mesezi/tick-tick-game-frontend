@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { useGameStore } from '../store/gameStore';
-import { useLeaderboard } from '../api/queries';
+import { useLeaderboard, useMyLeaderboardRank } from '../api/queries';
 
 interface LeaderboardEntry {
   id: string;
@@ -11,10 +11,6 @@ interface LeaderboardEntry {
   weeklyScore: number;
 }
 
-/**
- * LeaderboardScreen - Exact replica of Game Screen Flow Design leaderboard.
- * Pill tab switcher, ranked player cards with medals, Play Again CTA.
- */
 export function LeaderboardScreen() {
   const session = useGameStore((s) => s.session);
   const reset = useGameStore((s) => s.reset);
@@ -23,7 +19,11 @@ export function LeaderboardScreen() {
 
   const apiType = lbTab === 'alltime' ? 'all-time' as const : 'weekly' as const;
   const { data, isLoading } = useLeaderboard(apiType, 1, 20);
+  const { data: myRankData } = useMyLeaderboardRank(apiType, !!session?.token);
+
   const entries: LeaderboardEntry[] = (data?.data.entries ?? []) as LeaderboardEntry[];
+  const myRank = myRankData?.data.userRank ?? null;
+  const myEntryVisible = myRank ? entries.some((e) => e.id === myRank.id) : false;
 
   const handlePlayAgain = useCallback(() => {
     const currentSession = useGameStore.getState().session;
@@ -152,6 +152,35 @@ export function LeaderboardScreen() {
       </div>
 
       <div className="px-6 pb-8 pt-4 shrink-0">
+      {/* Pinned: user's rank when not visible on page */}
+      {myRank && !myEntryVisible && (
+        <div className="px-6 pt-2 pb-1 shrink-0">
+          <div
+            className="flex items-center gap-3 p-3.5 rounded-xl border"
+            style={{ background: 'rgba(0,208,96,0.09)', borderColor: 'rgba(0,208,96,0.3)' }}
+          >
+            <span
+              className="w-8 text-center font-bold"
+              style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: '#6baf80' }}
+            >
+              #{myRank.rank}
+            </span>
+            <span className="text-2xl">🎮</span>
+            <p className="flex-1 text-sm font-bold truncate" style={{ color: '#00d060' }}>
+              {myRank.displayName || 'You'}
+              <span className="text-[10px] font-normal ml-1" style={{ color: '#3a7a55' }}>(you)</span>
+            </p>
+            <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: '#00d060' }}>
+              {lbTab === 'weekly' ? myRank.weeklyScore.toLocaleString() : myRank.totalScore.toLocaleString()}
+            </span>
+          </div>
+          <p className="text-[10px] text-center mt-1" style={{ color: '#3a5a45' }}>
+            Your position · not on this page
+          </p>
+        </div>
+      )}
+
+      <div className="px-6 pb-8 pt-3 shrink-0">
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handlePlayAgain}
@@ -165,6 +194,7 @@ export function LeaderboardScreen() {
           Play Again
         </motion.button>
       </div>
+    </div>
     </div>
   );
 }

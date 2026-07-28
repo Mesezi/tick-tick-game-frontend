@@ -218,6 +218,22 @@ class ApiClient {
       };
     }>(`/api/leaderboard/${type}?page=${page}&limit=${limit}`);
   }
+
+  async getMyLeaderboardRank(type: 'all-time' | 'weekly') {
+    return this.request<{
+      success: boolean;
+      data: {
+        userRank: {
+          rank: number;
+          id: string;
+          displayName: string;
+          avatarId: string;
+          totalScore: number;
+          weeklyScore: number;
+        } | null;
+      };
+    }>(`/api/leaderboard/${type}/me`);
+  }
 }
 
 export class ApiError extends Error {
