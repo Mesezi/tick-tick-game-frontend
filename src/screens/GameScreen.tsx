@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useCallback, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle, Loader2, TrendingUp, Minus } from 'lucide-react';
+import { CheckCircle, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
@@ -21,6 +21,7 @@ export function GameScreen() {
   const answers = useGameStore((s) => s.answers);
   const room = useGameStore((s) => s.room);
   const roundResults = useGameStore((s) => s.roundResults);
+  const previousRoundRanks = useGameStore((s) => s.previousRoundRanks);
   const session = useGameStore((s) => s.session);
   const setAnswer = useGameStore((s) => s.setAnswer);
 
@@ -227,7 +228,7 @@ export function GameScreen() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" data-testid="screen-game">
       {/* Game header */}
-      <div className="flex items-center justify-between px-5 pt-10 pb-3 shrink-0">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
         <div>
           <p
             className="text-xs font-bold tracking-widest uppercase"
@@ -495,6 +496,7 @@ export function GameScreen() {
               session={session}
               round={round!}
               rankingsCountdown={rankingsCountdown}
+              previousRoundRanks={previousRoundRanks}
             />
           </motion.div>
         )}
@@ -610,12 +612,14 @@ function ResultsTabsView({
   session,
   round,
   rankingsCountdown,
+  previousRoundRanks,
 }: {
   displayResults: RoundResultsPayload;
   sortedPlayers: RoundResultsPayload['players'];
   session: { userId: string; avatarId: string } | null;
   round: { roundNumber: number; totalRounds: number };
   rankingsCountdown: number;
+  previousRoundRanks: Record<string, number> | null;
 }) {
   const [activeTab, setActiveTab] = useState<'answers' | 'leaderboard'>('answers');
 
@@ -738,12 +742,21 @@ function ResultsTabsView({
           <div className="space-y-2">
             {sortedPlayers.map((p, i) => {
               const isYou = p.playerId === session?.userId;
-              // Calculate rank with ties — same score = same rank
+              // Calculate rank with ties
               const rank = i === 0 ? 1 : sortedPlayers[i - 1].totalScore === p.totalScore
                 ? (sortedPlayers.findIndex(x => x.totalScore === p.totalScore) + 1)
                 : i + 1;
               const isTied = i > 0 && sortedPlayers[i - 1].totalScore === p.totalScore
                 || (i < sortedPlayers.length - 1 && sortedPlayers[i + 1]?.totalScore === p.totalScore);
+
+              // Rank delta vs previous round
+              const prevRank = previousRoundRanks?.[p.playerId] ?? null;
+              const delta = prevRank !== null ? prevRank - rank : null; // positive = moved up
+              const isFirstRound = prevRank === null;
+
+              const deltaColor = delta === null || delta === 0 ? '#6baf80' : delta > 0 ? '#00d060' : '#ff3b5c';
+              const DeltaIcon = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
+
               return (
                 <motion.div
                   key={p.playerId}
@@ -752,25 +765,36 @@ function ResultsTabsView({
                   transition={{ delay: i * 0.08 }}
                   className="flex items-center gap-3 p-3.5 rounded-xl border"
                   style={{
-                    background: isYou ? 'rgba(0,208,96,0.09)' : '#0d2018',
-                    borderColor: isYou ? 'rgba(0,208,96,0.28)' : 'transparent',
+                    background: isYou ? 'rgba(0,208,96,0.13)' : '#0d2018',
+                    borderColor: isYou ? '#00d060' : 'transparent',
+                    boxShadow: isYou ? '0 0 0 1px rgba(0,208,96,0.25), 0 4px 16px rgba(0,208,96,0.1)' : 'none',
                   }}
                 >
                   <span
-                    className="w-7 text-center"
+                    className="w-7 text-center shrink-0"
                     style={{
                       fontFamily: "'Dela Gothic One', sans-serif",
                       fontSize: '20px',
-                      color: rank === 1 ? '#ffb800' : '#3a5a45',
+                      color: rank === 1 ? '#ffb800' : isYou ? '#00d060' : '#3a5a45',
                     }}
                   >
                     {rank === 1 ? '👑' : rank}
                   </span>
-                  <span className="text-xl">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
+                  <span className="text-xl shrink-0">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-bold truncate">
+                    <p
+                      className="text-sm font-bold truncate"
+                      style={{ color: isYou ? '#00d060' : 'white' }}
+                    >
                       {p.displayName}
-                      {isYou && <span className="text-xs font-normal ml-1" style={{ color: '#00d060' }}>(you)</span>}
+                      {isYou && (
+                        <span
+                          className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                          style={{ background: 'rgba(0,208,96,0.2)', color: '#00d060' }}
+                        >
+                          you
+                        </span>
+                      )}
                     </p>
                     {isTied && (
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,184,0,0.15)', color: '#ffb800' }}>
@@ -778,13 +802,21 @@ function ResultsTabsView({
                       </span>
                     )}
                   </div>
-                  <div className="text-right">
-                    <p style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '18px', color: '#fff' }}>
+                  <div className="text-right shrink-0">
+                    <p style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '18px', color: isYou ? '#00d060' : '#fff' }}>
                       {p.totalScore}
                     </p>
-                    <div className="flex items-center justify-end gap-0.5 text-[10px]" style={{ color: rank <= 2 ? '#00d060' : '#3a5a45' }}>
-                      {rank <= 2 ? <TrendingUp className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
-                      <span>+{p.roundScore}</span>
+                    <div className="flex items-center justify-end gap-0.5 text-[10px]" style={{ color: deltaColor }}>
+                      <DeltaIcon className="w-2.5 h-2.5" />
+                      <span>
+                        {isFirstRound
+                          ? `+${p.roundScore}`
+                          : delta === 0
+                          ? `+${p.roundScore}`
+                          : delta > 0
+                          ? `↑${delta} · +${p.roundScore}`
+                          : `↓${Math.abs(delta!)} · +${p.roundScore}`}
+                      </span>
                     </div>
                   </div>
                 </motion.div>

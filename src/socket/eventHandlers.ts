@@ -270,13 +270,21 @@ function handleRoundResults(payload: unknown): void {
   const round = store.round;
   if (!round) return;
 
+  // Snapshot current rankings before overwriting so the UI can show deltas
+  const existing = store.roundResults;
+  if (existing?.players?.length) {
+    const sorted = [...existing.players].sort((a, b) => b.totalScore - a.totalScore);
+    const snapshot: Record<string, number> = {};
+    sorted.forEach((p, i) => { snapshot[p.playerId] = i + 1; });
+    store.setPreviousRoundRanks(snapshot);
+  }
+
   // Store the full results payload for the results screen
   store.setRound({
     ...round,
     phase: 'results',
   });
 
-  // Store full round results separately for display
   useGameStore.setState({ roundResults: data });
 }
 

@@ -65,7 +65,7 @@ export function MatchSummaryScreen() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden" data-testid="screen-match-summary">
       <div className="flex-1 overflow-auto"    style={{ scrollbarWidth: 'none' }}>
-        <div className="px-6 pt-10 pb-3 mb-12 text-center">
+        <div className="px-6 pt-5 pb-3 mb-12 text-center">
         <p
           className="text-xs font-bold tracking-widest uppercase mb-1"
           style={{ color: '#6baf80' }}

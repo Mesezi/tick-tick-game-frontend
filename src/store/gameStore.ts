@@ -50,6 +50,9 @@ export interface GameStore {
   // Round results (full scoring breakdown from server)
   roundResults: RoundResultsPayload | null;
 
+  // Previous round's rank snapshot for delta indicators (playerId → rank)
+  previousRoundRanks: Record<string, number> | null;
+
   // Connection slice
   connection: {
     status: 'connected' | 'degraded' | 'disconnected';
@@ -99,6 +102,7 @@ export interface GameStore {
   setMatchResults: (results: GameStore['matchResults']) => void;
   setRematch: (rematch: Partial<GameStore['rematch']>) => void;
   setHasPassedLanding: (val: boolean) => void;
+  setPreviousRoundRanks: (ranks: Record<string, number> | null) => void;
   reset: () => void;
 }
 
@@ -107,13 +111,14 @@ export interface GameStore {
 const initialState: Omit<GameStore,
   | 'setSession' | 'setRoom' | 'setRound' | 'setAnswer' | 'setPhase'
   | 'setConnection' | 'addDisconnectedPlayer' | 'removeDisconnectedPlayer'
-  | 'setMatchResults' | 'setRematch' | 'setHasPassedLanding' | 'reset'
+  | 'setMatchResults' | 'setRematch' | 'setHasPassedLanding' | 'setPreviousRoundRanks' | 'reset'
 > = {
   session: null,
   room: null,
   round: null,
   answers: {},
   roundResults: null,
+  previousRoundRanks: null,
   connection: {
     status: 'disconnected',
     latencyMs: 0,
@@ -216,6 +221,8 @@ export const useGameStore = create<GameStore>()(
     },
 
     setHasPassedLanding: (val) => set({ hasPassedLanding: val }),
+
+    setPreviousRoundRanks: (ranks) => set({ previousRoundRanks: ranks }),
 
     reset: () => set({ ...initialState }),
   }))
