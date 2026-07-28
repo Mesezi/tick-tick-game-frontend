@@ -809,13 +809,11 @@ function ResultsTabsView({
                     <div className="flex items-center justify-end gap-0.5 text-[10px]" style={{ color: deltaColor }}>
                       <DeltaIcon className="w-2.5 h-2.5" />
                       <span>
-                        {isFirstRound
-                          ? `+${p.roundScore}`
-                          : delta === 0
+                        {isFirstRound || delta === null || delta === 0
                           ? `+${p.roundScore}`
                           : delta > 0
                           ? `↑${delta} · +${p.roundScore}`
-                          : `↓${Math.abs(delta!)} · +${p.roundScore}`}
+                          : `↓${Math.abs(delta)} · +${p.roundScore}`}
                       </span>
                     </div>
                   </div>
