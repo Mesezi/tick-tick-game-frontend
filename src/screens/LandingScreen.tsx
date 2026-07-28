@@ -307,16 +307,18 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
             {entries.map((entry, i) => {
               const rank = i + 1;
               const score = tab === 'weekly' ? entry.weeklyScore : entry.totalScore;
+              const isYou = entry.id === session?.userId;
               return (
                 <motion.div
                   key={entry.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
+                  transition={{ delay: Math.min(i * 0.04, 0.5) }}
                   className="flex items-center gap-3 p-4 rounded-xl border"
                   style={{
-                    background: '#0d2018',
-                    borderColor: 'transparent',
+                    background: isYou ? 'rgba(0,208,96,0.13)' : '#0d2018',
+                    borderColor: isYou ? '#00d060' : 'transparent',
+                    boxShadow: isYou ? '0 0 0 1px rgba(0,208,96,0.25), 0 4px 16px rgba(0,208,96,0.12)' : 'none',
                   }}
                 >
                   {/* Rank */}
@@ -325,18 +327,18 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
                     style={{
                       fontSize: rank <= 3 ? '20px' : '16px',
                       fontFamily: rank > 3 ? "'Dela Gothic One', sans-serif" : undefined,
-                      color: '#3a5a45',
+                      color: isYou ? '#00d060' : '#3a5a45',
                     }}
                   >
                     {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
                   </span>
 
-                  {/* Avatar placeholder */}
+                  {/* Avatar */}
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
                     style={{
-                      background: entry.type === 'REGISTERED' ? 'rgba(0,208,96,0.15)' : '#1a3528',
-                      color: entry.type === 'REGISTERED' ? '#00d060' : '#6baf80',
+                      background: isYou ? 'rgba(0,208,96,0.22)' : entry.type === 'REGISTERED' ? 'rgba(0,208,96,0.15)' : '#1a3528',
+                      color: isYou ? '#00d060' : entry.type === 'REGISTERED' ? '#00d060' : '#6baf80',
                     }}
                   >
                     {entry.displayName ? entry.displayName.slice(0, 2).toUpperCase() : '??'}
@@ -344,20 +346,32 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
 
                   {/* Name + type */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-bold truncate">
+                    <p
+                      className="text-sm font-bold truncate flex items-center gap-1.5"
+                      style={{ color: isYou ? '#00d060' : 'white' }}
+                    >
                       {entry.displayName || 'Anonymous'}
+                      {isYou && (
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                          style={{ background: 'rgba(0,208,96,0.2)', color: '#00d060' }}
+                        >
+                          you
+                        </span>
+                      )}
                     </p>
-                    <p className="text-[10px]" style={{ color: '#3a5a45' }}>
+                    <p className="text-[10px]" style={{ color: isYou ? 'rgba(0,208,96,0.5)' : '#3a5a45' }}>
                       {entry.type === 'REGISTERED' ? '⭐ Registered' : 'Guest'}
                     </p>
                   </div>
 
                   {/* Score */}
                   <span
-                    className="text-white shrink-0"
+                    className="shrink-0"
                     style={{
                       fontFamily: "'Dela Gothic One', sans-serif",
                       fontSize: '18px',
+                      color: isYou ? '#00d060' : 'white',
                     }}
                   >
                     {score.toLocaleString()}
@@ -380,34 +394,43 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
 
       {/* Pinned: current user's rank (shown when not visible on current page) */}
       {myRank && !myEntryVisible && (
-        <div className="px-6 pt-2 pb-1 shrink-0">
+        <div className="px-6 pt-3 pb-4 shrink-0 border-t" style={{ borderColor: 'rgba(0,208,96,0.15)' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-center" style={{ color: '#3a7a55' }}>
+            Your global rank
+          </p>
           <div
-            className="flex items-center gap-3 p-3.5 rounded-xl border"
-            style={{ background: 'rgba(0,208,96,0.09)', borderColor: 'rgba(0,208,96,0.3)' }}
+            className="flex items-center gap-3 p-4 rounded-xl border"
+            style={{
+              background: 'rgba(0,208,96,0.13)',
+              borderColor: '#00d060',
+              boxShadow: '0 0 0 1px rgba(0,208,96,0.25), 0 4px 20px rgba(0,208,96,0.15)',
+            }}
           >
             <span
-              className="w-8 text-center text-xs font-bold"
-              style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: '#6baf80' }}
+              className="w-8 text-center shrink-0"
+              style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '18px', color: '#00d060' }}
             >
               #{myRank.rank}
             </span>
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-              style={{ background: 'rgba(0,208,96,0.15)', color: '#00d060' }}
+              style={{ background: 'rgba(0,208,96,0.22)', color: '#00d060' }}
             >
               {myRank.displayName ? myRank.displayName.slice(0, 2).toUpperCase() : '??'}
             </div>
-            <p className="flex-1 text-sm font-bold truncate" style={{ color: '#00d060' }}>
+            <p className="flex-1 text-sm font-bold truncate flex items-center gap-1.5" style={{ color: '#00d060' }}>
               {myRank.displayName || 'You'}
-              <span className="text-[10px] font-normal ml-1" style={{ color: '#3a7a55' }}>(you)</span>
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(0,208,96,0.2)', color: '#00d060' }}
+              >
+                you
+              </span>
             </p>
-            <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: '#00d060' }}>
+            <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '20px', color: '#00d060' }}>
               {tab === 'weekly' ? myRank.weeklyScore.toLocaleString() : myRank.totalScore.toLocaleString()}
             </span>
           </div>
-          <p className="text-[10px] text-center mt-1" style={{ color: '#3a5a45' }}>
-            Your position · not on this page
-          </p>
         </div>
       )}
 

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useGameStore } from '../store/gameStore';
-import { useInfiniteLeaderboard, useMyLeaderboardRank } from '../api/queries';
+import { useInfiniteLeaderboard } from '../api/queries';
 
 interface LeaderboardEntry {
   id: string;
@@ -25,11 +25,8 @@ export function LeaderboardScreen() {
     hasNextPage,
     fetchNextPage,
   } = useInfiniteLeaderboard(apiType);
-  const { data: myRankData } = useMyLeaderboardRank(apiType, !!session?.token);
 
   const entries: LeaderboardEntry[] = (data?.pages.flatMap((p) => p.data.entries) ?? []) as LeaderboardEntry[];
-  const myRank = myRankData?.data.userRank ?? null;
-  const myEntryVisible = myRank ? entries.some((e) => e.id === myRank.id) : false;
 
   // Intersection observer — triggers next page fetch when sentinel scrolls into view
   useEffect(() => {
@@ -120,40 +117,41 @@ export function LeaderboardScreen() {
                   transition={{ delay: Math.min(i * 0.05, 0.5) }}
                   className="flex items-center gap-3 p-4 rounded-xl border"
                   style={{
-                    background: isYou ? 'rgba(0,208,96,0.09)' : '#0d2018',
-                    borderColor: isYou ? 'rgba(0,208,96,0.28)' : 'transparent',
+                    background: isYou ? 'rgba(0,208,96,0.13)' : '#0d2018',
+                    borderColor: isYou ? '#00d060' : 'transparent',
+                    boxShadow: isYou ? '0 0 0 1px rgba(0,208,96,0.25), 0 4px 16px rgba(0,208,96,0.12)' : 'none',
                   }}
                 >
                   <span
                     className="w-8 text-center"
                     style={{
-                      fontFamily:
-                        rank <= 3 ? 'inherit' : "'Dela Gothic One', sans-serif",
+                      fontFamily: rank <= 3 ? 'inherit' : "'Dela Gothic One', sans-serif",
                       fontSize: rank <= 3 ? '22px' : '18px',
-                      color: '#3a5a45',
+                      color: isYou ? '#00d060' : '#3a5a45',
                     }}
                   >
-                    {rank <= 3
-                      ? ['🥇', '🥈', '🥉'][rank - 1]
-                      : rank}
+                    {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
                   </span>
                   <span className="text-2xl">🎮</span>
-                  <p className="flex-1 text-white text-sm font-bold">
+                  <p
+                    className="flex-1 text-sm font-bold"
+                    style={{ color: isYou ? '#00d060' : 'white' }}
+                  >
                     {entry.displayName || 'Anonymous'}
                     {isYou && (
                       <span
-                        className="text-xs font-normal ml-1"
-                        style={{ color: '#00d060' }}
+                        className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ background: 'rgba(0,208,96,0.2)', color: '#00d060' }}
                       >
-                        (you)
+                        you
                       </span>
                     )}
                   </p>
                   <span
-                    className="text-white"
                     style={{
                       fontFamily: "'Dela Gothic One', sans-serif",
                       fontSize: '18px',
+                      color: isYou ? '#00d060' : 'white',
                     }}
                   >
                     {score.toLocaleString()}
@@ -173,37 +171,6 @@ export function LeaderboardScreen() {
           </div>
         )}
       </div>
-
-      <div className="px-6 pb-8 pt-4 shrink-0">
-      {/* Pinned: user's rank when not visible on page */}
-      {myRank && !myEntryVisible && (
-        <div className="px-6 pt-2 pb-1 shrink-0">
-          <div
-            className="flex items-center gap-3 p-3.5 rounded-xl border"
-            style={{ background: 'rgba(0,208,96,0.09)', borderColor: 'rgba(0,208,96,0.3)' }}
-          >
-            <span
-              className="w-8 text-center font-bold"
-              style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: '#6baf80' }}
-            >
-              #{myRank.rank}
-            </span>
-            <span className="text-2xl">🎮</span>
-            <p className="flex-1 text-sm font-bold truncate" style={{ color: '#00d060' }}>
-              {myRank.displayName || 'You'}
-              <span className="text-[10px] font-normal ml-1" style={{ color: '#3a7a55' }}>(you)</span>
-            </p>
-            <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '16px', color: '#00d060' }}>
-              {lbTab === 'weekly' ? myRank.weeklyScore.toLocaleString() : myRank.totalScore.toLocaleString()}
-            </span>
-          </div>
-          <p className="text-[10px] text-center mt-1" style={{ color: '#3a5a45' }}>
-            Your position · not on this page
-          </p>
-        </div>
-      )}
-
-    </div>
     </div>
   );
 }
