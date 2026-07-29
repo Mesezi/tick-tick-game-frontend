@@ -81,13 +81,26 @@ export function useAppInit() {
 
     init().finally(() => setIsBooting(false));
 
-    // Reconnect socket when tab becomes visible after mobile suspension
+    // Reconnect socket and re-sync room state when tab becomes visible after mobile suspension
     const handleVisibility = () => {
       if (document.visibilityState !== 'visible') return;
       const sess = useGameStore.getState().session;
       if (!sess?.token) return;
+
+      const roomCode = useGameStore.getState().room?.roomCode;
+
       if (useGameStore.getState().connection.status === 'disconnected') {
+        // Full reconnect needed — connect() will trigger handleConnect
+        // which fires state-snapshot via join-room below
         socketHandler.connect(SOCKET_URL, sess.token);
+      }
+
+      // Always re-emit join-room so server sends fresh state-snapshot
+      // This resyncs timer, phase, answers even if socket stayed connected
+      if (roomCode) {
+        setTimeout(() => {
+          socketHandler.emit('join-room', { roomCode });
+        }, 300); // small delay to ensure socket is ready
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);

@@ -137,20 +137,45 @@ export function GameScreen() {
     if (!round) return;
     if (round.phase === 'input') {
       const endsAt = round.endsAt;
+
+      // Calculate immediately on mount/phase change (handles resume from background)
+      const calcRemaining = () => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      setTimer(calcRemaining());
+
       const interval = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-        setTimer(remaining);
+        setTimer(calcRemaining());
       }, 250);
       return () => clearInterval(interval);
     }
     if (round.phase === 'grace' && round.graceEndsAt) {
+      const graceEndsAt = round.graceEndsAt;
+
+      const calcGrace = () => Math.max(0, Math.ceil((graceEndsAt - Date.now()) / 1000));
+      setGraceTimer(calcGrace());
+
       const interval = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((round.graceEndsAt! - Date.now()) / 1000));
-        setGraceTimer(remaining);
+        setGraceTimer(calcGrace());
       }, 250);
       return () => clearInterval(interval);
     }
   }, [round?.phase, round?.endsAt, round?.graceEndsAt]);
+
+  // On resume from background, recalculate timers immediately
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      const r = useGameStore.getState().round;
+      if (!r) return;
+      if (r.phase === 'input') {
+        setTimer(Math.max(0, Math.ceil((r.endsAt - Date.now()) / 1000)));
+      }
+      if (r.phase === 'grace' && r.graceEndsAt) {
+        setGraceTimer(Math.max(0, Math.ceil((r.graceEndsAt - Date.now()) / 1000)));
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   // 🔊 Timer tick — only when ≤15 seconds remain, with heartbeat at ≤5s
   useEffect(() => {
@@ -340,7 +365,7 @@ export function GameScreen() {
                   onChange={(e) => handleAnswerChange(cat, e.target.value)}
                   readOnly={hasStopped || (subPhase !== 'input' && subPhase !== 'grace')}
                   placeholder={`${round.letter.toUpperCase()}...`}
-                  className="bg-transparent text-white outline-none w-full text-sm font-bold placeholder-[#2a4a33]"
+                  className="bg-transparent text-white outline-none w-full font-bold placeholder-[#2a4a33]"
                   style={{ caretColor: '#00d060' }}
                 />
               </div>

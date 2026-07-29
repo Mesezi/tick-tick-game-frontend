@@ -116,15 +116,25 @@ class SocketHandlerImpl implements SocketHandler {
   private setupVisibilityListener(): void {
     this.removeVisibilityListener();
     this.visibilityHandler = () => {
-      if (document.visibilityState === 'visible') {
-        // Tab became visible — check if socket is disconnected and reconnect
-        if (this.socket && !this.socket.connected) {
-          console.info('[SocketHandler] Tab visible, reconnecting...');
-          this.socket.connect();
-        }
-        // Also do a time sync to recalibrate
-        setTimeout(() => this.sendTimeSync(), 500);
+      if (document.visibilityState !== 'visible') return;
+
+      // Reconnect socket if dropped
+      if (this.socket && !this.socket.connected) {
+        console.info('[SocketHandler] Tab visible, reconnecting...');
+        this.socket.connect();
       }
+
+      // Re-emit join-room so server sends fresh state-snapshot with current timer/phase
+      const roomCode = useGameStore.getState().room?.roomCode;
+      if (roomCode) {
+        setTimeout(() => {
+          if (this.socket?.connected) {
+            this.socket.emit('join-room', { roomCode });
+          }
+        }, 300);
+      }
+
+      setTimeout(() => this.sendTimeSync(), 500);
     };
     document.addEventListener('visibilitychange', this.visibilityHandler);
   }

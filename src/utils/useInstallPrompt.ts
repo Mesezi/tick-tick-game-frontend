@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 const KEY_DISMISSED = 'tt_install_dismissed_at';
 const KEY_CANCELLED = 'tt_install_cancelled_at';
 
-const COOLDOWN_DISMISSED = 7 * 24 * 60 * 60 * 1000; // 7 days
+const COOLDOWN_DISMISSED = 30 * 24 * 60 * 60 * 1000; // 30 days — confirmed installed or not interested
 const COOLDOWN_CANCELLED = 2 * 24 * 60 * 60 * 1000; // 2 days
 
 interface BeforeInstallPromptEvent extends Event {
@@ -23,13 +23,7 @@ function isIos(): boolean {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
-/** On iOS, only Safari can add to home screen */
-function isIosSafari(): boolean {
-  const ua = window.navigator.userAgent;
-  return isIos() && /safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
-}
-
-export type InstallMode = 'android' | 'ios-safari' | 'ios-other' | null;
+export type InstallMode = 'android' | 'ios' | null;
 
 export function useInstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
@@ -37,19 +31,15 @@ export function useInstallPrompt() {
   const [installMode, setInstallMode] = useState<InstallMode>(null);
 
   useEffect(() => {
-    // Already running as installed PWA — never show
     if (window.matchMedia('(display-mode: standalone)').matches) return;
     if (isInCooldown()) return;
 
     if (isIos()) {
-      // iOS Safari: can add to home screen via Share sheet
-      // iOS Chrome/Firefox/Edge: must open in Safari first
-      setInstallMode(isIosSafari() ? 'ios-safari' : 'ios-other');
+      setInstallMode('ios');
       setShowBanner(true);
       return;
     }
 
-    // Android / desktop Chrome — wait for native prompt
     const handler = (e: Event) => {
       e.preventDefault();
       setPromptEvent(e as BeforeInstallPromptEvent);
@@ -61,32 +51,37 @@ export function useInstallPrompt() {
   }, []);
 
   const handleInstall = async () => {
-    if (installMode === 'ios-safari' || installMode === 'ios-other') {
-      // User acknowledged the instructions — set short cooldown
+    if (installMode === 'ios') {
+      // "Got it" without confirming — remind again in 2 days
       localStorage.setItem(KEY_CANCELLED, Date.now().toString());
       setShowBanner(false);
       return;
     }
-
     if (!promptEvent) return;
     await promptEvent.prompt();
     const { outcome } = await promptEvent.userChoice;
-
     if (outcome === 'accepted') {
       localStorage.removeItem(KEY_DISMISSED);
       localStorage.removeItem(KEY_CANCELLED);
     } else {
       localStorage.setItem(KEY_CANCELLED, Date.now().toString());
     }
-
     setShowBanner(false);
     setPromptEvent(null);
   };
 
+  const handleConfirmInstalled = () => {
+    // User confirmed they installed it — don't show for 30 days
+    localStorage.setItem(KEY_DISMISSED, Date.now().toString());
+    localStorage.removeItem(KEY_CANCELLED);
+    setShowBanner(false);
+  };
+
   const handleDismiss = () => {
+    // Closed without engaging — remind in 7 days
     localStorage.setItem(KEY_DISMISSED, Date.now().toString());
     setShowBanner(false);
   };
 
-  return { showBanner, installMode, handleInstall, handleDismiss };
+  return { showBanner, installMode, handleInstall, handleConfirmInstalled, handleDismiss };
 }

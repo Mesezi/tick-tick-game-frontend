@@ -123,7 +123,7 @@ export function LeaderboardScreen() {
                   }}
                 >
                   <span
-                    className="w-8 text-center"
+                    className="w-12 text-center"
                     style={{
                       fontFamily: rank <= 3 ? 'inherit' : "'Dela Gothic One', sans-serif",
                       fontSize: rank <= 3 ? '22px' : '18px',

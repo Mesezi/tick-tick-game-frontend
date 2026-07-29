@@ -19,7 +19,7 @@ export function LandingScreen() {
   const session = useGameStore((s) => s.session);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const { showBanner, installMode, handleInstall, handleDismiss } = useInstallPrompt();
+  const { showBanner, installMode, handleInstall, handleConfirmInstalled, handleDismiss } = useInstallPrompt();
 
   const handlePlay = () => {
     // Preload sounds on first user interaction (required by browser autoplay policy)
@@ -181,6 +181,7 @@ export function LandingScreen() {
         visible={showBanner}
         installMode={installMode}
         onInstall={handleInstall}
+        onConfirmInstalled={handleConfirmInstalled}
         onDismiss={handleDismiss}
       />
     </div>
@@ -406,7 +407,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
             }}
           >
             <span
-              className="w-8 text-center shrink-0"
+              className="w-12 text-center shrink-0"
               style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '18px', color: '#00d060' }}
             >
               #{myRank.rank}
@@ -419,12 +420,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
             </div>
             <p className="flex-1 text-sm font-bold truncate flex items-center gap-1.5" style={{ color: '#00d060' }}>
               {myRank.displayName || 'You'}
-              <span
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ background: 'rgba(0,208,96,0.2)', color: '#00d060' }}
-              >
-                you
-              </span>
+              
             </p>
             <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '20px', color: '#00d060' }}>
               {tab === 'weekly' ? myRank.weeklyScore.toLocaleString() : myRank.totalScore.toLocaleString()}

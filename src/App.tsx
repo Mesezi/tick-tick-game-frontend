@@ -68,7 +68,7 @@ function App() {
       }}
     >
       <div
-        className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-[480px] md:max-w-[540px] lg:max-w-[600px] sm:h-[95vh] sm:rounded-3xl sm:shadow-2xl sm:border sm:border-[#1a3528]/50"
+        className="relative w-full py-3 h-full overflow-hidden flex flex-col sm:max-w-[480px] md:max-w-[540px] lg:max-w-[600px] sm:h-[95vh] sm:rounded-3xl sm:shadow-2xl sm:border sm:border-[#1a3528]/50"
         style={{ background: '#081510' }}
       >
         <TopBar
