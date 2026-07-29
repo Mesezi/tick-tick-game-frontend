@@ -6,6 +6,8 @@ import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '..
 import { apiClient } from '../api/client';
 import { preloadSounds } from '../audio/soundManager';
 import { showToast } from '../components/toastStore';
+import { InstallBanner } from '../components/InstallBanner';
+import { useInstallPrompt } from '../utils/useInstallPrompt';
 
 /**
  * LandingScreen - Landing page with "Start Playing" CTA and Leaderboard access.
@@ -17,6 +19,7 @@ export function LandingScreen() {
   const session = useGameStore((s) => s.session);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const { showBanner, handleInstall, handleDismiss } = useInstallPrompt();
 
   const handlePlay = () => {
     // Preload sounds on first user interaction (required by browser autoplay policy)
@@ -85,26 +88,12 @@ export function LandingScreen() {
           </span>
         </div>
 
-        <h1
-          className="leading-[0.85]"
-          style={{
-            fontFamily: "'Dela Gothic One', sans-serif",
-            fontSize: '76px',
-            color: '#ffffff',
-          }}
-        >
-          Tick-
-        </h1>
-        <h1
-          className="leading-[0.85] mb-8"
-          style={{
-            fontFamily: "'Dela Gothic One', sans-serif",
-            fontSize: '76px',
-            color: '#00d060',
-          }}
-        >
-          Tick
-        </h1>
+        <img
+          src="/tick-tick logo.png"
+          alt="Tick-Tick"
+          className="w-52 mx-auto mb-6 drop-shadow-lg"
+          style={{ filter: 'drop-shadow(0 8px 24px rgba(0,208,96,0.25))' }}
+        />
 
         <p
           className="text-[13px] leading-relaxed mb-10"
@@ -127,35 +116,37 @@ export function LandingScreen() {
           Start Playing
         </motion.button>
 
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowLeaderboard(true)}
-          className="w-full rounded-2xl py-3.5 mb-3 font-bold text-sm flex items-center justify-center gap-2 border"
-          style={{
-            background: 'rgba(255,184,0,0.08)',
-            borderColor: 'rgba(255,184,0,0.3)',
-            color: '#ffb800',
-          }}
-        >
-          <Trophy className="w-4 h-4" />
-          Leaderboard
-        </motion.button>
-
-        {session?.displayName && (
+        <div className="flex gap-2 mb-4">
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowProfile(true)}
-            className="w-full rounded-2xl py-3.5 mb-4 font-bold text-sm flex items-center justify-center gap-2 border"
+            onClick={() => setShowLeaderboard(true)}
+            className="flex-1 rounded-2xl py-3.5 font-bold text-sm flex items-center justify-center gap-2 border"
             style={{
-              background: 'rgba(0,208,96,0.06)',
-              borderColor: 'rgba(0,208,96,0.2)',
-              color: '#6baf80',
+              background: 'rgba(255,184,0,0.08)',
+              borderColor: 'rgba(255,184,0,0.3)',
+              color: '#ffb800',
             }}
           >
-            <User className="w-4 h-4" />
-            My Profile
+            <Trophy className="w-4 h-4" />
+            Leaderboard
           </motion.button>
-        )}
+
+          {session?.displayName && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowProfile(true)}
+              className="flex-1 rounded-2xl py-3.5 font-bold text-sm flex items-center justify-center gap-2 border"
+              style={{
+                background: 'rgba(0,208,96,0.06)',
+                borderColor: 'rgba(0,208,96,0.2)',
+                color: '#6baf80',
+              }}
+            >
+              <User className="w-4 h-4" />
+              Profile
+            </motion.button>
+          )}
+        </div>
 
         <p className="text-xs" style={{ color: '#2a4a33' }}>
           No account needed · Free to play
@@ -184,6 +175,13 @@ export function LandingScreen() {
           <ProfileOverlay onClose={() => setShowProfile(false)} />
         )}
       </AnimatePresence>
+
+      {/* PWA install banner */}
+      <InstallBanner
+        visible={showBanner}
+        onInstall={handleInstall}
+        onDismiss={handleDismiss}
+      />
     </div>
   );
 }
