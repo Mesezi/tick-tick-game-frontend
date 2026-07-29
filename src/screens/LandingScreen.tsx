@@ -19,7 +19,7 @@ export function LandingScreen() {
   const session = useGameStore((s) => s.session);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const { showBanner, handleInstall, handleDismiss } = useInstallPrompt();
+  const { showBanner, installMode, handleInstall, handleDismiss } = useInstallPrompt();
 
   const handlePlay = () => {
     // Preload sounds on first user interaction (required by browser autoplay policy)
@@ -179,6 +179,7 @@ export function LandingScreen() {
       {/* PWA install banner */}
       <InstallBanner
         visible={showBanner}
+        installMode={installMode}
         onInstall={handleInstall}
         onDismiss={handleDismiss}
       />
