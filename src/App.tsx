@@ -75,6 +75,7 @@ function App() {
           soundMuted={soundMuted}
           showHome={activeScreen !== 'landing'}
           connectionStatus={connectionStatus}
+          isBooting={isBooting}
           onToggleSound={() => setSoundMuted(toggleMute())}
           onGoHome={handleGoHome}
         />

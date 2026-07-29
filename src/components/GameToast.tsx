@@ -68,8 +68,8 @@ export function GameToast({
           transition={{ type: 'spring', damping: 22, stiffness: 320 }}
           role="alert"
           aria-live="polite"
-          className="fixed top-0 inset-x-0 z-100 flex justify-center px-4 pt-3 pointer-events-none"
-          style={{ maxWidth: '600px', margin: '0 auto' }}
+          className="fixed top-0 inset-x-0 z-100 flex justify-center px-4 pointer-events-none"
+          style={{ paddingTop: 'max(12px, env(safe-area-inset-top))', maxWidth: '600px', margin: '0 auto' }}
         >
           <div
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-xl pointer-events-auto"

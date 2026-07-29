@@ -20,12 +20,14 @@ export interface SocketHandler {
 }
 
 const TIME_SYNC_INTERVAL_MS = 30000;
+const KEEPALIVE_INTERVAL_MS = 25000; // just under typical server idle timeout
 
 class SocketHandlerImpl implements SocketHandler {
   private socket: Socket | null = null;
   private latencyMs: number = 0;
   private timeOffset: number = 0;
   private timeSyncTimer: ReturnType<typeof setInterval> | null = null;
+  private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
   private eventHandlers: Map<string, (payload: unknown) => void> = new Map();
   private visibilityHandler: (() => void) | null = null;
 
@@ -59,6 +61,7 @@ class SocketHandlerImpl implements SocketHandler {
 
   disconnect(): void {
     this.stopTimeSyncInterval();
+    this.stopKeepalive();
     this.removeVisibilityListener();
     if (this.socket) {
       this.socket.removeAllListeners();
@@ -143,13 +146,13 @@ class SocketHandlerImpl implements SocketHandler {
     });
 
     this.startTimeSyncInterval();
-    // Initial time sync
-    this.sendTimeSync();
+    this.startKeepalive();
   }
 
   private handleDisconnect(reason: string): void {
     console.warn('[SocketHandler] Disconnected:', reason);
     this.stopTimeSyncInterval();
+    this.stopKeepalive();
 
     useGameStore.getState().setConnection({ status: 'disconnected' });
 
@@ -186,12 +189,31 @@ class SocketHandlerImpl implements SocketHandler {
     this.timeSyncTimer = setInterval(() => {
       this.sendTimeSync();
     }, TIME_SYNC_INTERVAL_MS);
+    // Run immediately on connect too
+    this.sendTimeSync();
   }
 
   private stopTimeSyncInterval(): void {
     if (this.timeSyncTimer) {
       clearInterval(this.timeSyncTimer);
       this.timeSyncTimer = null;
+    }
+  }
+
+  private startKeepalive(): void {
+    this.stopKeepalive();
+    this.keepaliveTimer = setInterval(() => {
+      if (this.socket?.connected) {
+        // Lightweight ping — server doesn't need to respond
+        this.socket.emit('ping');
+      }
+    }, KEEPALIVE_INTERVAL_MS);
+  }
+
+  private stopKeepalive(): void {
+    if (this.keepaliveTimer) {
+      clearInterval(this.keepaliveTimer);
+      this.keepaliveTimer = null;
     }
   }
 

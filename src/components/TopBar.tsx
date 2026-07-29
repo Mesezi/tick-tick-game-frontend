@@ -4,6 +4,7 @@ interface TopBarProps {
   soundMuted: boolean;
   showHome: boolean;
   connectionStatus: 'connected' | 'degraded' | 'disconnected';
+  isBooting: boolean;
   onToggleSound: () => void;
   onGoHome: () => void;
 }
@@ -20,7 +21,7 @@ const STATUS_LABEL = {
   disconnected: 'OFFLINE',
 };
 
-export function TopBar({ soundMuted, showHome, connectionStatus, onToggleSound, onGoHome }: TopBarProps) {
+export function TopBar({ soundMuted, showHome, connectionStatus, isBooting, onToggleSound, onGoHome }: TopBarProps) {
   const color = STATUS_COLOR[connectionStatus];
 
   return (
@@ -50,13 +51,17 @@ export function TopBar({ soundMuted, showHome, connectionStatus, onToggleSound, 
       </div>
 
       <div className="flex items-center gap-1.5">
-        <div
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ background: color, animation: 'ping-dot 2s ease-in-out infinite' }}
-        />
-        <span className="text-[9px] font-bold tracking-widest" style={{ color }}>
-          {STATUS_LABEL[connectionStatus]}
-        </span>
+        {!isBooting && (
+          <>
+            <div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: color, animation: 'ping-dot 2s ease-in-out infinite' }}
+            />
+            <span className="text-[9px] font-bold tracking-widest" style={{ color }}>
+              {STATUS_LABEL[connectionStatus]}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );
