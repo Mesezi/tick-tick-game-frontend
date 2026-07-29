@@ -1,7 +1,7 @@
-import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from './socketHandler';
 import { playSound } from '../audio/soundManager';
+import { showToast } from '../components/toastStore';
 import type {
   StateSnapshot,
   RoundStartPayload,
@@ -19,7 +19,53 @@ import type {
   ValidationErrorPayload,
 } from '../types';
 
-// ===== Event Handler Functions =====
+/**
+ * A non-host player intentionally left the room.
+ */
+function handlePlayerLeft(payload: unknown): void {
+  const data = payload as { userId: string; displayName: string };
+  if (!data?.userId) {
+    console.error('[EventHandler] Invalid player-left payload:', payload);
+    return;
+  }
+
+  const store = useGameStore.getState();
+  const room = store.room;
+  if (!room) return;
+
+  store.setRoom({
+    ...room,
+    players: room.players.filter((p) => p.id !== data.userId && p.userId !== data.userId),
+  });
+
+  if (data.displayName) {
+    showToast(`${data.displayName} left the room`, 'info');
+  }
+}
+
+/**
+ * Host left — leadership transferred to another player.
+ */
+function handleHostChanged(payload: unknown): void {
+  const data = payload as { newHostId: string; displayName: string };
+  if (!data?.newHostId) {
+    console.error('[EventHandler] Invalid host-changed payload:', payload);
+    return;
+  }
+
+  const store = useGameStore.getState();
+  const room = store.room;
+  if (!room) return;
+
+  store.setRoom({ ...room, hostId: data.newHostId });
+
+  const myUserId = store.session?.userId;
+  if (data.newHostId === myUserId) {
+    showToast('You are now the host!', 'host');
+  } else if (data.displayName) {
+    showToast(`${data.displayName} is now the host`, 'host');
+  }
+}
 
 /**
  * Received on join/reconnect. Full room state to hydrate the store.
@@ -98,7 +144,7 @@ function handlePlayerConnected(payload: unknown): void {
     ],
   });
 
-  toast(`${data.displayName} joined the room`);
+  showToast(`${data.displayName} joined the room`, 'join');
   playSound('playerJoin');
 }
 
@@ -239,7 +285,7 @@ function handleGraceStarted(payload: unknown): void {
     graceTriggeredBy: data.triggeredBy.displayName,
   });
 
-  toast(`⚡ ${data.triggeredBy.displayName} said STOP! 10 seconds left.`);
+  showToast(`⚡ ${data.triggeredBy.displayName} said STOP! 15 seconds left.`, 'stop');
 }
 
 /**
@@ -380,7 +426,7 @@ function handleError(payload: unknown): void {
     return;
   }
 
-  toast.error(data?.message || 'Something went wrong');
+  showToast(data?.message || 'Something went wrong', 'error');
 }
 
 /**
@@ -438,7 +484,7 @@ function handleRematchRequested(payload: unknown): void {
     cancelReason: null,
   });
 
-  toast(`${data.requestedBy.displayName} wants a rematch!`);
+  showToast(`${data.requestedBy.displayName} wants a rematch!`, 'info');
 }
 
 function handleRematchUpdate(payload: unknown): void {
@@ -472,7 +518,7 @@ function handleRematchReady(payload: unknown): void {
   // Auto-navigate: emit join-room for the new room
   socketHandler.emit('join-room', { roomCode: data.newRoomCode });
 
-  toast.success('Rematch ready! Joining new room...');
+  showToast('Rematch ready! Joining new room...', 'success');
 }
 
 function handleRematchCancelled(payload: unknown): void {
@@ -484,7 +530,7 @@ function handleRematchCancelled(payload: unknown): void {
     cancelReason: data?.reason || 'Rematch cancelled',
   });
 
-  toast(data?.reason || 'Rematch cancelled');
+  showToast(data?.reason || 'Rematch cancelled', 'info');
 }
 
 // ===== Registration Function =====
@@ -496,6 +542,8 @@ function handleRematchCancelled(payload: unknown): void {
 export function registerEventHandlers(): void {
   socketHandler.onEvent('state-snapshot', handleStateSnapshot);
   socketHandler.onEvent('player-connected', handlePlayerConnected);
+  socketHandler.onEvent('player-left', handlePlayerLeft);
+  socketHandler.onEvent('host-changed', handleHostChanged);
   socketHandler.onEvent('player-disconnected', handlePlayerDisconnected);
   socketHandler.onEvent('player-reconnected', handlePlayerReconnected);
   socketHandler.onEvent('player-eliminated', handlePlayerEliminated);
@@ -522,6 +570,8 @@ export function registerEventHandlers(): void {
 export function unregisterEventHandlers(): void {
   socketHandler.offEvent('state-snapshot');
   socketHandler.offEvent('player-connected');
+  socketHandler.offEvent('player-left');
+  socketHandler.offEvent('host-changed');
   socketHandler.offEvent('player-disconnected');
   socketHandler.offEvent('player-reconnected');
   socketHandler.offEvent('player-eliminated');

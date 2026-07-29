@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
 import { apiClient } from '../api/client';
+import { showToast } from '../components/toastStore';
 
 const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'];
 
@@ -41,7 +41,7 @@ export function AvatarSetupScreen() {
       avatarId,
     });
 
-    toast.success(`Welcome, ${playerName}! 🎮`);
+    showToast(`Welcome, ${playerName}! 🎮`, 'success');
     setIsSaving(false);
   };
 

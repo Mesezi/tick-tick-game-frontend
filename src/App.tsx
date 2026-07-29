@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Toaster } from 'sonner';
 import { AnimatePresence, motion } from 'motion/react';
 import { Volume2, VolumeX, Home } from 'lucide-react';
 import { ScreenRouter } from './router/ScreenRouter.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConnectionLostOverlay } from './components/ConnectionLostOverlay';
 import { RejoinPrompt } from './components/RejoinPrompt';
+import { GameToast } from './components/GameToast';
+import { useToastStore } from './components/toastStore';
 import { useGameStore } from './store/gameStore';
 import { socketHandler } from './socket/socketHandler';
 import { registerEventHandlers, unregisterEventHandlers } from './socket/eventHandlers';
@@ -23,6 +24,8 @@ function App() {
   const [soundMuted, setSoundMuted] = useState(isMuted());
   const [pendingRejoinRoom, setPendingRejoinRoom] = useState<string | null>(null);
 
+  const toast = useToastStore();
+
   const session = useGameStore((s) => s.session);
   const room = useGameStore((s) => s.room);
   const round = useGameStore((s) => s.round);
@@ -33,6 +36,14 @@ function App() {
 
   // Initialize on mount: hydrate session, authenticate, connect socket
   useEffect(() => {
+    // Restore session from localStorage immediately so the UI
+    // isn't blank while the async token verification runs.
+    const savedSession = persistenceLayer.loadSession();
+    if (savedSession?.token && !useGameStore.getState().session) {
+      apiClient.setToken(savedSession.token);
+      useGameStore.getState().setSession(savedSession);
+    }
+
     const init = async () => {
       registerEventHandlers();
 
@@ -41,16 +52,19 @@ function App() {
       if (savedSession?.token) {
         apiClient.setToken(savedSession.token);
 
-        // Verify token is still valid
+        // Verify token is still valid and get fresh profile data
         try {
           const meRes = await apiClient.getCurrentUser();
+          const { user } = meRes.data;
 
+          // Merge server profile into session — server is source of truth
+          // for displayName and avatarId after a refresh
           useGameStore.getState().setSession({
             token: savedSession.token,
-            userId: savedSession.userId,
-            displayName: savedSession.displayName,
-            avatarId: savedSession.avatarId,
-            isAuthenticated: savedSession.isAuthenticated,
+            userId: user.id ?? savedSession.userId,
+            displayName: user.displayName ?? savedSession.displayName,
+            avatarId: user.avatarId ?? savedSession.avatarId,
+            isAuthenticated: user.type === 'GOOGLE' || savedSession.isAuthenticated,
             deviceId: savedSession.deviceId,
           });
           socketHandler.connect(SOCKET_URL, savedSession.token);
@@ -113,9 +127,22 @@ function App() {
 
     init();
 
+    // Mobile browsers suspend tabs — reconnect socket when page becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      const sess = useGameStore.getState().session;
+      if (!sess?.token) return;
+      const status = useGameStore.getState().connection.status;
+      if (status === 'disconnected') {
+        socketHandler.connect(SOCKET_URL, sess.token);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       unregisterEventHandlers();
       socketHandler.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -150,6 +177,13 @@ function App() {
 
   const handleGoHome = () => {
     const currentSession = useGameStore.getState().session;
+    const currentRoom = useGameStore.getState().room;
+    // If in a lobby or game, leave the room first (fire-and-forget)
+    if (currentRoom?.roomCode && currentSession?.token) {
+      apiClient.leaveRoom(currentRoom.roomCode).catch(() => {
+        // Ignore — we're going home regardless
+      });
+    }
     useGameStore.getState().reset();
     if (currentSession) {
       useGameStore.getState().setSession(currentSession);
@@ -248,17 +282,12 @@ function App() {
         </AnimatePresence>
       </div>
 
-      <Toaster
-        richColors
-        position="top-center"
-        toastOptions={{
-          style: {
-            background: '#0d2018',
-            border: '1px solid rgba(0,208,96,0.2)',
-            color: '#f0fff4',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-          },
-        }}
+      <GameToast
+        message={toast.message}
+        variant={toast.variant}
+        visible={toast.visible}
+        toastId={toast._id}
+        onDismiss={toast.dismiss}
       />
 
       {showConnectionLost && (

@@ -74,6 +74,7 @@ class ApiClient {
           type: 'GUEST' | 'GOOGLE';
           email: string | null;
           displayName: string | null;
+          avatarId: string | null;
           totalScore: number;
           weeklyScore: number;
           createdAt: string;
@@ -194,6 +195,12 @@ class ApiClient {
 
   async getRoomState(code: string) {
     return this.request<{ success: boolean; data: unknown }>(`/api/rooms/${code}`);
+  }
+
+  async leaveRoom(roomCode: string) {
+    return this.request<{ success: boolean }>(`/api/rooms/${roomCode}/leave`, {
+      method: 'POST',
+    });
   }
 
   // ===== Leaderboard =====

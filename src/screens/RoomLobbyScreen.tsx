@@ -1,9 +1,11 @@
+import { useState, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { Copy, Zap, Crown } from 'lucide-react';
-import { toast } from 'sonner';
+import { Copy, Zap, Crown, LogOut } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
+import { apiClient } from '../api/client';
 import { getPlayerAvatar } from '../utils/avatarHelper';
+import { showToast } from '../components/toastStore';
 
 /**
  * RoomLobbyScreen - Exact replica of Game Screen Flow Design room-lobby.
@@ -12,6 +14,7 @@ import { getPlayerAvatar } from '../utils/avatarHelper';
 export function RoomLobbyScreen() {
   const room = useGameStore((s) => s.room);
   const session = useGameStore((s) => s.session);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   if (!room || !session) {
     return null;
@@ -25,8 +28,28 @@ export function RoomLobbyScreen() {
 
   const handleCopyCode = () => {
     navigator.clipboard?.writeText(room.roomCode);
-    toast.success('Room code copied!');
+    showToast('Room code copied!', 'success');
   };
+
+  const handleLeave = useCallback(async () => {
+    if (isLeaving) return;
+    setIsLeaving(true);
+    try {
+      await apiClient.leaveRoom(room.roomCode);
+      // Server will broadcast room-closed / host-changed / player-left
+      // which the event handlers will pick up and reset state.
+      // Do a local reset as a fallback in case the socket event is missed.
+      useGameStore.getState().reset();
+      const sess = useGameStore.getState().session;
+      if (sess) useGameStore.getState().setSession(sess);
+    } catch (err) {
+      console.warn('[RoomLobby] Leave room failed:', err);
+      // Still navigate home — don't leave the user stuck
+      useGameStore.getState().reset();
+      const sess = useGameStore.getState().session;
+      if (sess) useGameStore.getState().setSession(sess);
+    }
+  }, [room.roomCode, isLeaving]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" data-testid="screen-room-lobby">
@@ -151,7 +174,7 @@ export function RoomLobbyScreen() {
         </div>
       </div>
 
-      <div className="px-6 pb-8 pt-4">
+      <div className="px-6 pb-8 pt-4 flex flex-col gap-2">
         {isHost ? (
           <motion.button
             whileTap={{ scale: 0.96 }}
@@ -177,6 +200,24 @@ export function RoomLobbyScreen() {
             </p>
           </div>
         )}
+
+        {/* Leave room */}
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={handleLeave}
+          disabled={isLeaving}
+          className="w-full rounded-2xl py-3 flex items-center justify-center gap-2 border transition-all disabled:opacity-50"
+          style={{
+            background: 'transparent',
+            borderColor: 'rgba(255,59,92,0.25)',
+            color: '#ff3b5c',
+            fontSize: '14px',
+            fontWeight: 'bold',
+          }}
+        >
+          <LogOut className="w-4 h-4" />
+          {isLeaving ? 'Leaving...' : isHost ? 'Close Room' : 'Leave Room'}
+        </motion.button>
       </div>
     </div>
   );

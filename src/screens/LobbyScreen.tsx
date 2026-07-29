@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
 import { useCategoryPacks } from '../api/queries';
+import { showToast } from '../components/toastStore';
 
 interface CategoryPack {
   id: string;
@@ -55,12 +55,12 @@ export function LobbyScreen() {
       setTimeout(() => {
         if (!useGameStore.getState().room) {
           setIsLoading(false);
-          toast.error('Connection timed out. Try again.');
+          showToast('Connection timed out. Try again.', 'error');
         }
       }, 10000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create room';
-      toast.error(message);
+      showToast(message, 'error');
       setIsLoading(false);
     }
   };
@@ -75,18 +75,18 @@ export function LobbyScreen() {
       setTimeout(() => {
         if (!useGameStore.getState().room) {
           setIsLoading(false);
-          toast.error('Connection timed out. Try again.');
+          showToast('Connection timed out. Try again.', 'error');
         }
       }, 10000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to join room';
-      toast.error(message);
+      showToast(message, 'error');
       setIsLoading(false);
     }
   };
 
   const handleAction = () => {
-    toast('Connecting...', { icon: '🔗' });
+    showToast('Connecting...', 'info');
     if (lobbyTab === 'create') {
       handleCreate();
     } else {

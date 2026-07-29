@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Crown, RotateCcw, Share2, Trophy, Home } from 'lucide-react';
-import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { getPlayerAvatar } from '../utils/avatarHelper';
+import { showToast } from '../components/toastStore';
 
 /**
  * MatchSummaryScreen - Exact replica of Game Screen Flow Design match summary.
@@ -19,15 +19,15 @@ export function MatchSummaryScreen() {
 
   const handleRematch = useCallback(() => {
     if (!roomCode) {
-      toast.error('Room no longer available');
+      showToast('Room no longer available', 'error');
       return;
     }
     socketHandler.emit('request-rematch', { roomCode });
-    toast('Rematch request sent! 🔥');
+    showToast('Rematch request sent! 🔥', 'info');
   }, [roomCode]);
 
   const handleShare = useCallback(() => {
-    toast.success('Victory card ready! 🏆');
+    showToast('Victory card ready! 🏆', 'success');
   }, []);
 
   const handleLeaderboard = useCallback(() => {

@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Radio, Trophy, ArrowLeft, User, Pencil, X } from 'lucide-react';
-import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
 import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
 import { preloadSounds } from '../audio/soundManager';
+import { showToast } from '../components/toastStore';
 
 /**
  * LandingScreen - Landing page with "Start Playing" CTA and Leaderboard access.
@@ -755,11 +755,11 @@ function ProfileEditOverlay({ onClose }: { onClose: () => void }) {
         avatarId: AVATARS[selectedAvatar],
       });
 
-      toast.success('Profile updated! ✨');
+      showToast('Profile updated! ✨', 'success');
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update profile';
-      toast.error(message);
+      showToast(message, 'error');
     } finally {
       setIsSaving(false);
     }

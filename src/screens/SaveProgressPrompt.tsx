@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Trophy } from 'lucide-react';
-import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
+import { showToast } from '../components/toastStore';
 
 /**
  * SaveProgressPrompt - Exact replica of Game Screen Flow Design save-progress.
@@ -13,7 +13,7 @@ export function SaveProgressPrompt() {
   const setMatchResults = useGameStore((s) => s.setMatchResults);
 
   const handleGoogleSignIn = () => {
-    toast.success('Signing in...');
+    showToast('Signing in...', 'info');
     if (session) {
       setSession({ ...session, isAuthenticated: true });
     }

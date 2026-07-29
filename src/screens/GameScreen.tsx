@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useCallback, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { toast } from 'sonner';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { persistenceLayer } from '../persistence/persistenceLayer';
 import { createKeyedDebouncedEmit } from '../utils/debouncedEmit';
 import { playSound, playTimerTick } from '../audio/soundManager';
 import { getPlayerAvatar } from '../utils/avatarHelper';
+import { GameToast } from '../components/GameToast';
+import type { GameToastVariant } from '../components/GameToast';
 import type { RoundResultsPayload } from '../types';
 
 type GameSubPhase = 'input' | 'grace' | 'locked' | 'results' | 'rankings';
@@ -30,6 +31,12 @@ export function GameScreen() {
   const [graceTimer, setGraceTimer] = useState(15);
   const [subPhase, setSubPhase] = useState<GameSubPhase>('input');
   const [rankingsCountdown, setRankingsCountdown] = useState(5);
+
+  // In-game toast state
+  const [gameToast, setGameToast] = useState<{ message: string; variant: GameToastVariant } | null>(null);
+  const showGameToast = useCallback((message: string, variant: GameToastVariant = 'info') => {
+    setGameToast({ message, variant });
+  }, []);
 
   // Preserve round results in a ref so rankings overlay stays stable
   // even if the store's roundResults gets cleared by a new round
@@ -165,9 +172,8 @@ export function GameScreen() {
   // Show grace toast (only if someone ELSE called stop)
   useEffect(() => {
     if (round?.phase === 'grace' && round.graceTriggeredBy) {
-      // Don't toast the player who hit stop — they already know
       if (!hasStopped) {
-        toast(`STOP! 🛑 ${round.graceTriggeredBy} called it!`, { duration: 3000 });
+        showGameToast(`${round.graceTriggeredBy} called STOP! Finish up!`, 'stop');
         playSound('stop');
       }
     }
@@ -227,6 +233,14 @@ export function GameScreen() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" data-testid="screen-game">
+      {/* In-game toast */}
+      <GameToast
+        message={gameToast?.message ?? ''}
+        variant={gameToast?.variant ?? 'info'}
+        visible={!!gameToast}
+        onDismiss={() => setGameToast(null)}
+      />
+
       {/* Game header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
         <div>
@@ -296,36 +310,42 @@ export function GameScreen() {
       {/* Input fields */}
       <div className="flex-1 overflow-y-auto px-5" style={{ scrollbarWidth: 'none' }}>
         <div className="space-y-2 pb-2">
-          {round.categories.map((cat) => (
-            <div
-              key={cat}
-              className="flex items-center gap-2.5 px-3 py-3 rounded-xl border"
-              style={{
-                background: '#0d2018',
-                borderColor: answers[cat] ? 'rgba(0,208,96,0.3)' : '#1a3528',
-              }}
-            >
-              <span
-                className="text-[11px] font-bold w-27 shrink-0 truncate"
-                style={{ color: '#6baf80' }}
+          {round.categories.map((cat) => {
+            const filled = !!(answers[cat] ?? '').trim();
+            return (
+              <div
+                key={cat}
+                className="flex flex-col px-3.5 pt-2.5 pb-2 rounded-xl border transition-colors"
+                style={{
+                  background: '#0d2018',
+                  borderColor: filled ? 'rgba(0,208,96,0.4)' : '#1a3528',
+                }}
               >
-                {cat}
-              </span>
-              <div className="w-px h-4 shrink-0" style={{ background: '#1a3528' }} />
-              <input
-                type="text"
-                value={answers[cat] || ''}
-                onChange={(e) => handleAnswerChange(cat, e.target.value)}
-                readOnly={hasStopped || (subPhase !== 'input' && subPhase !== 'grace')}
-                placeholder={`${round.letter.toUpperCase()}...`}
-                className="flex-1 bg-transparent text-white outline-none min-w-0 placeholder-[#2a4a33]"
-                style={{ caretColor: '#00d060' }}
-              />
-              {answers[cat] && (
-                <CheckCircle className="w-4 h-4 shrink-0" style={{ color: '#00d060' }} />
-              )}
-            </div>
-          ))}
+                {/* Label row */}
+                <div className="flex items-center justify-between mb-0.5">
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: filled ? '#00d060' : '#6baf80' }}
+                  >
+                    {cat}
+                  </span>
+                  {filled && (
+                    <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: '#00d060' }} />
+                  )}
+                </div>
+                {/* Input row */}
+                <input
+                  type="text"
+                  value={answers[cat] || ''}
+                  onChange={(e) => handleAnswerChange(cat, e.target.value)}
+                  readOnly={hasStopped || (subPhase !== 'input' && subPhase !== 'grace')}
+                  placeholder={`${round.letter.toUpperCase()}...`}
+                  className="bg-transparent text-white outline-none w-full text-sm font-bold placeholder-[#2a4a33]"
+                  style={{ caretColor: '#00d060' }}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 
