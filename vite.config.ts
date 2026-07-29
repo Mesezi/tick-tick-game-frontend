@@ -13,7 +13,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.svg', 'icons.svg', 'tick-tick logo.png', 'audio/*.mp3'],
+      includeAssets: ['favicon.ico', 'icons.svg', 'tick-tick logo.png', 'audio/*.mp3'],
       manifest: {
         name: 'Tick-Tick',
         short_name: 'Tick-Tick',
