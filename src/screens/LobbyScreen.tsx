@@ -286,7 +286,7 @@ export function LobbyScreen() {
         )}
       </div>
 
-      <div className="px-6 pb-8 pt-4">
+      <div className="px-6 pb-8 pb-safe pt-4">
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handleAction}

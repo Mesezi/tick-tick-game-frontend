@@ -127,7 +127,7 @@ export function AvatarSetupScreen() {
         </div>
       </div>
 
-      <div className="px-6 pb-8">
+      <div className="px-6 pb-8 pb-safe">
         <motion.button
           whileTap={{ scale: 0.96 }}
           disabled={!canContinue || isSaving}

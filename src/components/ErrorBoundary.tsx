@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div
-          className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#0a1a0f]"
+          className="min-h-dvh flex flex-col items-center justify-center p-6 bg-[#0a1a0f]"
           role="alert"
           aria-live="assertive"
         >

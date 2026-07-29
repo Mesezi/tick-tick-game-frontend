@@ -111,6 +111,12 @@
   box-sizing: border-box;
 }
 
+/* iOS safe area utility classes */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pl-safe { padding-left: env(safe-area-inset-left); }
+.pr-safe { padding-right: env(safe-area-inset-right); }
+
 body {
   margin: 0;
   background: radial-gradient(ellipse at 50% 0%, #0d2a18 0%, #050f09 50%, #020804 100%);

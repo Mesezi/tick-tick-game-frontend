@@ -1,19 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Volume2, VolumeX, Home } from 'lucide-react';
 import { ScreenRouter } from './router/ScreenRouter.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConnectionLostOverlay } from './components/ConnectionLostOverlay';
 import { RejoinPrompt } from './components/RejoinPrompt';
 import { GameToast } from './components/GameToast';
+import { TopBar } from './components/TopBar';
+import { BootScreen } from './components/BootScreen';
 import { useToastStore } from './components/toastStore';
 import { useGameStore } from './store/gameStore';
 import { socketHandler } from './socket/socketHandler';
-import { registerEventHandlers, unregisterEventHandlers } from './socket/eventHandlers';
-import { persistenceLayer } from './persistence/persistenceLayer';
 import { apiClient } from './api/client';
 import { deriveScreen } from './router/screenRouter';
-import { isMuted, toggleMute, preloadSounds, playClick } from './audio/soundManager';
+import { isMuted, toggleMute } from './audio/soundManager';
+import { useAppInit } from './hooks/useAppInit';
+import { useSoundInit } from './hooks/useSoundInit';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -21,184 +22,40 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 function App() {
   const connectionStatus = useGameStore((s) => s.connection.status);
   const reconnectAttempts = useGameStore((s) => s.connection.reconnectAttempts);
-  const [soundMuted, setSoundMuted] = useState(isMuted());
-  const [pendingRejoinRoom, setPendingRejoinRoom] = useState<string | null>(null);
-
-  const toast = useToastStore();
-
   const session = useGameStore((s) => s.session);
   const room = useGameStore((s) => s.room);
   const round = useGameStore((s) => s.round);
   const matchResults = useGameStore((s) => s.matchResults);
   const hasPassedLanding = useGameStore((s) => s.hasPassedLanding);
 
+  const [soundMuted, setSoundMuted] = useState(isMuted());
+  const toast = useToastStore();
+
+  const { isBooting, pendingRejoinRoom, setPendingRejoinRoom } = useAppInit();
+  useSoundInit();
+
   const activeScreen = deriveScreen({ session, room, round, matchResults, hasPassedLanding });
-
-  // Initialize on mount: hydrate session, authenticate, connect socket
-  useEffect(() => {
-    // Restore session from localStorage immediately so the UI
-    // isn't blank while the async token verification runs.
-    const savedSession = persistenceLayer.loadSession();
-    if (savedSession?.token && !useGameStore.getState().session) {
-      apiClient.setToken(savedSession.token);
-      useGameStore.getState().setSession(savedSession);
-    }
-
-    const init = async () => {
-      registerEventHandlers();
-
-      const savedSession = persistenceLayer.loadSession();
-
-      if (savedSession?.token) {
-        apiClient.setToken(savedSession.token);
-
-        // Verify token is still valid and get fresh profile data
-        try {
-          const meRes = await apiClient.getCurrentUser();
-          const { user } = meRes.data;
-
-          // Merge server profile into session — server is source of truth
-          // for displayName and avatarId after a refresh
-          useGameStore.getState().setSession({
-            token: savedSession.token,
-            userId: user.id ?? savedSession.userId,
-            displayName: user.displayName ?? savedSession.displayName,
-            avatarId: user.avatarId ?? savedSession.avatarId,
-            isAuthenticated: user.type === 'GOOGLE' || savedSession.isAuthenticated,
-            deviceId: savedSession.deviceId,
-          });
-          socketHandler.connect(SOCKET_URL, savedSession.token);
-
-          if (meRes.data.activeRoom) {
-            setPendingRejoinRoom(meRes.data.activeRoom);
-          }
-        } catch (error) {
-          // Token is stale/invalid — clear everything and start fresh
-          console.warn('[App] Saved session invalid, starting fresh:', error);
-          persistenceLayer.clearSession();
-          apiClient.setToken(null);
-          await loginAsGuest();
-        }
-      } else {
-        await loginAsGuest();
-      }
-    };
-
-    const loginAsGuest = async () => {
-      try {
-        const deviceId = persistenceLayer.getDeviceId();
-        const { token, guestId } = await apiClient.guestLogin(deviceId);
-
-        useGameStore.getState().setSession({
-          token,
-          userId: guestId,
-          displayName: null,
-          avatarId: '',
-          isAuthenticated: false,
-          deviceId,
-        });
-
-        socketHandler.connect(SOCKET_URL, token);
-      } catch (error) {
-        console.warn('[App] Guest login failed, resetting device ID:', error);
-        // Device ID might be stale (deleted from DB) — clear and retry once
-        persistenceLayer.clearSession();
-        try {
-          // Force a new device ID by clearing the old one
-          localStorage.removeItem('naija_device_id');
-          const newDeviceId = persistenceLayer.getDeviceId();
-          const { token, guestId } = await apiClient.guestLogin(newDeviceId);
-
-          useGameStore.getState().setSession({
-            token,
-            userId: guestId,
-            displayName: null,
-            avatarId: '',
-            isAuthenticated: false,
-            deviceId: newDeviceId,
-          });
-
-          socketHandler.connect(SOCKET_URL, token);
-        } catch (retryError) {
-          console.error('[App] Guest login retry failed:', retryError);
-        }
-      }
-    };
-
-    init();
-
-    // Mobile browsers suspend tabs — reconnect socket when page becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') return;
-      const sess = useGameStore.getState().session;
-      if (!sess?.token) return;
-      const status = useGameStore.getState().connection.status;
-      if (status === 'disconnected') {
-        socketHandler.connect(SOCKET_URL, sess.token);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      unregisterEventHandlers();
-      socketHandler.disconnect();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  // Initialize sound system on first user interaction (mobile autoplay policy)
-  // Also plays a synthesized click on every button tap (no file needed)
-  useEffect(() => {
-    const handleClick = (e: Event) => {
-      if (!initialized) {
-        preloadSounds();
-        initialized = true;
-      }
-      const target = e.target as HTMLElement;
-      if (target.closest('button')) {
-        playClick();
-      }
-    };
-    let initialized = false;
-    document.addEventListener('pointerdown', handleClick);
-    return () => document.removeEventListener('pointerdown', handleClick);
-  }, []);
-
-  const showConnectionLost =
-    connectionStatus === 'disconnected' &&
-    reconnectAttempts >= MAX_RECONNECT_ATTEMPTS;
-
-  const handleRetryConnection = () => {
-    const sess = useGameStore.getState().session;
-    if (sess?.token) {
-      socketHandler.connect(SOCKET_URL, sess.token);
-    }
-  };
 
   const handleGoHome = () => {
     const currentSession = useGameStore.getState().session;
     const currentRoom = useGameStore.getState().room;
-    // If in a lobby or game, leave the room first (fire-and-forget)
     if (currentRoom?.roomCode && currentSession?.token) {
-      apiClient.leaveRoom(currentRoom.roomCode).catch(() => {
-        // Ignore — we're going home regardless
-      });
+      apiClient.leaveRoom(currentRoom.roomCode).catch(() => {});
     }
     useGameStore.getState().reset();
-    if (currentSession) {
-      useGameStore.getState().setSession(currentSession);
-    }
+    if (currentSession) useGameStore.getState().setSession(currentSession);
     setPendingRejoinRoom(null);
+  };
+
+  const handleRetryConnection = () => {
+    const sess = useGameStore.getState().session;
+    if (sess?.token) socketHandler.connect(SOCKET_URL, sess.token);
   };
 
   const handleRejoin = () => {
     if (!pendingRejoinRoom) return;
     socketHandler.emit('join-room', { roomCode: pendingRejoinRoom });
     useGameStore.getState().setHasPassedLanding(true);
-    setPendingRejoinRoom(null);
-  };
-
-  const handleDismissRejoin = () => {
     setPendingRejoinRoom(null);
   };
 
@@ -210,74 +67,46 @@ function App() {
         fontFamily: "'Plus Jakarta Sans', sans-serif",
       }}
     >
-      {/* App shell — full width on mobile, capped with rounded edges on desktop */}
       <div
         className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-[480px] md:max-w-[540px] lg:max-w-[600px] sm:h-[95vh] sm:rounded-3xl sm:shadow-2xl sm:border sm:border-[#1a3528]/50"
         style={{ background: '#081510' }}
       >
-        {/* Top bar — volume/home left, connectivity right */}
-        <div className="flex items-center justify-between px-4 py-3.5 shrink-0 z-40">
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setSoundMuted(toggleMute())}
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all active:scale-90"
-              style={{ background: '#0d2018' }}
-              aria-label={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
-            >
-              {soundMuted ? <VolumeX className="w-5 h-5" style={{ color: '#6baf80' }} /> : <Volume2 className="w-5 h-5" style={{ color: '#00d060' }} />}
-            </button>
-            {activeScreen !== 'landing' && (
-              <button
-                onClick={handleGoHome}
-                className="w-7 h-7 flex items-center justify-center rounded-lg transition-all active:scale-90"
-                style={{ background: '#0d2018' }}
-                aria-label="Go home"
-              >
-                <Home className="w-3.5 h-3.5" style={{ color: '#6baf80' }} />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <div
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                background: connectionStatus === 'connected' ? '#00d060' : connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c',
-                animation: 'ping-dot 2s ease-in-out infinite',
-              }}
-            />
-            <span
-              className="text-[9px] font-bold tracking-widest"
-              style={{ color: connectionStatus === 'connected' ? '#00d060' : connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c' }}
-            >
-              {connectionStatus === 'connected' ? 'LIVE' : connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
-            </span>
-          </div>
-        </div>
+        <TopBar
+          soundMuted={soundMuted}
+          showHome={activeScreen !== 'landing'}
+          connectionStatus={connectionStatus}
+          onToggleSound={() => setSoundMuted(toggleMute())}
+          onGoHome={handleGoHome}
+        />
 
         <AnimatePresence mode="wait">
-          <motion.div
-            key={activeScreen}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -18 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="flex-1 overflow-hidden flex flex-col"
-          >
-            <ErrorBoundary>
-              <ScreenRouter />
-            </ErrorBoundary>
-          </motion.div>
+          {isBooting ? (
+            <BootScreen />
+          ) : (
+            <motion.div
+              key={activeScreen}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="flex-1 overflow-hidden flex flex-col"
+            >
+              <ErrorBoundary>
+                <ScreenRouter />
+              </ErrorBoundary>
+            </motion.div>
+          )}
         </AnimatePresence>
 
-        {/* Rejoin prompt — shown when user has an active room from previous session */}
         <AnimatePresence>
           {pendingRejoinRoom && !room && (
-            <RejoinPrompt
-              roomCode={pendingRejoinRoom}
-              onRejoin={handleRejoin}
-              onDismiss={handleDismissRejoin}
-            />
+            <div className="pb-safe">
+              <RejoinPrompt
+                roomCode={pendingRejoinRoom}
+                onRejoin={handleRejoin}
+                onDismiss={() => setPendingRejoinRoom(null)}
+              />
+            </div>
           )}
         </AnimatePresence>
       </div>
@@ -290,7 +119,7 @@ function App() {
         onDismiss={toast.dismiss}
       />
 
-      {showConnectionLost && (
+      {connectionStatus === 'disconnected' && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && (
         <ConnectionLostOverlay onRetry={handleRetryConnection} />
       )}
 

@@ -68,7 +68,7 @@ export function CategoryInputGrid({
               </div>
 
               {/* Category name */}
-              <p className="text-white font-bold text-sm mb-2">{category}</p>
+              <p className="text-white font-bold mb-2">{category}</p>
 
               {/* Input with letter prefix */}
               <div className="flex items-center gap-2">

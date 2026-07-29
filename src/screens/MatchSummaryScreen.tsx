@@ -180,7 +180,7 @@ export function MatchSummaryScreen() {
       </div>
 
       {/* ── Action buttons ── */}
-      <div className="px-6 pb-8 pt-2 flex flex-col gap-2 shrink-0">
+      <div className="px-6 pb-8 pb-safe pt-2 flex flex-col gap-2 shrink-0">
         {canRequestRematch && (
           <motion.button
             whileTap={{ scale: 0.96 }}

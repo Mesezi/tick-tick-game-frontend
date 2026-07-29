@@ -19,16 +19,17 @@ function isInCooldown(): boolean {
   return false;
 }
 
-/** True when running in iOS Safari (not Chrome/Firefox on iOS, not standalone) */
-function isIosSafari(): boolean {
-  const ua = window.navigator.userAgent;
-  const isIos = /iphone|ipad|ipod/i.test(ua);
-  // iOS Safari doesn't have 'CriOS' (Chrome) or 'FxiOS' (Firefox)
-  const isSafari = /safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
-  return isIos && isSafari;
+function isIos(): boolean {
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
-export type InstallMode = 'android' | 'ios' | null;
+/** On iOS, only Safari can add to home screen */
+function isIosSafari(): boolean {
+  const ua = window.navigator.userAgent;
+  return isIos() && /safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+}
+
+export type InstallMode = 'android' | 'ios-safari' | 'ios-other' | null;
 
 export function useInstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
@@ -36,18 +37,19 @@ export function useInstallPrompt() {
   const [installMode, setInstallMode] = useState<InstallMode>(null);
 
   useEffect(() => {
-    // Already installed — never show
+    // Already running as installed PWA — never show
     if (window.matchMedia('(display-mode: standalone)').matches) return;
     if (isInCooldown()) return;
 
-    if (isIosSafari()) {
-      // iOS Safari: no event, just show the manual instructions banner
-      setInstallMode('ios');
+    if (isIos()) {
+      // iOS Safari: can add to home screen via Share sheet
+      // iOS Chrome/Firefox/Edge: must open in Safari first
+      setInstallMode(isIosSafari() ? 'ios-safari' : 'ios-other');
       setShowBanner(true);
       return;
     }
 
-    // Android Chrome / other browsers: wait for beforeinstallprompt
+    // Android / desktop Chrome — wait for native prompt
     const handler = (e: Event) => {
       e.preventDefault();
       setPromptEvent(e as BeforeInstallPromptEvent);
@@ -59,9 +61,8 @@ export function useInstallPrompt() {
   }, []);
 
   const handleInstall = async () => {
-    if (installMode === 'ios') {
-      // Nothing to trigger — user follows the manual steps shown in the banner
-      // Treat as "engaged" — dismiss with short cooldown
+    if (installMode === 'ios-safari' || installMode === 'ios-other') {
+      // User acknowledged the instructions — set short cooldown
       localStorage.setItem(KEY_CANCELLED, Date.now().toString());
       setShowBanner(false);
       return;

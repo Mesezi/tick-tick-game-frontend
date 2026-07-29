@@ -351,7 +351,7 @@ export function GameScreen() {
 
       {/* STOP button */}
       {subPhase === 'input' && (
-        <div className="px-5 pb-8 pt-3 shrink-0">
+        <div className="px-5 pb-8 pb-safe pt-3 shrink-0">
           <motion.button
             whileTap={{ scale: 0.93 }}
             onClick={handleStop}

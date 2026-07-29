@@ -670,7 +670,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Bottom CTA */}
-      <div className="px-6 pb-8 pt-4 shrink-0">
+      <div className="px-6 pb-8 pb-safe pt-4 shrink-0">
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={onClose}
@@ -863,7 +863,7 @@ function ProfileEditOverlay({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Save button */}
-      <div className="px-6 pb-8 pt-2">
+      <div className="px-6 pb-8 pb-safe pt-2">
         <motion.button
           whileTap={{ scale: 0.96 }}
           disabled={!canSave || isSaving}

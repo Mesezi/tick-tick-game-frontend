@@ -174,7 +174,7 @@ export function RoomLobbyScreen() {
         </div>
       </div>
 
-      <div className="px-6 pb-8 pt-4 flex flex-col gap-2">
+      <div className="px-6 pb-8 pb-safe pt-4 flex flex-col gap-2">
         {isHost ? (
           <motion.button
             whileTap={{ scale: 0.96 }}
