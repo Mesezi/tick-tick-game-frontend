@@ -159,6 +159,17 @@ export function LandingScreen() {
             <ArrowLeft className="w-3 h-3 rotate-180 shrink-0" style={{ color: '#00d060' }} />
           </motion.button>
         )}
+
+        {/* Sign in — shown only on new device (no session at all) */}
+        {!session && (
+          <button
+            onClick={() => { apiClient.redirectToGoogle(); }}
+            className="mt-2 text-[11px]"
+            style={{ color: '#3a5a45' }}
+          >
+            Already have an account? <span style={{ color: '#00d060', fontWeight: 'bold' }}>Sign in →</span>
+          </button>
+        )}
       </div>
 
       <style>{`
