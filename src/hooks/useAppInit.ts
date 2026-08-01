@@ -13,12 +13,8 @@ export async function loginAsGuest(): Promise<void> {
     const { token, guestId } = await apiClient.guestLogin(deviceId);
     persistenceLayer.saveToken(token);
     useGameStore.getState().setSession({
-      token,
-      userId: guestId,
-      displayName: null,
-      avatarId: '',
-      isAuthenticated: false,
-      deviceId,
+      token, userId: guestId, displayName: null,
+      avatarId: '', isAuthenticated: false, deviceId,
     });
     socketHandler.connect(SOCKET_URL, token);
   } catch {
@@ -30,12 +26,8 @@ export async function loginAsGuest(): Promise<void> {
       const { token, guestId } = await apiClient.guestLogin(newDeviceId);
       persistenceLayer.saveToken(token);
       useGameStore.getState().setSession({
-        token,
-        userId: guestId,
-        displayName: null,
-        avatarId: '',
-        isAuthenticated: false,
-        deviceId: newDeviceId,
+        token, userId: guestId, displayName: null,
+        avatarId: '', isAuthenticated: false, deviceId: newDeviceId,
       });
       socketHandler.connect(SOCKET_URL, token);
     } catch (err) {
@@ -52,16 +44,53 @@ export function useAppInit() {
     registerEventHandlers();
 
     const init = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+
+      // ── Google OAuth callback ──
+      // Google redirected back to root with ?code= after user approved
+      if (code) {
+        // Clean URL immediately so a refresh doesn't reprocess
+        window.history.replaceState({}, '', window.location.pathname);
+
+        try {
+          // If a guest token exists, send it so backend can link accounts
+          const existingToken = persistenceLayer.loadToken();
+          if (existingToken) apiClient.setToken(existingToken);
+
+          const res = await apiClient.googleLogin(code);
+          persistenceLayer.saveToken(res.token);
+
+          // Fetch full profile from /auth/me (has avatarId etc.)
+          apiClient.setToken(res.token);
+          const meRes = await apiClient.getCurrentUser();
+          const { user } = meRes.data;
+
+          useGameStore.getState().setSession({
+            token: res.token,
+            userId: user.id,
+            displayName: user.displayName,
+            avatarId: user.avatarId ?? '',
+            isAuthenticated: true,
+            deviceId: persistenceLayer.getDeviceId(),
+          });
+          socketHandler.connect(SOCKET_URL, res.token);
+          useGameStore.getState().setHasPassedLanding(true);
+        } catch (err) {
+          console.error('[AppInit] Google OAuth exchange failed:', err);
+          // Clear code params and fall through — user lands on landing screen
+        }
+        return;
+      }
+
+      // ── Normal boot: restore existing session ──
       const token = persistenceLayer.loadToken();
-      if (!token) return; // No token → show landing, user picks guest or Google
+      if (!token) return; // No token → show landing
 
       apiClient.setToken(token);
-
       try {
-        // All profile data comes from the server — token is the only local state
         const meRes = await apiClient.getCurrentUser();
         const { user } = meRes.data;
-
         useGameStore.getState().setSession({
           token,
           userId: user.id,
@@ -70,14 +99,9 @@ export function useAppInit() {
           isAuthenticated: user.type === 'GOOGLE',
           deviceId: persistenceLayer.getDeviceId(),
         });
-
         socketHandler.connect(SOCKET_URL, token);
-
-        if (meRes.data.activeRoom) {
-          setPendingRejoinRoom(meRes.data.activeRoom);
-        }
+        if (meRes.data.activeRoom) setPendingRejoinRoom(meRes.data.activeRoom);
       } catch {
-        // Token stale or invalid — clear and show landing
         console.warn('[AppInit] Token invalid, clearing');
         persistenceLayer.clearToken();
         apiClient.setToken(null);
@@ -87,20 +111,16 @@ export function useAppInit() {
 
     init().finally(() => setIsBooting(false));
 
-    // Re-sync on tab resume after mobile suspension
+    // Reconnect and re-sync room state on tab resume
     const handleVisibility = () => {
       if (document.visibilityState !== 'visible') return;
       const sess = useGameStore.getState().session;
       if (!sess?.token) return;
-
       if (useGameStore.getState().connection.status === 'disconnected') {
         socketHandler.connect(SOCKET_URL, sess.token);
       }
-
       const roomCode = useGameStore.getState().room?.roomCode;
-      if (roomCode) {
-        setTimeout(() => socketHandler.emit('join-room', { roomCode }), 300);
-      }
+      if (roomCode) setTimeout(() => socketHandler.emit('join-room', { roomCode }), 300);
     };
     document.addEventListener('visibilitychange', handleVisibility);
 

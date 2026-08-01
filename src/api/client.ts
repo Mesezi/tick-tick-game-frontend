@@ -57,7 +57,7 @@ class ApiClient {
    * Fetches the Google OAuth URL from the backend then redirects the user.
    */
   async redirectToGoogle(): Promise<void> {
-    const redirectUri = `${window.location.origin}/auth/callback`;
+    const redirectUri = window.location.origin; // root URL — no path, works on any host
     const res = await this.request<{ success: boolean; data: { url: string } }>(
       `/api/auth/google/redirect?redirect_uri=${encodeURIComponent(redirectUri)}`
     );

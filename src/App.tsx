@@ -59,7 +59,7 @@ function App() {
 
   return (
     <div
-      className="h-screen w-full flex items-center justify-center"
+      className="h-dvh w-full flex items-center justify-center"
       style={{
         background: 'radial-gradient(ellipse at 50% 0%, #0d2a18 0%, #050f09 50%, #020804 100%)',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
