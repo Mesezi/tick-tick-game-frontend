@@ -96,7 +96,7 @@ export function LobbyScreen() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" data-testid="screen-lobby">
-      <div className="px-6 pt-8 pb-4">
+      <div className="px-6 pt-12 pb-4">
         {/* Profile header */}
         <div className="flex items-center gap-3 mb-5">
           <span className="text-3xl">

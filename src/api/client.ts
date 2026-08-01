@@ -53,18 +53,6 @@ class ApiClient {
     return res.data;
   }
 
-  async googleLogin(code: string): Promise<{ token: string; user: { id: string; email: string; displayName: string } }> {
-    const res = await this.request<{
-      success: boolean;
-      data: { token: string; user: { id: string; email: string; displayName: string } };
-    }>('/api/auth/google', {
-      method: 'POST',
-      body: JSON.stringify({ code }),
-    });
-    this.token = res.data.token;
-    return res.data;
-  }
-
   /**
    * Fetches the Google OAuth URL from the backend then redirects the user.
    */

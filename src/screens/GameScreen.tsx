@@ -471,7 +471,7 @@ export function GameScreen() {
             className="absolute inset-0 flex flex-col overflow-hidden"
             style={{ background: '#081510' }}
           >
-            <div className="px-5 pt-8 pb-4 shrink-0 text-center">
+            <div className="px-5 pt-12 pb-4 shrink-0 text-center">
               <p
                 className="text-xs font-bold tracking-widest uppercase mb-2"
                 style={{ color: '#00d060' }}
@@ -671,7 +671,7 @@ function ResultsTabsView({
   return (
     <>
       {/* Header */}
-      <div className="px-5 pt-8 pb-3 shrink-0">
+      <div className="px-5 pt-12 pb-3 shrink-0">
         <p
           className="text-xs font-bold tracking-widest uppercase mb-1"
           style={{ color: '#6baf80' }}
