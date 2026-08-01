@@ -12,7 +12,7 @@ export function BootScreen() {
     >
       <div className="flex flex-col items-center gap-4">
         <img
-          src="/tick-tick logo.png"
+          src="/tick-tick-logo.png"
           alt="Tick-Tick"
           className="w-24 opacity-90"
           style={{ filter: 'drop-shadow(0 4px 16px rgba(0,208,96,0.3))' }}

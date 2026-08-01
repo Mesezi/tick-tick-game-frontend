@@ -78,7 +78,7 @@ export function LandingScreen() {
 
       <div className="text-center z-10 w-full max-w-[290px] sm:max-w-[360px]">
         <img
-          src="/tick-tick logo.png"
+          src="/tick-tick-logo.png"
           alt="Tick-Tick"
           className="w-40 mx-auto mb-4"
           style={{ filter: 'drop-shadow(0 8px 24px rgba(0,208,96,0.25))' }}
