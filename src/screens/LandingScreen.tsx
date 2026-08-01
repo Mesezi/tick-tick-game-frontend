@@ -10,7 +10,6 @@ import { preloadSounds, isMuted, toggleMute } from '../audio/soundManager';
 import { showToast } from '../components/toastStore';
 import { InstallBanner } from '../components/InstallBanner';
 import { useInstallPrompt } from '../utils/useInstallPrompt';
-import { loginAsGuest } from '../hooks/useAppInit';
 
 /**
  * LandingScreen - Landing page with "Start Playing" CTA and Leaderboard access.
@@ -21,26 +20,17 @@ export function LandingScreen() {
   const session = useGameStore((s) => s.session);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
   const { showBanner, installMode, handleInstall, handleConfirmInstalled, handleDismiss } = useInstallPrompt();
 
-  const handlePlay = async () => {
+  const handlePlay = () => {
     preloadSounds();
     // If already have a session (returning user), just pass landing
     if (useGameStore.getState().session) {
       setHasPassedLanding(true);
       return;
     }
-    // New user — create guest account now
-    setIsStarting(true);
-    try {
-      await loginAsGuest();
-      setHasPassedLanding(true);
-    } catch {
-      showToast('Could not connect. Check your connection.', 'error');
-    } finally {
-      setIsStarting(false);
-    }
+    // New user — go to avatar setup first, guest created after they complete it
+    setHasPassedLanding(true);
   };
 
   return (
@@ -95,15 +85,14 @@ export function LandingScreen() {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={handlePlay}
-          disabled={isStarting}
-          className="w-full rounded-2xl py-4 mb-3 text-black font-bold text-xl disabled:opacity-70"
+          className="w-full rounded-2xl py-4 mb-3 text-black font-bold text-xl"
           style={{
             background: '#00d060',
             fontFamily: "'Dela Gothic One', sans-serif",
             fontSize: '22px',
           }}
         >
-          {isStarting ? 'Connecting...' : 'Start Playing'}
+          Start Playing
         </motion.button>
 
         <div className="flex gap-2 mb-3">

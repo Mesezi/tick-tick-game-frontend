@@ -4,6 +4,7 @@ import { Shield } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { apiClient } from '../api/client';
 import { showToast } from '../components/toastStore';
+import { loginAsGuest } from '../hooks/useAppInit';
 
 const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'];
 
@@ -11,8 +12,10 @@ type Step = 'profile' | 'link-prompt';
 
 /**
  * AvatarSetupScreen — two-step flow:
- * 1. Pick avatar + display name → save to backend
- * 2. Offer to link Google account (guests only) → proceed either way
+ * 1. Pick avatar + display name
+ *    - If no session yet (new user): creates guest account first, then saves profile
+ *    - If session exists (Google user with no avatar): just saves profile
+ * 2. Offer to link Google account (guests only)
  */
 export function AvatarSetupScreen() {
   const session = useGameStore((s) => s.session);
@@ -24,29 +27,49 @@ export function AvatarSetupScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const canContinue = selectedAvatar !== null && playerName.length >= 2;
+  const avatarId = selectedAvatar !== null ? AVATARS[selectedAvatar] : '';
 
   const handleSaveProfile = async () => {
-    if (!canContinue || !session) return;
+    if (!canContinue) return;
     setIsSaving(true);
-    const avatarId = AVATARS[selectedAvatar!];
 
     try {
-      await apiClient.updateProfile({ displayName: playerName, avatarId });
-    } catch {
-      console.warn('[AvatarSetup] Backend save failed, continuing locally');
+      let currentSession = useGameStore.getState().session;
+
+      // No session yet — this is a brand new user who chose "Start Playing"
+      // Create the guest account now (after they've set name + avatar)
+      if (!currentSession) {
+        await loginAsGuest();
+        currentSession = useGameStore.getState().session;
+      }
+
+      if (!currentSession) {
+        showToast('Could not connect. Check your connection.', 'error');
+        setIsSaving(false);
+        return;
+      }
+
+      // Save profile to backend
+      try {
+        await apiClient.updateProfile({ displayName: playerName, avatarId });
+      } catch {
+        console.warn('[AvatarSetup] Backend profile save failed, continuing locally');
+      }
+
+      // Update local session
+      setSession({ ...currentSession, displayName: playerName, avatarId });
+
+      // Google users already authenticated — skip link prompt, go straight to lobby
+      if (currentSession.isAuthenticated) {
+        showToast(`Welcome, ${playerName}! 🎮`, 'success');
+        return;
+      }
+
+      // Guest → show link prompt
+      setStep('link-prompt');
+    } finally {
+      setIsSaving(false);
     }
-
-    setSession({ ...session, displayName: playerName, avatarId });
-    setIsSaving(false);
-
-    // If already authenticated (came via Google), skip link prompt
-    if (session.isAuthenticated) {
-      showToast(`Welcome, ${playerName}! 🎮`, 'success');
-      return;
-    }
-
-    // Guest → show link prompt
-    setStep('link-prompt');
   };
 
   const handleLinkGoogle = async () => {
@@ -54,9 +77,8 @@ export function AvatarSetupScreen() {
   };
 
   const handleSkipLink = () => {
-    showToast(`Welcome, ${playerName || 'Player'}! 🎮`, 'success');
-    // Session already has displayName + avatarId → deriveScreen will route to Lobby
-    // Force a re-render by setting session again (triggers store subscribers)
+    showToast(`Welcome, ${playerName}! 🎮`, 'success');
+    // Trigger re-render — deriveScreen will route to Lobby since session is now complete
     const s = useGameStore.getState().session;
     if (s) setSession({ ...s });
   };
@@ -72,7 +94,7 @@ export function AvatarSetupScreen() {
             exit={{ opacity: 0, x: -20 }}
             className="flex-1 flex flex-col overflow-hidden"
           >
-            <div className="px-6 pt-12 pb-4">
+            <div className="px-6 pt-8 pb-4">
               <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: '#00d060' }}>
                 Setup
               </p>
@@ -145,7 +167,7 @@ export function AvatarSetupScreen() {
                   color: canContinue && !isSaving ? '#000' : '#2a4a33',
                 }}
               >
-                {isSaving ? 'Saving...' : 'Continue →'}
+                {isSaving ? 'Setting up...' : 'Continue →'}
               </motion.button>
             </div>
           </motion.div>

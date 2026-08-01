@@ -47,9 +47,9 @@ export function deriveScreen(state: ScreenRouterState): Screen {
     return 'landing';
   }
 
-  // No session at all → landing page
+  // Passed landing but no session yet → avatar setup (guest creation happens on Continue)
   if (!session) {
-    return 'landing';
+    return 'avatar-setup';
   }
 
   // Session exists but no avatar or display name set → avatar setup
