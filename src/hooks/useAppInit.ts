@@ -7,25 +7,35 @@ import { apiClient } from '../api/client';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-async function loginAsGuest(): Promise<void> {
+export async function loginAsGuest(): Promise<void> {
   try {
     const deviceId = persistenceLayer.getDeviceId();
     const { token, guestId } = await apiClient.guestLogin(deviceId);
+    persistenceLayer.saveToken(token);
     useGameStore.getState().setSession({
-      token, userId: guestId, displayName: null,
-      avatarId: '', isAuthenticated: false, deviceId,
+      token,
+      userId: guestId,
+      displayName: null,
+      avatarId: '',
+      isAuthenticated: false,
+      deviceId,
     });
     socketHandler.connect(SOCKET_URL, token);
   } catch {
-    console.warn('[AppInit] Guest login failed, retrying with new device ID...');
-    persistenceLayer.clearSession();
+    console.warn('[AppInit] Guest login failed, retrying with fresh device ID...');
+    persistenceLayer.clearToken();
     try {
       localStorage.removeItem('naija_device_id');
       const newDeviceId = persistenceLayer.getDeviceId();
       const { token, guestId } = await apiClient.guestLogin(newDeviceId);
+      persistenceLayer.saveToken(token);
       useGameStore.getState().setSession({
-        token, userId: guestId, displayName: null,
-        avatarId: '', isAuthenticated: false, deviceId: newDeviceId,
+        token,
+        userId: guestId,
+        displayName: null,
+        avatarId: '',
+        isAuthenticated: false,
+        deviceId: newDeviceId,
       });
       socketHandler.connect(SOCKET_URL, token);
     } catch (err) {
@@ -34,10 +44,6 @@ async function loginAsGuest(): Promise<void> {
   }
 }
 
-/**
- * Handles app boot: session hydration, token verification, guest login, socket connect.
- * Returns isBooting and pendingRejoinRoom.
- */
 export function useAppInit() {
   const [isBooting, setIsBooting] = useState(true);
   const [pendingRejoinRoom, setPendingRejoinRoom] = useState<string | null>(null);
@@ -45,62 +51,55 @@ export function useAppInit() {
   useEffect(() => {
     registerEventHandlers();
 
-    // Optimistically restore from localStorage so UI isn't blank during async init
-    const saved = persistenceLayer.loadSession();
-    if (saved?.token && !useGameStore.getState().session) {
-      apiClient.setToken(saved.token);
-      useGameStore.getState().setSession(saved);
-    }
-
     const init = async () => {
-      if (saved?.token) {
-        apiClient.setToken(saved.token);
-        try {
-          const meRes = await apiClient.getCurrentUser();
-          const { user } = meRes.data;
-          useGameStore.getState().setSession({
-            token: saved.token,
-            userId: user.id ?? saved.userId,
-            displayName: user.displayName ?? saved.displayName,
-            avatarId: user.avatarId ?? saved.avatarId,
-            isAuthenticated: user.type === 'GOOGLE' || saved.isAuthenticated,
-            deviceId: saved.deviceId,
-          });
-          socketHandler.connect(SOCKET_URL, saved.token);
-          if (meRes.data.activeRoom) setPendingRejoinRoom(meRes.data.activeRoom);
-        } catch {
-          console.warn('[AppInit] Token invalid, starting fresh');
-          persistenceLayer.clearSession();
-          apiClient.setToken(null);
-          await loginAsGuest();
+      const token = persistenceLayer.loadToken();
+      if (!token) return; // No token → show landing, user picks guest or Google
+
+      apiClient.setToken(token);
+
+      try {
+        // All profile data comes from the server — token is the only local state
+        const meRes = await apiClient.getCurrentUser();
+        const { user } = meRes.data;
+
+        useGameStore.getState().setSession({
+          token,
+          userId: user.id,
+          displayName: user.displayName,
+          avatarId: user.avatarId ?? '',
+          isAuthenticated: user.type === 'GOOGLE',
+          deviceId: persistenceLayer.getDeviceId(),
+        });
+
+        socketHandler.connect(SOCKET_URL, token);
+
+        if (meRes.data.activeRoom) {
+          setPendingRejoinRoom(meRes.data.activeRoom);
         }
-      } else {
-        await loginAsGuest();
+      } catch {
+        // Token stale or invalid — clear and show landing
+        console.warn('[AppInit] Token invalid, clearing');
+        persistenceLayer.clearToken();
+        apiClient.setToken(null);
+        useGameStore.getState().setSession(null);
       }
     };
 
     init().finally(() => setIsBooting(false));
 
-    // Reconnect socket and re-sync room state when tab becomes visible after mobile suspension
+    // Re-sync on tab resume after mobile suspension
     const handleVisibility = () => {
       if (document.visibilityState !== 'visible') return;
       const sess = useGameStore.getState().session;
       if (!sess?.token) return;
 
-      const roomCode = useGameStore.getState().room?.roomCode;
-
       if (useGameStore.getState().connection.status === 'disconnected') {
-        // Full reconnect needed — connect() will trigger handleConnect
-        // which fires state-snapshot via join-room below
         socketHandler.connect(SOCKET_URL, sess.token);
       }
 
-      // Always re-emit join-room so server sends fresh state-snapshot
-      // This resyncs timer, phase, answers even if socket stayed connected
+      const roomCode = useGameStore.getState().room?.roomCode;
       if (roomCode) {
-        setTimeout(() => {
-          socketHandler.emit('join-room', { roomCode });
-        }, 300); // small delay to ensure socket is ready
+        setTimeout(() => socketHandler.emit('join-room', { roomCode }), 300);
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);

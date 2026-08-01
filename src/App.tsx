@@ -1,18 +1,16 @@
-import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { Home } from 'lucide-react';
 import { ScreenRouter } from './router/ScreenRouter.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConnectionLostOverlay } from './components/ConnectionLostOverlay';
 import { RejoinPrompt } from './components/RejoinPrompt';
 import { GameToast } from './components/GameToast';
-import { TopBar } from './components/TopBar';
 import { BootScreen } from './components/BootScreen';
 import { useToastStore } from './components/toastStore';
 import { useGameStore } from './store/gameStore';
 import { socketHandler } from './socket/socketHandler';
 import { apiClient } from './api/client';
 import { deriveScreen } from './router/screenRouter';
-import { isMuted, toggleMute } from './audio/soundManager';
 import { useAppInit } from './hooks/useAppInit';
 import { useSoundInit } from './hooks/useSoundInit';
 
@@ -28,13 +26,13 @@ function App() {
   const matchResults = useGameStore((s) => s.matchResults);
   const hasPassedLanding = useGameStore((s) => s.hasPassedLanding);
 
-  const [soundMuted, setSoundMuted] = useState(isMuted());
   const toast = useToastStore();
-
   const { isBooting, pendingRejoinRoom, setPendingRejoinRoom } = useAppInit();
   useSoundInit();
 
   const activeScreen = deriveScreen({ session, room, round, matchResults, hasPassedLanding });
+  const showHome = activeScreen !== 'landing' && activeScreen !== 'avatar-setup';
+  const showConnectionProblem = connectionStatus !== 'connected' && !isBooting;
 
   const handleGoHome = () => {
     const currentSession = useGameStore.getState().session;
@@ -68,18 +66,49 @@ function App() {
       }}
     >
       <div
-        className="relative w-full py-3 h-full overflow-hidden flex flex-col sm:max-w-[480px] md:max-w-[540px] lg:max-w-[600px] sm:h-[95vh] sm:rounded-3xl sm:shadow-2xl sm:border sm:border-[#1a3528]/50"
+        className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-[480px] md:max-w-[540px] lg:max-w-[600px] sm:h-[95vh] sm:rounded-3xl sm:shadow-2xl sm:border sm:border-[#1a3528]/50"
         style={{ background: '#081510' }}
       >
-        <TopBar
-          soundMuted={soundMuted}
-          showHome={activeScreen !== 'landing'}
-          connectionStatus={connectionStatus}
-          isBooting={isBooting}
-          onToggleSound={() => setSoundMuted(toggleMute())}
-          onGoHome={handleGoHome}
-        />
+        {/* Floating Home button — top left, only on non-landing screens */}
+        {showHome && !isBooting && (
+          <button
+            onClick={handleGoHome}
+            className="absolute top-4 left-4 z-40 w-8 h-8 flex items-center justify-center rounded-xl transition-all active:scale-90 pt-safe"
+            style={{ background: '#0d2018', border: '1px solid #1a3528' }}
+            aria-label="Go home"
+          >
+            <Home className="w-4 h-4" style={{ color: '#6baf80' }} />
+          </button>
+        )}
 
+        {/* Connection problem indicator — top right, only when degraded/offline */}
+        <AnimatePresence>
+          {showConnectionProblem && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-4 right-4 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg pt-safe"
+              style={{ background: '#0d2018', border: '1px solid #1a3528' }}
+            >
+              <div
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  background: connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c',
+                  animation: 'pulse 2s ease-in-out infinite',
+                }}
+              />
+              <span
+                className="text-[9px] font-bold tracking-widest"
+                style={{ color: connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c' }}
+              >
+                {connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main content */}
         <AnimatePresence mode="wait">
           {isBooting ? (
             <BootScreen />
@@ -99,6 +128,7 @@ function App() {
           )}
         </AnimatePresence>
 
+        {/* Rejoin prompt */}
         <AnimatePresence>
           {pendingRejoinRoom && !room && (
             <div className="pb-safe">
@@ -125,9 +155,9 @@ function App() {
       )}
 
       <style>{`
-        @keyframes ping-dot {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.4); }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
       `}</style>
     </div>

@@ -1,41 +1,46 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Radio, Trophy, ArrowLeft, User, Pencil, X } from 'lucide-react';
+import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
-import { preloadSounds } from '../audio/soundManager';
+import { persistenceLayer } from '../persistence/persistenceLayer';
+import { socketHandler } from '../socket/socketHandler';
+import { preloadSounds, isMuted, toggleMute } from '../audio/soundManager';
 import { showToast } from '../components/toastStore';
 import { InstallBanner } from '../components/InstallBanner';
 import { useInstallPrompt } from '../utils/useInstallPrompt';
+import { loginAsGuest } from '../hooks/useAppInit';
 
 /**
  * LandingScreen - Landing page with "Start Playing" CTA and Leaderboard access.
  * Nigerian flag stripe, floating letters, bold Dela Gothic heading, neon green CTA.
  */
 export function LandingScreen() {
-  const setSession = useGameStore((s) => s.setSession);
   const setHasPassedLanding = useGameStore((s) => s.setHasPassedLanding);
   const session = useGameStore((s) => s.session);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const { showBanner, installMode, handleInstall, handleConfirmInstalled, handleDismiss } = useInstallPrompt();
 
-  const handlePlay = () => {
-    // Preload sounds on first user interaction (required by browser autoplay policy)
+  const handlePlay = async () => {
     preloadSounds();
-    const existing = useGameStore.getState().session;
-    if (!existing) {
-      setSession({
-        token: '',
-        userId: crypto.randomUUID(),
-        displayName: null,
-        avatarId: '',
-        isAuthenticated: false,
-        deviceId: '',
-      });
+    // If already have a session (returning user), just pass landing
+    if (useGameStore.getState().session) {
+      setHasPassedLanding(true);
+      return;
     }
-    setHasPassedLanding(true);
+    // New user — create guest account now
+    setIsStarting(true);
+    try {
+      await loginAsGuest();
+      setHasPassedLanding(true);
+    } catch {
+      showToast('Could not connect. Check your connection.', 'error');
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   return (
@@ -72,55 +77,40 @@ export function LandingScreen() {
       ))}
 
       <div className="text-center z-10 w-full max-w-[290px] sm:max-w-[360px]">
-        <div
-          className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-4 border"
-          style={{
-            background: 'rgba(0,208,96,0.12)',
-            borderColor: 'rgba(0,208,96,0.25)',
-          }}
-        >
-          <Radio className="w-3 h-3" style={{ color: '#00d060' }} />
-          <span
-            className="text-[10px] font-bold tracking-[0.14em] uppercase"
-            style={{ color: '#00d060' }}
-          >
-            Multiplayer
-          </span>
-        </div>
-
         <img
           src="/tick-tick logo.png"
           alt="Tick-Tick"
-          className="w-52 mx-auto mb-6 drop-shadow-lg"
+          className="w-40 mx-auto mb-4"
           style={{ filter: 'drop-shadow(0 8px 24px rgba(0,208,96,0.25))' }}
         />
 
         <p
-          className="text-[13px] leading-relaxed mb-10"
+          className="text-[12px] leading-relaxed mb-6"
           style={{ color: '#6baf80' }}
         >
-          The classic word game you grew up with—now multiplayer.
+          The classic word game — now multiplayer.
           Fill every category before someone shouts STOP!
         </p>
 
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={handlePlay}
-          className="w-full rounded-2xl py-4 mb-3 text-black font-bold text-xl"
+          disabled={isStarting}
+          className="w-full rounded-2xl py-4 mb-3 text-black font-bold text-xl disabled:opacity-70"
           style={{
             background: '#00d060',
             fontFamily: "'Dela Gothic One', sans-serif",
             fontSize: '22px',
           }}
         >
-          Start Playing
+          {isStarting ? 'Connecting...' : 'Start Playing'}
         </motion.button>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-3">
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowLeaderboard(true)}
-            className="flex-1 rounded-2xl py-3.5 font-bold text-sm flex items-center justify-center gap-2 border"
+            className="flex-1 rounded-2xl py-3 font-bold text-sm flex items-center justify-center gap-2 border"
             style={{
               background: 'rgba(255,184,0,0.08)',
               borderColor: 'rgba(255,184,0,0.3)',
@@ -135,7 +125,7 @@ export function LandingScreen() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowProfile(true)}
-              className="flex-1 rounded-2xl py-3.5 font-bold text-sm flex items-center justify-center gap-2 border"
+              className="flex-1 rounded-2xl py-3 font-bold text-sm flex items-center justify-center gap-2 border"
               style={{
                 background: 'rgba(0,208,96,0.06)',
                 borderColor: 'rgba(0,208,96,0.2)',
@@ -148,9 +138,27 @@ export function LandingScreen() {
           )}
         </div>
 
-        <p className="text-xs" style={{ color: '#2a4a33' }}>
-          No account needed · Free to play
-        </p>
+        {/* Link Google nudge — shown to guests who have a profile set up */}
+        {session?.displayName && !session.isAuthenticated && (
+          <motion.button
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowProfile(true)}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border"
+            style={{
+              background: 'rgba(0,208,96,0.05)',
+              borderColor: 'rgba(0,208,96,0.2)',
+            }}
+          >
+            <Link className="w-4 h-4 shrink-0" style={{ color: '#00d060' }} />
+            <p className="flex-1 text-left text-[11px]" style={{ color: '#6baf80' }}>
+              Save your progress — link Google
+            </p>
+            <ArrowLeft className="w-3 h-3 rotate-180 shrink-0" style={{ color: '#00d060' }} />
+          </motion.button>
+        )}
       </div>
 
       <style>{`
@@ -457,6 +465,23 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
   const session = useGameStore((s) => s.session);
   const { data, isLoading } = usePlayerStats(!!session?.token);
   const [showEdit, setShowEdit] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      await apiClient.deleteAccount();
+      persistenceLayer.clearToken();
+      socketHandler.disconnect();
+      useGameStore.getState().reset();
+      showToast('Account deleted', 'info');
+    } catch {
+      showToast('Failed to delete account. Try again.', 'error');
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   const stats = data?.data.stats;
 
@@ -498,7 +523,9 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {/* Player card */}
+      <section className='flex-1 overflow-y-auto '  style={{ scrollbarWidth: 'none' }}>
+
+{/* Player card */}
       <div className="px-6 mb-5 shrink-0">
         <div
           className="flex items-center gap-4 p-5 rounded-2xl border"
@@ -530,20 +557,32 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
             </div>
           )}
         </div>
-        {/* Edit profile button */}
-        <button
-          onClick={() => setShowEdit(true)}
-          className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all active:scale-95"
-          style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
-        >
-          <Pencil className="w-3 h-3" />
-          Edit Profile
-        </button>
+        {/* Edit profile + Link Google side by side */}
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => setShowEdit(true)}
+            className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all active:scale-95"
+            style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
+          >
+            <Pencil className="w-3 h-3" />
+            Edit Profile
+          </button>
+          {!session?.isAuthenticated && (
+            <button
+              onClick={() => { apiClient.redirectToGoogle(); }}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all active:scale-95"
+              style={{ background: '#0d2018', borderColor: 'rgba(0,208,96,0.2)', color: '#00d060' }}
+            >
+              <Link className="w-3 h-3" />
+              Link Google
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats + Settings — all scrollable */}
       <div
-        className="flex-1 overflow-y-auto px-6"
+        className="px-6"
         style={{ scrollbarWidth: 'none' }}
       >
         {isLoading ? (
@@ -663,7 +702,28 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
             </div>
           </>
         )}
+
+        {/* ── Settings ── */}
+        <p
+          className="text-xs font-bold tracking-widest uppercase mb-3 mt-2"
+          style={{ color: '#a0c8a8' }}
+        >
+          Settings
+        </p>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <SoundToggleButton />
+        </div>
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="w-full py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 mb-4"
+          style={{ color: '#ff3b5c', opacity: 0.6 }}
+        >
+          Delete Account
+        </button>
       </div>
+      </section>
+
+      
 
       {/* Bottom CTA */}
       <div className="px-6 pb-8 pb-safe pt-4 shrink-0">
@@ -685,6 +745,51 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       <AnimatePresence>
         {showEdit && (
           <ProfileEditOverlay onClose={() => setShowEdit(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Delete Account Confirmation */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-end"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+          >
+            <motion.div
+              initial={{ y: 80 }}
+              animate={{ y: 0 }}
+              exit={{ y: 80 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+              className="w-full px-6 pb-10 pt-6 rounded-t-3xl"
+              style={{ background: '#0d2018', borderTop: '1px solid rgba(255,59,92,0.2)' }}
+            >
+              <p className="text-white font-bold text-base mb-1">Delete Account?</p>
+              <p className="text-sm mb-6" style={{ color: '#6baf80' }}>
+                This permanently deletes your profile, scores, and all progress. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold border transition-all active:scale-95"
+                  style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50"
+                  style={{ background: '#ff3b5c', color: 'white' }}
+                >
+                  {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
@@ -711,6 +816,20 @@ function StatCard({ label, value, color }: { label: string; value: number; color
         {label}
       </p>
     </div>
+  );
+}
+
+function SoundToggleButton() {
+  const [muted, setMuted] = useState(isMuted());
+  return (
+    <button
+      onClick={() => setMuted(toggleMute())}
+      className="p-3 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-1.5 border transition-all active:scale-95"
+      style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
+    >
+      {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+      Sound {muted ? 'Off' : 'On'}
+    </button>
   );
 }
 

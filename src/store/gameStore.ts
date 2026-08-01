@@ -6,7 +6,6 @@ import type {
   RoundPhase,
   RoundResultsPayload,
   PodiumEntry,
-  SessionData,
 } from '../types';
 import { persistenceLayer } from '../persistence/persistenceLayer';
 
@@ -146,16 +145,8 @@ export const useGameStore = create<GameStore>()(
 
     setSession: (session) => {
       set({ session });
-      if (session) {
-        const sessionData: SessionData = {
-          token: session.token,
-          userId: session.userId,
-          displayName: session.displayName,
-          avatarId: session.avatarId,
-          isAuthenticated: session.isAuthenticated,
-          deviceId: session.deviceId,
-        };
-        persistenceLayer.saveSession(sessionData);
+      if (session?.token) {
+        persistenceLayer.saveToken(session.token);
       }
     },
 

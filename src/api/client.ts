@@ -65,6 +65,39 @@ class ApiClient {
     return res.data;
   }
 
+  /**
+   * Fetches the Google OAuth URL from the backend then redirects the user.
+   */
+  async redirectToGoogle(): Promise<void> {
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    const res = await this.request<{ success: boolean; data: { url: string } }>(
+      `/api/auth/google/redirect?redirect_uri=${encodeURIComponent(redirectUri)}`
+    );
+    window.location.href = res.data.url;
+  }
+
+  /**
+   * Exchanges a Google OAuth code for a JWT.
+   * If a guest token is set (Authorization header), backend links the accounts.
+   * Response includes `linked: true` if a guest account was just upgraded.
+   */
+  async googleLogin(code: string): Promise<{ token: string; user: { id: string; email: string; displayName: string }; linked: boolean }> {
+    const res = await this.request<{
+      success: boolean;
+      data: { token: string; user: { id: string; email: string; displayName: string }; linked: boolean };
+    }>('/api/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+    this.token = res.data.token;
+    return res.data;
+  }
+
+  async deleteAccount(): Promise<void> {
+    await this.request<{ success: boolean }>('/api/auth/account', { method: 'DELETE' });
+    this.token = null;
+  }
+
   async getCurrentUser() {
     return this.request<{
       success: boolean;
