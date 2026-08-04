@@ -5,6 +5,7 @@ import { useGameStore } from '../store/gameStore';
 import { apiClient } from '../api/client';
 import { showToast } from '../components/toastStore';
 import { loginAsGuest } from '../hooks/useAppInit';
+import { track } from '../utils/analytics';
 
 const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'];
 
@@ -58,6 +59,7 @@ export function AvatarSetupScreen() {
 
       // Update local session
       setSession({ ...currentSession, displayName: playerName, avatarId });
+      track('profile_setup_completed', { isAuthenticated: currentSession.isAuthenticated });
 
       // Google users already authenticated — skip link prompt, go straight to lobby
       if (currentSession.isAuthenticated) {
@@ -73,10 +75,12 @@ export function AvatarSetupScreen() {
   };
 
   const handleLinkGoogle = async () => {
+    track('google_link_started');
     await apiClient.redirectToGoogle();
   };
 
   const handleSkipLink = () => {
+    track('google_link_skipped');
     showToast(`Welcome, ${playerName}! 🎮`, 'success');
     // Trigger re-render — deriveScreen will route to Lobby since session is now complete
     const s = useGameStore.getState().session;

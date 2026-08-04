@@ -2,6 +2,7 @@ import { useGameStore } from '../store/gameStore';
 import { socketHandler } from './socketHandler';
 import { playSound } from '../audio/soundManager';
 import { showToast } from '../components/toastStore';
+import { track } from '../utils/analytics';
 import type {
   StateSnapshot,
   RoundStartPayload,
@@ -91,6 +92,8 @@ function handleStateSnapshot(payload: unknown): void {
     },
     status: mapRoomStatus(data.room.status),
   });
+
+  track('room_joined', { roomCode: data.room.code, playerCount: data.players.length });
 
   // Map current round if active
   if (data.currentRound) {
@@ -360,6 +363,11 @@ function handleMatchSummary(payload: unknown): void {
     allPlayers: data.allPlayers,
     totalDuration: data.totalDuration,
     shareCardUrl: data.shareCardUrl,
+  });
+
+  track('match_completed', {
+    playerCount: data.allPlayers.length,
+    totalDuration: data.totalDuration,
   });
 }
 

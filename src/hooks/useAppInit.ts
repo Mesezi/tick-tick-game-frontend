@@ -4,6 +4,7 @@ import { socketHandler } from '../socket/socketHandler';
 import { registerEventHandlers, unregisterEventHandlers } from '../socket/eventHandlers';
 import { persistenceLayer } from '../persistence/persistenceLayer';
 import { apiClient } from '../api/client';
+import { identifyUser, track } from '../utils/analytics';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
@@ -16,6 +17,8 @@ export async function loginAsGuest(): Promise<void> {
       token, userId: guestId, displayName: null,
       avatarId: '', isAuthenticated: false, deviceId,
     });
+    identifyUser(guestId, { type: 'GUEST' });
+    track('guest_created');
     socketHandler.connect(SOCKET_URL, token);
   } catch {
     console.warn('[AppInit] Guest login failed, retrying with fresh device ID...');
@@ -74,6 +77,8 @@ export function useAppInit() {
             isAuthenticated: true,
             deviceId: persistenceLayer.getDeviceId(),
           });
+          identifyUser(user.id, { type: 'GOOGLE', displayName: user.displayName });
+          track('auth_google_success');
           socketHandler.connect(SOCKET_URL, res.token);
           useGameStore.getState().setHasPassedLanding(true);
         } catch (err) {
@@ -99,6 +104,8 @@ export function useAppInit() {
           isAuthenticated: user.type === 'GOOGLE',
           deviceId: persistenceLayer.getDeviceId(),
         });
+        identifyUser(user.id, { type: user.type, displayName: user.displayName });
+        track('session_restored');
         socketHandler.connect(SOCKET_URL, token);
         if (meRes.data.activeRoom) setPendingRejoinRoom(meRes.data.activeRoom);
       } catch {

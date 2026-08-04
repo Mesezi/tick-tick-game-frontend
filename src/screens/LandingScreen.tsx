@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link } from 'lucide-react';
+import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link, MessageCircle } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
@@ -467,6 +467,10 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
   const [showEdit, setShowEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [contactMsg, setContactMsg] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [isSendingContact, setIsSendingContact] = useState(false);
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -480,6 +484,34 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       showToast('Failed to delete account. Try again.', 'error');
       setIsDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleSendContact = async () => {
+    if (!contactMsg.trim()) return;
+    setIsSendingContact(true);
+    try {
+      const formData = new FormData();
+      formData.append('email', contactEmail || 'anonymous');
+      formData.append('message', contactMsg);
+      formData.append('userId', session?.userId || '');
+      formData.append('displayName', session?.displayName || '');
+
+      const res = await fetch('https://formspree.io/f/mbgrrdbg', {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!res.ok) throw new Error('Failed');
+      showToast("Message sent! We'll get back to you 🙏", 'success');
+      setContactMsg('');
+      setContactEmail('');
+      setShowContact(false);
+    } catch {
+      showToast('Failed to send. Try again.', 'error');
+    } finally {
+      setIsSendingContact(false);
     }
   };
 
@@ -712,6 +744,14 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
         </p>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <SoundToggleButton />
+          <button
+            onClick={() => setShowContact(true)}
+            className="p-3 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-1.5 border transition-all active:scale-95"
+            style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
+          >
+            <MessageCircle className="w-5 h-5" />
+            Get in Touch
+          </button>
         </div>
         <button
           onClick={() => setShowDeleteConfirm(true)}
@@ -788,6 +828,78 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
                   {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                 </motion.button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Contact Sheet */}
+      <AnimatePresence>
+        {showContact && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-end"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowContact(false); }}
+          >
+            <motion.div
+              initial={{ y: 80 }}
+              animate={{ y: 0 }}
+              exit={{ y: 80 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+              className="w-full px-6 pb-10 pt-6 rounded-t-3xl"
+              style={{ background: '#0d2018', borderTop: '1px solid rgba(0,208,96,0.2)' }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-white font-bold text-base">Get in Touch</p>
+                  <p className="text-[11px]" style={{ color: '#6baf80' }}>We read every message</p>
+                </div>
+                <button
+                  onClick={() => setShowContact(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl active:scale-90"
+                  style={{ background: '#1a3528', color: '#6baf80' }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Email (optional) */}
+              <input
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="Your email (optional)"
+                className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none mb-3"
+                style={{ background: '#122318', border: '1px solid #1a3528', caretColor: '#00d060' }}
+              />
+
+              {/* Message */}
+              <textarea
+                value={contactMsg}
+                onChange={(e) => setContactMsg(e.target.value)}
+                placeholder="Tell us what's on your mind..."
+                rows={4}
+                className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none resize-none mb-4"
+                style={{ background: '#122318', border: `1px solid ${contactMsg.length > 0 ? 'rgba(0,208,96,0.3)' : '#1a3528'}`, caretColor: '#00d060' }}
+              />
+
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={handleSendContact}
+                disabled={!contactMsg.trim() || isSendingContact}
+                className="w-full py-4 rounded-2xl font-bold text-sm disabled:opacity-40 transition-all"
+                style={{
+                  background: contactMsg.trim() ? '#00d060' : '#122318',
+                  color: contactMsg.trim() ? '#000' : '#2a4a33',
+                  fontFamily: "'Dela Gothic One', sans-serif",
+                  fontSize: '18px',
+                }}
+              >
+                {isSendingContact ? 'Sending...' : 'Send Message'}
+              </motion.button>
             </motion.div>
           </motion.div>
         )}
