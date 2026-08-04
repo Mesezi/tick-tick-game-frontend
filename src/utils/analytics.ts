@@ -1,7 +1,7 @@
 import posthog from 'posthog-js';
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
-const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://app.posthog.com';
+const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com';
 
 /**
  * Initialise PostHog. Call once on app boot.
@@ -15,8 +15,6 @@ export function initAnalytics(): void {
   }
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    defaults: '2026-05-30' as any,
     capture_pageview: true,
     capture_pageleave: true,
     persistence: 'localStorage',

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link, MessageCircle } from 'lucide-react';
+import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link, MessageCircle, HelpCircle } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
@@ -20,6 +20,7 @@ export function LandingScreen() {
   const session = useGameStore((s) => s.session);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   const { showBanner, installMode, handleInstall, handleConfirmInstalled, handleDismiss } = useInstallPrompt();
 
   const handlePlay = () => {
@@ -127,6 +128,8 @@ export function LandingScreen() {
           )}
         </div>
 
+       
+
         {/* Link Google nudge — shown to guests who have a profile set up */}
         {session?.displayName && !session.isAuthenticated && (
           <motion.button
@@ -142,9 +145,9 @@ export function LandingScreen() {
             }}
           >
             <Link className="w-4 h-4 shrink-0" style={{ color: '#00d060' }} />
-            <p className="flex-1 text-left text-[11px]" style={{ color: '#6baf80' }}>
+            <button onClick={() => { apiClient.redirectToGoogle(); }} className="flex-1 text-left text-[11px]" style={{ color: '#6baf80' }}>
               Save your progress — link Google
-            </p>
+            </button>
             <ArrowLeft className="w-3 h-3 rotate-180 shrink-0" style={{ color: '#00d060' }} />
           </motion.button>
         )}
@@ -153,12 +156,23 @@ export function LandingScreen() {
         {!session && (
           <button
             onClick={() => { apiClient.redirectToGoogle(); }}
-            className="mt-2 text-[11px]"
+            className="mt-2 text-sm"
             style={{ color: '#3a5a45' }}
           >
             Already have an account? <span style={{ color: '#00d060', fontWeight: 'bold' }}>Sign in →</span>
           </button>
         )}
+
+
+         {/* How to Play */}
+        <button
+          onClick={() => setShowHowToPlay(true)}
+          className="flex items-center mx-auto mt-5 justify-center text-sm gap-1.5 mb-3 font-bold"
+          style={{ color: '#ffb800' }}
+        >
+          <HelpCircle className="w-3 h-3" />
+          How to Play
+        </button>
       </div>
 
       <style>{`
@@ -181,6 +195,91 @@ export function LandingScreen() {
       <AnimatePresence>
         {showProfile && (
           <ProfileOverlay onClose={() => setShowProfile(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* How to Play sheet */}
+      <AnimatePresence>
+        {showHowToPlay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-end"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', scrollbarWidth: 'none'}}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowHowToPlay(false); }}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+              className="w-full rounded-t-3xl px-6 pt-6 pb-10 overflow-y-auto"
+              style={{ background: '#0d2018', maxHeight: '85vh', borderTop: '1px solid rgba(0,208,96,0.2)', scrollbarWidth: 'none' }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-xs font-bold tracking-widest uppercase mb-0.5" style={{ color: '#00d060' }}>Quick Guide</p>
+                  <h3 className="text-white" style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '26px', lineHeight: 1 }}>How to Play</h3>
+                </div>
+                <button onClick={() => setShowHowToPlay(false)} className="w-8 h-8 flex items-center justify-center rounded-xl active:scale-90" style={{ background: '#1a3528', color: '#6baf80' }}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { emoji: '🎯', title: 'Get a letter + categories', desc: 'Each round gives you a random letter and 5 categories (Food, Animal, City, etc). Every answer must start with that letter.' },
+                  { emoji: '⏱️', title: 'Type fast', desc: 'You have 90 seconds to fill all categories. Answers save automatically as you type.' },
+                  { emoji: '🛑', title: 'Shout STOP!', desc: 'Finished early? Hit STOP to start a 15-second grace period. After that, the round locks.' },
+                  { emoji: '🤖', title: 'AI scores your answers', desc: 'Correct = 10pts. Minor typo = 9pts. Major typo = 7pts. Duplicate answer = 5pts. Wrong/blank = 0pts.' },
+                  { emoji: '💡', title: 'Be unique', desc: 'If you and another player give the same answer, you both get only 5pts instead of 10. Creative answers win.' },
+                  { emoji: '🇳🇬', title: 'Nigerian terms accepted', desc: 'The AI understands Pidgin, local slang, and multi-word answers like "Jollof Rice".' },
+                  { emoji: '🏆', title: 'Win the match', desc: 'Highest cumulative score after all rounds wins. Top 3 hit the podium and the leaderboard.' },
+                ].map((step, i) => (
+                  <div key={i} className="flex gap-4 p-4 rounded-2xl" style={{ background: '#122318' }}>
+                    <span className="text-2xl shrink-0">{step.emoji}</span>
+                    <div>
+                      <p className="text-white font-bold text-sm mb-0.5">{step.title}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: '#6baf80' }}>{step.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 p-4 rounded-2xl" style={{ background: '#122318' }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#a0c8a8' }}>Scoring</p>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Correct (perfectly spelled)', pts: '+10', color: '#00d060' },
+                    { label: 'Minor typo (clearly right)', pts: '+9', color: '#00d060' },
+                    { label: 'Major typo (recognizable)', pts: '+7', color: '#ff9600' },
+                    { label: 'Duplicate (same as other player)', pts: '+5', color: '#ffb800' },
+                    { label: 'Wrong / blank', pts: '0', color: '#ff3b5c' },
+                  ].map((s) => (
+                    <div key={s.label} className="flex items-center justify-between">
+                      <span className="text-[10px]" style={{ color: '#6baf80' }}>{s.label}</span>
+                      <span className="text-xs font-bold" style={{ color: s.color }}>{s.pts}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4 p-4 rounded-2xl" style={{ background: '#122318' }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#a0c8a8' }}>Tips</p>
+                <ul className="space-y-1.5">
+                  {[
+                    'Unique answers earn full points — common ones get reduced to 5',
+                    'Spelling matters but the AI is lenient — close enough counts',
+                    'Speed matters — someone can STOP the round early',
+                    'Nigerian slang and Pidgin are valid — use them!',
+                  ].map((tip, i) => (
+                    <li key={i} className="text-[10px] flex gap-2 items-start" style={{ color: '#6baf80' }}>
+                      <span style={{ color: '#00d060' }}>•</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -468,6 +567,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [contactName, setContactName] = useState(session?.displayName || '');
   const [contactMsg, setContactMsg] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [isSendingContact, setIsSendingContact] = useState(false);
@@ -488,14 +588,14 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
   };
 
   const handleSendContact = async () => {
-    if (!contactMsg.trim()) return;
+    if (!contactName.trim() || !contactMsg.trim()) return;
     setIsSendingContact(true);
     try {
       const formData = new FormData();
-      formData.append('email', contactEmail || 'anonymous');
+      formData.append('name', contactName);
+      formData.append('email', contactEmail || 'not provided');
       formData.append('message', contactMsg);
       formData.append('userId', session?.userId || '');
-      formData.append('displayName', session?.displayName || '');
 
       const res = await fetch('https://formspree.io/f/mbgrrdbg', {
         method: 'POST',
@@ -505,6 +605,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
 
       if (!res.ok) throw new Error('Failed');
       showToast("Message sent! We'll get back to you 🙏", 'success');
+      setContactName(session?.displayName || '');
       setContactMsg('');
       setContactEmail('');
       setShowContact(false);
@@ -854,8 +955,8 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-white font-bold text-base">Get in Touch</p>
-                  <p className="text-[11px]" style={{ color: '#6baf80' }}>We read every message</p>
+                  <p className="text-white font-bold text-lg">Get in Touch</p>
+                  <p className="text-sm" style={{ color: '#6baf80' }}>We read every message</p>
                 </div>
                 <button
                   onClick={() => setShowContact(false)}
@@ -866,10 +967,21 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
                 </button>
               </div>
 
+              {/* Name (required) */}
+              <input
+                type="text"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder="Your name *"
+                className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none mb-3"
+                style={{ background: '#122318', border: `1px solid ${contactName.trim() ? 'rgba(0,208,96,0.3)' : '#1a3528'}`, caretColor: '#00d060' }}
+              />
+
               {/* Email (optional) */}
               <input
                 type="email"
                 value={contactEmail}
+                
                 onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="Your email (optional)"
                 className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none mb-3"
@@ -882,18 +994,18 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setContactMsg(e.target.value)}
                 placeholder="Tell us what's on your mind..."
                 rows={4}
-                className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none resize-none mb-4"
+                className="w-full rounded-xl px-4 py-3 text-white outline-none resize-none mb-4"
                 style={{ background: '#122318', border: `1px solid ${contactMsg.length > 0 ? 'rgba(0,208,96,0.3)' : '#1a3528'}`, caretColor: '#00d060' }}
               />
 
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 onClick={handleSendContact}
-                disabled={!contactMsg.trim() || isSendingContact}
+                disabled={!contactName.trim() || !contactMsg.trim() || isSendingContact}
                 className="w-full py-4 rounded-2xl font-bold text-sm disabled:opacity-40 transition-all"
                 style={{
-                  background: contactMsg.trim() ? '#00d060' : '#122318',
-                  color: contactMsg.trim() ? '#000' : '#2a4a33',
+                  background: contactName.trim() && contactMsg.trim() ? '#00d060' : '#122318',
+                  color: contactName.trim() && contactMsg.trim() ? '#000' : '#2a4a33',
                   fontFamily: "'Dela Gothic One', sans-serif",
                   fontSize: '18px',
                 }}

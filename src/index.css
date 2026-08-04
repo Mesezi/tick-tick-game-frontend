@@ -105,7 +105,7 @@
 #root {
   max-width: 100%;
   margin: 0 auto;
-  min-height: 100svh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -120,7 +120,10 @@
 body {
   margin: 0;
   background: radial-gradient(ellipse at 50% 0%, #0d2a18 0%, #050f09 50%, #020804 100%);
-  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 
 h1, h2, h3 {
