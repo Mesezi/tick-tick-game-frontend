@@ -15,10 +15,12 @@ export function initAnalytics(): void {
   }
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    defaults: '2026-05-30' as any,
     capture_pageview: true,
     capture_pageleave: true,
     persistence: 'localStorage',
-    autocapture: false, // manual events only — keeps it clean
+    autocapture: false,
   });
 }
 
