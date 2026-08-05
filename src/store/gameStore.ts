@@ -29,6 +29,8 @@ export interface GameStore {
     players: PlayerInfo[];
     settings: RoomSettings;
     status: 'waiting' | 'in_progress' | 'completed';
+    isPublic?: boolean;
+    autoStartCountdown?: number | null; // seconds until auto-start, null = not counting
   } | null;
 
   // Round slice

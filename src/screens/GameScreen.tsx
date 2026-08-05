@@ -671,7 +671,7 @@ function ResultsTabsView({
   return (
     <>
       {/* Header */}
-      <div className="px-5 pt-12 pb-3 shrink-0">
+      <div className="px-5 pt-14 pb-3 shrink-0">
         <p
           className="text-xs font-bold tracking-widest uppercase mb-1"
           style={{ color: '#6baf80' }}

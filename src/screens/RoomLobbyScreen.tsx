@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Copy, Zap, Crown, LogOut } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
@@ -15,6 +15,30 @@ export function RoomLobbyScreen() {
   const room = useGameStore((s) => s.room);
   const session = useGameStore((s) => s.session);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Start local countdown when server emits auto-start-countdown
+  useEffect(() => {
+    const serverCountdown = room?.autoStartCountdown;
+    if (serverCountdown != null && serverCountdown > 0) {
+      setCountdown(serverCountdown);
+      // Clear any existing timer
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setCountdown((c) => {
+          if (c == null || c <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            return 0;
+          }
+          return c - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [room?.autoStartCountdown]);
 
   if (!room || !session) {
     return null;
@@ -53,7 +77,7 @@ export function RoomLobbyScreen() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" data-testid="screen-room-lobby">
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-6 pt-14 pb-4">
         <p
           className="text-xs font-bold tracking-widest uppercase mb-1"
           style={{ color: '#6baf80' }}
@@ -71,45 +95,54 @@ export function RoomLobbyScreen() {
           Ready Up!
         </h2>
 
-        {/* Room code card */}
-        <div
-          className="flex items-center justify-between p-4 rounded-2xl mb-2 border"
-          style={{ background: '#0d2018', borderColor: '#1a3528' }}
-        >
-          <div>
-            <p
-              className="text-[10px] font-bold tracking-widest uppercase mb-1"
-              style={{ color: '#6baf80' }}
+        {/* Room code card — hidden for public/quick-match rooms */}
+        {!room.isPublic && (
+          <>
+            <div
+              className="flex items-center justify-between p-4 rounded-2xl mb-2 border"
+              style={{ background: '#0d2018', borderColor: '#1a3528' }}
             >
-              Room Code
+              <div>
+                <p
+                  className="text-[10px] font-bold tracking-widest uppercase mb-1"
+                  style={{ color: '#6baf80' }}
+                >
+                  Room Code
+                </p>
+                <p
+                  className="tracking-[0.15em]"
+                  style={{
+                    fontFamily: "'Dela Gothic One', sans-serif",
+                    fontSize: '38px',
+                    color: '#ffb800',
+                    lineHeight: 1,
+                  }}
+                >
+                  {room.roomCode}
+                </p>
+              </div>
+              <button
+                onClick={handleCopyCode}
+                className="p-3 rounded-xl border transition-all active:scale-95"
+                style={{
+                  background: 'rgba(255,184,0,0.12)',
+                  borderColor: 'rgba(255,184,0,0.25)',
+                  color: '#ffb800',
+                }}
+              >
+                <Copy className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs mb-5" style={{ color: '#2a4a33' }}>
+              Share with friends · {room.players.length}/8 players joined
             </p>
-            <p
-              className="tracking-[0.15em]"
-              style={{
-                fontFamily: "'Dela Gothic One', sans-serif",
-                fontSize: '38px',
-                color: '#ffb800',
-                lineHeight: 1,
-              }}
-            >
-              {room.roomCode}
-            </p>
-          </div>
-          <button
-            onClick={handleCopyCode}
-            className="p-3 rounded-xl border transition-all active:scale-95"
-            style={{
-              background: 'rgba(255,184,0,0.12)',
-              borderColor: 'rgba(255,184,0,0.25)',
-              color: '#ffb800',
-            }}
-          >
-            <Copy className="w-5 h-5" />
-          </button>
-        </div>
-        <p className="text-xs mb-5" style={{ color: '#2a4a33' }}>
-          Share with friends · {room.players.length}/8 players joined
-        </p>
+          </>
+        )}
+        {room.isPublic && (
+          <p className="text-xs mb-5" style={{ color: '#6baf80' }}>
+            Quick Match · {room.players.length}/6 players
+          </p>
+        )}
       </div>
 
       <div
@@ -175,7 +208,26 @@ export function RoomLobbyScreen() {
       </div>
 
       <div className="px-6 pb-8 pb-safe pt-4 flex flex-col gap-2">
-        {isHost ? (
+        {room.isPublic ? (
+          /* Public room — auto-start, no manual start button */
+          <div
+            className="rounded-2xl py-4 text-center"
+            style={{ background: '#0d2018' }}
+          >
+            {countdown != null && countdown > 0 ? (
+              <p className="text-sm font-bold" style={{ color: '#ffb800' }}>
+                Game starting in{' '}
+                <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '20px' }}>
+                  {countdown}
+                </span>
+              </p>
+            ) : (
+              <p className="text-sm" style={{ color: '#6baf80' }}>
+                Waiting for players... ({room.players.length}/6)
+              </p>
+            )}
+          </div>
+        ) : isHost ? (
           <motion.button
             whileTap={{ scale: 0.96 }}
             onClick={handleStartGame}

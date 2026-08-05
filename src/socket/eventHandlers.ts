@@ -91,6 +91,8 @@ function handleStateSnapshot(payload: unknown): void {
       categoryPackId: '',
     },
     status: mapRoomStatus(data.room.status),
+    isPublic: (data.room as { isPublic?: boolean }).isPublic ?? false,
+    autoStartCountdown: null,
   });
 
   track('room_joined', { roomCode: data.room.code, playerCount: data.players.length });
@@ -229,6 +231,18 @@ function handlePlayerEliminated(payload: unknown): void {
   });
 
   store.removeDisconnectedPlayer(data.playerId);
+}
+
+/**
+ * Auto-start countdown for public/quick-match rooms.
+ */
+function handleAutoStartCountdown(payload: unknown): void {
+  const data = payload as { seconds: number };
+  if (data?.seconds == null) return;
+  const store = useGameStore.getState();
+  const room = store.room;
+  if (!room) return;
+  store.setRoom({ ...room, autoStartCountdown: data.seconds });
 }
 
 /**
@@ -523,6 +537,9 @@ function handleRematchReady(payload: unknown): void {
     newRoomCode: data.newRoomCode,
   });
 
+  // Clear match results so deriveScreen stops showing match-summary
+  store.setMatchResults(null);
+
   // Auto-navigate: emit join-room for the new room
   socketHandler.emit('join-room', { roomCode: data.newRoomCode });
 
@@ -556,6 +573,7 @@ export function registerEventHandlers(): void {
   socketHandler.onEvent('player-reconnected', handlePlayerReconnected);
   socketHandler.onEvent('player-eliminated', handlePlayerEliminated);
   socketHandler.onEvent('round-start', handleRoundStart);
+  socketHandler.onEvent('auto-start-countdown', handleAutoStartCountdown);
   socketHandler.onEvent('answer-ack', handleAnswerAck);
   socketHandler.onEvent('grace-started', handleGraceStarted);
   socketHandler.onEvent('round-locked', handleRoundLocked);
@@ -584,6 +602,7 @@ export function unregisterEventHandlers(): void {
   socketHandler.offEvent('player-reconnected');
   socketHandler.offEvent('player-eliminated');
   socketHandler.offEvent('round-start');
+  socketHandler.offEvent('auto-start-countdown');
   socketHandler.offEvent('answer-ack');
   socketHandler.offEvent('grace-started');
   socketHandler.offEvent('round-locked');

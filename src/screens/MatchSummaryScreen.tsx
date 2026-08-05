@@ -95,14 +95,16 @@ export function MatchSummaryScreen() {
   // Don't show the request button if a rematch is already pending or ready
   const canRequestRematch = rematch.status === 'idle';
   // Was the rematch requested by me?
-  const iRequested = rematch.requestedBy?.playerId === session.userId;
+  const roomPlayer = room?.players.find((p) => p.userId === session.userId);
+  const myPlayerId = roomPlayer?.id ?? session.userId;
+  const iRequested = rematch.requestedBy?.playerId === session.userId || rematch.requestedBy?.playerId === myPlayerId;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" data-testid="screen-match-summary">
 
       {/* ── Main content ── */}
       <div className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
-        <div className="px-6 pt-5 pb-3 mb-12 text-center">
+        <div className="px-6 pt-14 pb-3 mb-12 text-center">
           <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: '#6baf80' }}>
             Match Complete
           </p>

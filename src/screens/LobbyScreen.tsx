@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Zap } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
 import { useCategoryPacks } from '../api/queries';
 import { showToast } from '../components/toastStore';
+import { track } from '../utils/analytics';
 
 interface CategoryPack {
   id: string;
@@ -26,6 +27,7 @@ export function LobbyScreen() {
   const [rounds, setRounds] = useState(3);
   const [joinCode, setJoinCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isQuickMatching, setIsQuickMatching] = useState(false);
 
   // Cached category packs via React Query
   const { data: packsData, isLoading: packsLoading } = useCategoryPacks();
@@ -94,9 +96,31 @@ export function LobbyScreen() {
     }
   };
 
+  const handleQuickMatch = async () => {
+    if (!session?.displayName) return;
+    setIsQuickMatching(true);
+    try {
+      const res = await apiClient.quickMatch(session.displayName);
+      const roomCode = res.data.room.code;
+      socketHandler.emit('join-room', { roomCode });
+      track('quick_match_started');
+      // Safety timeout
+      setTimeout(() => {
+        if (!useGameStore.getState().room) {
+          setIsQuickMatching(false);
+          showToast('Connection timed out. Try again.', 'error');
+        }
+      }, 10000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Quick match failed';
+      showToast(message, 'error');
+      setIsQuickMatching(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative" data-testid="screen-lobby">
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-6 pt-14 pb-4">
         {/* Profile header */}
         <div className="flex items-center gap-3 mb-5">
           <span className="text-3xl">
@@ -123,6 +147,39 @@ export function LobbyScreen() {
         </h2>
       </div>
 
+      <section className='flex-1 overflow-auto'
+        style={{ scrollbarWidth: 'none' }}
+      
+      >
+{/* Quick Match */}
+      <div className="px-6 mb-4 mt-3">
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={handleQuickMatch}
+          disabled={isQuickMatching || isLoading}
+          className="w-full rounded-2xl py-4 text-black flex items-center justify-center gap-2.5 disabled:opacity-60"
+          style={{
+            background: '#00d060',
+            fontFamily: "'Dela Gothic One', sans-serif",
+            fontSize: '20px',
+            boxShadow: '0 6px 24px rgba(0,208,96,0.25)',
+          }}
+        >
+          <Zap className="w-5 h-5" />
+          {isQuickMatching ? 'Finding match...' : 'Quick Match'}
+        </motion.button>
+        <p className="text-center text-sm mt-1.5" style={{ color: '#3a5a45' }}>
+          Auto-matched with other players
+        </p>
+      </div>
+
+      {/* Or divider */}
+      <div className="flex items-center gap-3 px-6 mb-4">
+        <div className="flex-1 h-px" style={{ background: '#1a3528' }} />
+        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#3a5a45' }}>or</span>
+        <div className="flex-1 h-px" style={{ background: '#1a3528' }} />
+      </div>
+
       {/* Tabs */}
       <div className="px-6 mb-5">
         <div
@@ -146,8 +203,7 @@ export function LobbyScreen() {
       </div>
 
       <div
-        className="flex-1 overflow-y-auto px-6"
-        style={{ scrollbarWidth: 'none' }}
+        className="px-6"
       >
         {lobbyTab === 'create' ? (
           <div className="space-y-5">
@@ -285,6 +341,9 @@ export function LobbyScreen() {
           </div>
         )}
       </div>
+      </section>
+
+      
 
       <div className="px-6 pb-8 pb-safe pt-4">
         <motion.button

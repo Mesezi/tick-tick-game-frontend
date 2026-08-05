@@ -224,6 +224,22 @@ class ApiClient {
     });
   }
 
+  async quickMatch(displayName: string) {
+    return this.request<{
+      success: boolean;
+      data: {
+        room: {
+          code: string;
+          isPublic: boolean;
+          [key: string]: unknown;
+        };
+      };
+    }>('/api/rooms/quick-match', {
+      method: 'POST',
+      body: JSON.stringify({ displayName }),
+    });
+  }
+
   // ===== Leaderboard =====
 
   async getLeaderboard(type: 'all-time' | 'weekly', page = 1, limit = 20) {

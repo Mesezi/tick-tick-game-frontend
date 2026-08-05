@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield } from 'lucide-react';
+import { Shield, ArrowLeft } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { apiClient } from '../api/client';
 import { showToast } from '../components/toastStore';
@@ -99,6 +99,13 @@ export function AvatarSetupScreen() {
             className="flex-1 flex flex-col overflow-hidden"
           >
             <div className="px-6 pt-8 pb-4">
+              <button
+                onClick={() => useGameStore.getState().setHasPassedLanding(false)}
+                className="mb-3 p-2 rounded-xl border transition-all active:scale-95"
+                style={{ background: '#0d2018', borderColor: '#1a3528' }}
+              >
+                <ArrowLeft className="w-5 h-5" style={{ color: '#6baf80' }} />
+              </button>
               <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: '#00d060' }}>
                 Setup
               </p>
