@@ -73,8 +73,8 @@ function App() {
         {showHome && !isBooting && (
           <button
             onClick={handleGoHome}
-            className="absolute top-4 left-4 z-40 w-8 h-8 flex items-center justify-center rounded-xl transition-all active:scale-90 pt-safe"
-            style={{ background: '#0d2018', border: '1px solid #1a3528' }}
+            className="absolute left-4 z-40 w-8 h-8 flex items-center justify-center rounded-xl transition-all active:scale-90"
+            style={{ top: 'max(16px, env(safe-area-inset-top, 16px))', background: '#0d2018', border: '1px solid #1a3528' }}
             aria-label="Go home"
           >
             <Home className="w-4 h-4" style={{ color: '#6baf80' }} />
@@ -88,8 +88,8 @@ function App() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-4 right-4 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg pt-safe"
-              style={{ background: '#0d2018', border: '1px solid #1a3528' }}
+              className="absolute right-4 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+              style={{ top: 'max(16px, env(safe-area-inset-top, 16px))', background: '#0d2018', border: '1px solid #1a3528' }}
             >
               <div
                 className="w-1.5 h-1.5 rounded-full"

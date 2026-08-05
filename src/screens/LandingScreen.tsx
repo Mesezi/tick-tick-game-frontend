@@ -155,7 +155,7 @@ export function LandingScreen() {
         {/* Sign in — shown only on new device (no session at all) */}
         {!session && (
           <button
-            onClick={() => { apiClient.redirectToGoogle(); }}
+            onClick={() => { apiClient.redirectToGoogle() }}
             className="mt-2 text-sm"
             style={{ color: '#3a5a45' }}
           >
