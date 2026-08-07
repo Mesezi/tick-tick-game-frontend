@@ -334,7 +334,7 @@ export function GameScreen() {
 
       {/* Input fields */}
       <div className="flex-1 overflow-y-auto px-5" style={{ scrollbarWidth: 'none' }}>
-        <div className="space-y-2 pb-2">
+        <div className={`space-y-2 ${subPhase === 'grace' ? 'pb-28' : 'pb-2'}`}>
           {round.categories.map((cat) => {
             const filled = !!(answers[cat] ?? '').trim();
             return (
