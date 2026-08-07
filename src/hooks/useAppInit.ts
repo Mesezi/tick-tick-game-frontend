@@ -90,7 +90,40 @@ export function useAppInit() {
 
       // ── Normal boot: restore existing session ──
       const token = persistenceLayer.loadToken();
-      if (!token) return; // No token → show landing
+
+      if (!token) {
+        // No token — but if device ID exists, the user has played before
+        // (token was likely purged by iOS). Re-authenticate using device ID.
+        const deviceId = persistenceLayer.getDeviceId();
+        const isReturningDevice = localStorage.getItem('naija_device_id') !== null;
+
+        if (isReturningDevice) {
+          try {
+            const { token: newToken, guestId } = await apiClient.guestLogin(deviceId);
+            persistenceLayer.saveToken(newToken);
+            apiClient.setToken(newToken);
+
+            const meRes = await apiClient.getCurrentUser();
+            const { user } = meRes.data;
+
+            useGameStore.getState().setSession({
+              token: newToken,
+              userId: user.id,
+              displayName: user.displayName,
+              avatarId: user.avatarId ?? '',
+              isAuthenticated: user.type === 'GOOGLE',
+              deviceId,
+            });
+            identifyUser(user.id, { type: user.type, displayName: user.displayName });
+            track('session_restored_via_device_id');
+            socketHandler.connect(SOCKET_URL, newToken);
+            if (meRes.data.activeRoom) setPendingRejoinRoom(meRes.data.activeRoom);
+          } catch {
+            console.warn('[AppInit] Device ID re-auth failed, showing landing');
+          }
+        }
+        return;
+      }
 
       apiClient.setToken(token);
       try {
