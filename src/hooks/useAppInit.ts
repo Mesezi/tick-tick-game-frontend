@@ -99,7 +99,7 @@ export function useAppInit() {
 
         if (isReturningDevice) {
           try {
-            const { token: newToken, guestId } = await apiClient.guestLogin(deviceId);
+            const { token: newToken } = await apiClient.guestLogin(deviceId);
             persistenceLayer.saveToken(newToken);
             apiClient.setToken(newToken);
 
