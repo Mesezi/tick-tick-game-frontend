@@ -122,17 +122,10 @@ class SocketHandlerImpl implements SocketHandler {
       if (this.socket && !this.socket.connected) {
         console.info('[SocketHandler] Tab visible, reconnecting...');
         this.socket.connect();
+        return;
       }
 
-      // Re-emit join-room so server sends fresh state-snapshot with current timer/phase
-      const roomCode = useGameStore.getState().room?.roomCode;
-      if (roomCode) {
-        setTimeout(() => {
-          if (this.socket?.connected) {
-            this.socket.emit('join-room', { roomCode });
-          }
-        }, 300);
-      }
+      this.joinCurrentRoom();
 
       setTimeout(() => this.sendTimeSync(), 500);
     };
@@ -157,6 +150,14 @@ class SocketHandlerImpl implements SocketHandler {
 
     this.startTimeSyncInterval();
     this.startKeepalive();
+    this.joinCurrentRoom();
+  }
+
+  private joinCurrentRoom(): void {
+    const roomCode = useGameStore.getState().room?.roomCode;
+    if (roomCode && this.socket?.connected) {
+      this.socket.emit('join-room', { roomCode });
+    }
   }
 
   private handleDisconnect(reason: string): void {

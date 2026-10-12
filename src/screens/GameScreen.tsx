@@ -85,8 +85,14 @@ export function GameScreen() {
           const userIndex = sorted.findIndex(
             (p) => p.playerId === session.userId || p.playerId === myPlayerId || p.displayName === session.displayName
           );
-          if (userIndex >= 0 && userIndex <= 2) playSound('winner');
-          else if (userIndex === sorted.length - 1) playSound('lastPlace');
+          const hasSoleFirstPlace = sorted[1]?.totalScore !== sorted[0]?.totalScore;
+          if (userIndex === 0 && hasSoleFirstPlace) playSound('winner');
+          else if (
+            userIndex === sorted.length - 1 &&
+            sorted[userIndex].totalScore < sorted[0].totalScore
+          ) {
+            playSound('lastPlace');
+          }
         }
       }, 10000);
       return () => clearTimeout(t);
@@ -210,6 +216,16 @@ export function GameScreen() {
   const sortedPlayers = displayResults
     ? [...displayResults.players].sort((a, b) => b.totalScore - a.totalScore)
     : [];
+  const roomPlayerId = room?.players.find((player) => player.userId === session?.userId)?.id;
+  const currentPlayerIndex = sortedPlayers.findIndex(
+    (player) =>
+      player.playerId === session?.userId ||
+      player.playerId === roomPlayerId ||
+      player.displayName === session?.displayName,
+  );
+  const isSoleFirstPlace =
+    currentPlayerIndex === 0 &&
+    sortedPlayers[1]?.totalScore !== sortedPlayers[0]?.totalScore;
 
   return (
     <div
@@ -460,6 +476,7 @@ export function GameScreen() {
               displayResults={displayResults}
               sortedPlayers={sortedPlayers}
               session={session}
+              isSoleFirstPlace={isSoleFirstPlace}
               round={round}
               rankingsCountdown={rankingsCountdown}
               previousRoundRanks={previousRoundRanks}
@@ -574,6 +591,7 @@ function ResultsTabsView({
   displayResults,
   sortedPlayers,
   session,
+  isSoleFirstPlace,
   round,
   rankingsCountdown,
   previousRoundRanks,
@@ -581,6 +599,7 @@ function ResultsTabsView({
   displayResults: RoundResultsPayload;
   sortedPlayers: RoundResultsPayload['players'];
   session: { userId: string; avatarId: string } | null;
+  isSoleFirstPlace: boolean;
   round: { roundNumber: number; totalRounds: number; summaryEndTimestamp?: number };
   rankingsCountdown: number;
   previousRoundRanks: Record<string, number> | null;
@@ -589,6 +608,8 @@ function ResultsTabsView({
 
   return (
     <>
+      {isSoleFirstPlace && <WinnerConfetti />}
+
       {/* Header */}
       <div
         className="px-5 pt-4 pb-3 shrink-0"
@@ -834,5 +855,27 @@ function ResultsTabsView({
         </div>
       </div>
     </>
+  );
+}
+
+function WinnerConfetti() {
+  const colors = ['#d97706', '#6b4423', '#2f855a', '#c0392b', '#f5c542'];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden" aria-hidden="true">
+      {Array.from({ length: 36 }, (_, index) => (
+        <span
+          key={index}
+          className="winner-confetti-piece"
+          style={{
+            left: `${(index * 37) % 100}%`,
+            backgroundColor: colors[index % colors.length],
+            animationDelay: `${(index % 12) * 0.08}s`,
+            animationDuration: `${2.4 + (index % 5) * 0.18}s`,
+            transform: `rotate(${index * 29}deg)`,
+          }}
+        />
+      ))}
+    </div>
   );
 }

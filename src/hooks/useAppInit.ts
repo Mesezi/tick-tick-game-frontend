@@ -167,23 +167,9 @@ export function useAppInit() {
 
     init().finally(() => setIsBooting(false));
 
-    // Reconnect and re-sync room state on tab resume
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'visible') return;
-      const sess = useGameStore.getState().session;
-      if (!sess?.token) return;
-      if (useGameStore.getState().connection.status === 'disconnected') {
-        socketHandler.connect(SOCKET_URL, sess.token);
-      }
-      const roomCode = useGameStore.getState().room?.roomCode;
-      if (roomCode) setTimeout(() => socketHandler.emit('join-room', { roomCode }), 300);
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-
     return () => {
       unregisterEventHandlers();
       socketHandler.disconnect();
-      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
