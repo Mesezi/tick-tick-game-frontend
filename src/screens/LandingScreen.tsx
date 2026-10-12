@@ -529,10 +529,48 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
 
 function ProfileOverlay({ onClose }: { onClose: () => void }) {
   const session = useGameStore((s) => s.session);
+  const setSession = useGameStore((s) => s.setSession);
   const { data, isLoading } = usePlayerStats(!!session?.token);
   const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState(session?.displayName ?? '');
+  const [editAvatar, setEditAvatar] = useState(session?.avatarId ?? '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleOpenEdit = () => {
+    setEditName(session?.displayName ?? '');
+    setEditAvatar(session?.avatarId ?? '');
+    setShowEdit(true);
+  };
+
+  const handleSaveProfile = async () => {
+    const displayName = editName.trim();
+    if (displayName.length < 2 || displayName.length > 20 || !editAvatar || isSavingProfile) return;
+
+    const currentSession = useGameStore.getState().session;
+    if (!currentSession) {
+      showToast('Your session has expired. Please sign in again.', 'error');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const response = await apiClient.updateProfile({ displayName, avatarId: editAvatar });
+      setSession({
+        ...currentSession,
+        displayName: response.data.displayName,
+        avatarId: response.data.avatarId,
+      });
+      setShowEdit(false);
+      showToast('Profile updated!', 'success');
+    } catch (error) {
+      console.error('[Profile] Failed to update profile:', error);
+      showToast(error instanceof Error ? error.message : 'Could not update your profile. Please try again.', 'error');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -578,12 +616,6 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
         {/* Player card — exercise book style */}
         <div
           className="rounded-2xl overflow-hidden mb-4"
-          style={{
-            background: '#f5f0e8',
-            backgroundImage: `repeating-linear-gradient(transparent, transparent 27px, #d4c9b0 27px, #d4c9b0 28px)`,
-            border: '2px solid #c8b89a',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          }}
         >
           <div className="px-5 pt-5 pb-5">
             <div className="flex items-center gap-4">
@@ -609,8 +641,8 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
         {/* Action buttons */}
         <div className="flex gap-2 mb-5">
           <button
-            onClick={() => setShowEdit(true)}
-            className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 btn-ghost"
+            onClick={handleOpenEdit}
+            className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 btn-ghost text-chalk-board!"
           >
             <Pencil className="w-3.5 h-3.5" />
             Edit Profile
@@ -618,7 +650,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
           {!session?.isAuthenticated && (
             <button
               onClick={() => apiClient.redirectToGoogle()}
-              className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 btn-ghost"
+              className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 btn-ghost text-chalk-board!"
             >
               <Link className="w-3.5 h-3.5" />
               Link Google
@@ -688,7 +720,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {/* Edit profile sheet — inline placeholder */}
+      {/* Edit profile sheet */}
       {showEdit && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -703,22 +735,60 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', bounce: 0, duration: 0.38 }}
-            className="w-full rounded-t-3xl overflow-hidden paper-body px-6 pt-4 pb-10"
+            className="w-full rounded-t-3xl overflow-hidden paper-body px-6 pt-4 pb-safe pb-8"
             style={{ borderTop: '3px solid #c8b89a' }}
           >
             <div className="flex justify-center mb-4">
               <div className="w-10 h-1 rounded-full bg-paper-ruled" />
             </div>
             <p className="label-section mb-3 text-chalk-mark">Edit Profile</p>
-            <p className="text-sm font-hand text-chalk-board">
-              Profile editing coming soon — stay tuned!
-            </p>
-            <button
-              onClick={() => setShowEdit(false)}
-              className="mt-4 w-full py-3 rounded-xl font-bold btn-ghost"
-            >
-              Close
-            </button>
+            <label htmlFor="profile-display-name" className="mb-2 block label-section">
+              Display Name
+            </label>
+            <input
+              id="profile-display-name"
+              type="text"
+              maxLength={20}
+              value={editName}
+              onChange={(event) => setEditName(event.target.value)}
+              className="mb-4 w-full rounded-xl border-2 bg-transparent px-4 py-3 font-hand text-[17px] text-ink-dark outline-none"
+              style={{ borderColor: '#c8b89a', caretColor: '#6b4423' }}
+            />
+            <p className="mb-2 label-section">Choose Avatar</p>
+            <div className="mb-5 grid grid-cols-6 gap-2">
+              {['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'].map((avatar) => (
+                <button
+                  key={avatar}
+                  type="button"
+                  onClick={() => setEditAvatar(avatar)}
+                  aria-label={`Choose ${avatar} avatar`}
+                  aria-pressed={editAvatar === avatar}
+                  className="aspect-square rounded-xl border-2 text-2xl transition-all"
+                  style={{
+                    background: editAvatar === avatar ? 'rgba(107,68,35,0.1)' : 'rgba(139,94,60,0.05)',
+                    borderColor: editAvatar === avatar ? '#6b4423' : '#c8b89a',
+                  }}
+                >
+                  {avatar}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEdit(false)}
+                disabled={isSavingProfile}
+                className="flex-1 rounded-xl border py-3 font-bold btn-ghost disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                disabled={editName.trim().length < 2 || !editAvatar || isSavingProfile}
+                className="flex-1 rounded-xl py-3 font-bold btn-primary disabled:opacity-50"
+              >
+                {isSavingProfile ? 'Saving...' : 'Save Profile'}
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}

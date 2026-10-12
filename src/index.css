@@ -133,7 +133,7 @@
 /* ── Root — paper base ── */
 :root {
   font-family: 'Patrick Hand', system-ui, sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.6;
   color: #1a1208;
   background: #f5f0e8;
@@ -369,13 +369,12 @@ h1, h2, h3 {
 }
 
 
-body {
-  font-size: 18px;
-}
+
 
 /* Styles applied ONLY when the viewport is 768px wide or larger */
 @media (min-width: 768px) {
-  body {
-    font-size: 20px;
-  }
+/* ── Root — paper base ── */
+:root {
+  font-size: 20px;
 }
+} 

@@ -145,7 +145,7 @@ export function LobbyScreen() {
           whileTap={{ scale: 0.96 }}
           onClick={handleQuickMatch}
           disabled={isQuickMatching || isLoading}
-          className="w-full rounded-xl py-3 mb-3 flex items-center justify-center gap-2 disabled:opacity-60 btn-primary font-display text-[17px]"
+          className="w-full rounded-xl py-3 mb-3 hidden items-center justify-center gap-2 disabled:opacity-60 btn-primary font-display text-[17px]"
           style={{ boxShadow: '0 3px 14px rgba(107,68,35,0.28), inset 0 1px 0 rgba(255,255,255,0.1)' }}
         >
           <Zap className="w-4 h-4" />
@@ -153,7 +153,7 @@ export function LobbyScreen() {
         </motion.button>
 
         {/* Divider */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="hidden items-center gap-2 mb-3">
           <div className="flex-1 border-t border-dashed border-paper-ruled" />
           <span className="text-[11px] font-bold uppercase tracking-widest font-hand text-desk">
             or set up your own
