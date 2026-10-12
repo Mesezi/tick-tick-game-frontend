@@ -1,5 +1,17 @@
 # React + TypeScript + Vite
 
+## PWA artwork
+
+The PWA icons are generated from the Tick-Tick logo in
+`public/tick-tick-logo.png`:
+
+```sh
+npm run generate-icons
+```
+
+This writes `pwa-192.png` and `pwa-512.png`. Installed PWAs use the manifest's
+plain background color and app icon for the platform-generated launch screen.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <!-- Canopy frame -->
-  <path d="M12 18 Q32 6 52 18 L52 22 L12 22 Z" fill="#008751"/>
+  <path d="M12 18 Q32 6 52 18 L52 22 L12 22 Z" fill="#6b4423"/>
   <!-- Body/cabin -->
   <rect x="14" y="22" width="36" height="20" rx="3" fill="#F59E0B"/>
   <!-- Windshield -->

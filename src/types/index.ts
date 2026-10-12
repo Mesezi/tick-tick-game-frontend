@@ -30,6 +30,7 @@ export interface CurrentRound {
   letter: string;
   categories: string[];
   endTimestamp: number | null; // absolute UTC ms
+  summaryEndTimestamp?: number | null; // absolute UTC ms
   graceEndTimestamp: number | null;
   isLocked: boolean;
 }
@@ -59,6 +60,12 @@ export interface RoundLockedPayload {
   roundNumber: number;
 }
 
+export interface RoundValidationStatusPayload {
+  status: string;
+  attempt: number;
+  message: string;
+}
+
 export interface AnswerResult {
   category: string;
   rawAnswer: string;
@@ -84,6 +91,7 @@ export interface RoundResultsPayload {
   letter: string;
   categories: string[];
   players: PlayerRoundResult[];
+  summaryEndTimestamp: number;
 }
 
 export interface PodiumEntry {

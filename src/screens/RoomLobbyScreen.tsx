@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Copy, Zap, Crown, LogOut } from 'lucide-react';
+import { Bell, ClipboardList, Copy, Crown, Hourglass, LogOut, School, Zap } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
@@ -8,8 +8,8 @@ import { getPlayerAvatar } from '../utils/avatarHelper';
 import { showToast } from '../components/toastStore';
 
 /**
- * RoomLobbyScreen - Exact replica of Game Screen Flow Design room-lobby.
- * Room code card, player list with animated entries, Start Game CTA.
+ * RoomLobbyScreen — classroom attendance register aesthetic.
+ * Notice-board room code, student list, chalkboard start button.
  */
 export function RoomLobbyScreen() {
   const room = useGameStore((s) => s.room);
@@ -18,12 +18,10 @@ export function RoomLobbyScreen() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Start local countdown when server emits auto-start-countdown
   useEffect(() => {
     const serverCountdown = room?.autoStartCountdown;
     if (serverCountdown != null && serverCountdown > 0) {
       setCountdown(serverCountdown);
-      // Clear any existing timer
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
         setCountdown((c) => {
@@ -35,14 +33,10 @@ export function RoomLobbyScreen() {
         });
       }, 1000);
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [room?.autoStartCountdown]);
 
-  if (!room || !session) {
-    return null;
-  }
+  if (!room || !session) return null;
 
   const isHost = room.hostId === session.userId;
 
@@ -58,172 +52,140 @@ export function RoomLobbyScreen() {
   const handleLeave = useCallback(async () => {
     if (isLeaving) return;
     setIsLeaving(true);
+    const currentSession = useGameStore.getState().session;
     try {
       await apiClient.leaveRoom(room.roomCode);
-      // Server will broadcast room-closed / host-changed / player-left
-      // which the event handlers will pick up and reset state.
-      // Do a local reset as a fallback in case the socket event is missed.
       useGameStore.getState().reset();
-      const sess = useGameStore.getState().session;
-      if (sess) useGameStore.getState().setSession(sess);
+      if (currentSession) useGameStore.getState().setSession(currentSession);
     } catch (err) {
       console.warn('[RoomLobby] Leave room failed:', err);
-      // Still navigate home — don't leave the user stuck
       useGameStore.getState().reset();
-      const sess = useGameStore.getState().session;
-      if (sess) useGameStore.getState().setSession(sess);
+      if (currentSession) useGameStore.getState().setSession(currentSession);
     }
   }, [room.roomCode, isLeaving]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" data-testid="screen-room-lobby">
-      <div className="px-6 pt-14 pb-4">
-        <p
-          className="text-xs font-bold tracking-widest uppercase mb-1"
-          style={{ color: '#6baf80' }}
-        >
-          Waiting Room
+    <div
+      className="flex-1 flex flex-col paper-body"
+      data-testid="screen-room-lobby"
+      
+    >
+      {/* Chalkboard header bar */}
+      <div
+        className="px-6 pt-4 pb-4 shrink-0"
+      >
+        <p className="label-section mb-1 text-chalk-white opacity-80 flex items-center gap-1.5">
+          <School className="w-3.5 h-3.5" /> Waiting Room
         </p>
-        <h2
-          className="text-white mb-5"
-          style={{
-            fontFamily: "'Dela Gothic One', sans-serif",
-            fontSize: '38px',
-            lineHeight: 1,
-          }}
-        >
+        <h2 className="font-display text-[36px] text-chalk-surface leading-none">
           Ready Up!
         </h2>
 
-        {/* Room code card — hidden for public/quick-match rooms */}
+        {/* Room code — notice-board style */}
         {!room.isPublic && (
-          <>
+          <div className="mt-4">
             <div
-              className="flex items-center justify-between p-4 rounded-2xl mb-2 border"
-              style={{ background: '#0d2018', borderColor: '#1a3528' }}
+              className="flex items-center justify-between p-4 rounded-2xl bg-chalk-board"
+              // style={{
+              //   background: '#f5f0e8',
+              //   backgroundImage: `linear-gradient(to right, transparent 44px, rgba(192,57,43,0.2) 44px, rgba(192,57,43,0.2) 46px, transparent 46px), repeating-linear-gradient(transparent, transparent 27px, #d4c9b0 27px, #d4c9b0 28px)`,
+              //   border: '2px solid #c8b89a',
+              //   boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              // }}
             >
               <div>
-                <p
-                  className="text-[10px] font-bold tracking-widest uppercase mb-1"
-                  style={{ color: '#6baf80' }}
-                >
-                  Room Code
+                <p className="label-section mb-1 text-chalk-white">
+                  Room Code — Share with classmates
                 </p>
-                <p
-                  className="tracking-[0.15em]"
-                  style={{
-                    fontFamily: "'Dela Gothic One', sans-serif",
-                    fontSize: '38px',
-                    color: '#ffb800',
-                    lineHeight: 1,
-                  }}
-                >
+                <p className="font-display text-[38px] text-chalk-white  tracking-[0.12em] leading-none">
                   {room.roomCode}
                 </p>
               </div>
               <button
                 onClick={handleCopyCode}
-                className="p-3 rounded-xl border transition-all active:scale-95"
-                style={{
-                  background: 'rgba(255,184,0,0.12)',
-                  borderColor: 'rgba(255,184,0,0.25)',
-                  color: '#ffb800',
-                }}
+                className="p-3 rounded-xl border transition-all active:scale-90 text-chalk-white border-[rgba(139,94,60,0.25)] bg-[rgba(139,94,60,0.1)]"
               >
                 <Copy className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs mb-5" style={{ color: '#2a4a33' }}>
-              Share with friends · {room.players.length}/8 players joined
+            <p className="text-sm mt-1.5 font-hand text-chalk-mark">
+              {room.players.length}/8 students joined
             </p>
-          </>
+          </div>
         )}
         {room.isPublic && (
-          <p className="text-xs mb-5" style={{ color: '#6baf80' }}>
-            Quick Match · {room.players.length}/6 players
+          <p className="text-sm mt-2 font-hand text-chalk-white">
+            Quick Match · {room.players.length}/6 students
           </p>
         )}
       </div>
 
-      <div
-        className="flex-1 overflow-y-auto px-6"
-        style={{ scrollbarWidth: 'none' }}
-      >
-        <p
-          className="text-xs font-bold tracking-widest uppercase mb-3"
-          style={{ color: '#a0c8a8' }}
-        >
-          Players
+      {/* Student roster */}
+      <div className="px-6 py-4" style={{ scrollbarWidth: 'none' }}>
+        <p className="label-section mb-3 flex items-center gap-1.5">
+          <ClipboardList className="w-3.5 h-3.5" /> Students Present
         </p>
         <div className="space-y-2">
           {room.players.map((p, i) => {
-            const isYou = p.id === session.userId;
-            const isPlayerHost = p.id === room.hostId;
+            const isYou = p.id === session.userId || p.userId === session.userId;
+            const isPlayerHost = p.id === room.hostId || p.userId === room.hostId;
             return (
               <motion.div
                 key={p.id}
-                initial={{ opacity: 0, x: -18 }}
+                initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
+                transition={{ delay: i * 0.07, type: 'spring', bounce: 0, duration: 0.3 }}
                 className="flex items-center gap-3 p-3.5 rounded-xl border"
                 style={{
-                  background: isYou
-                    ? 'rgba(0,208,96,0.09)'
-                    : '#0d2018',
-                  borderColor: isYou
-                    ? 'rgba(0,208,96,0.28)'
-                    : 'transparent',
+                  background: isYou ? 'rgba(107,68,35,0.08)' : 'rgba(139,94,60,0.06)',
+                  borderColor: isYou ? 'rgba(107,68,35,0.35)' : '#c8b89a',
                 }}
               >
+                <span className="text-sm font-bold w-5 text-center shrink-0 font-hand text-desk">
+                  {i + 1}.
+                </span>
                 <span className="text-2xl">{getPlayerAvatar(p.avatarId, p.id)}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-bold truncate">
+                  <p className="font-bold truncate font-hand text-ink-dark">
                     {p.displayName}
-                    {isYou && (
-                      <span
-                        className="text-xs font-normal ml-1"
-                        style={{ color: '#00d060' }}
-                      >
-                        (you)
-                      </span>
-                    )}
+                    {isYou && <span className="text-sm font-normal ml-1.5 text-chalk-mark">(you)</span>}
                   </p>
                   {isPlayerHost && (
-                    <p
-                      className="text-xs flex items-center gap-1"
-                      style={{ color: '#ffb800' }}
-                    >
-                      <Crown className="w-2.5 h-2.5" /> Host
+                    <p className="text-sm flex items-center gap-1 font-hand text-school-amber">
+                      <Crown className="w-2.5 h-2.5" /> Class Captain
                     </p>
                   )}
                 </div>
                 <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: '#00d060' }}
+                  className="w-2 h-2 rounded-full bg-chalk-mark"
+                  style={{ boxShadow: '0 0 6px rgba(107,68,35,0.3)' }}
                 />
               </motion.div>
             );
           })}
         </div>
+        {room.players.length < 2 && (
+          <p className="text-center text-sm mt-4 font-hand text-chalk-dim">
+            Waiting for more students to join...
+          </p>
+        )}
       </div>
 
-      <div className="px-6 pb-8 pb-safe pt-4 flex flex-col gap-2">
+      {/* Action area */}
+      <div className="px-6 pb-8 pb-safe pt-3 flex flex-col gap-2 shrink-0" style={{ borderTop: '1px solid #c8b89a' }}>
         {room.isPublic ? (
-          /* Public room — auto-start, no manual start button */
           <div
-            className="rounded-2xl py-4 text-center"
-            style={{ background: '#0d2018' }}
+            className="rounded-2xl py-4 text-center border"
+            style={{ background: 'rgba(139,94,60,0.07)', borderColor: '#c8b89a' }}
           >
             {countdown != null && countdown > 0 ? (
-              <p className="text-sm font-bold" style={{ color: '#ffb800' }}>
-                Game starting in{' '}
-                <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '20px' }}>
-                  {countdown}
-                </span>
+              <p className="font-bold font-hand text-[15px] text-school-amber flex items-center justify-center gap-1.5">
+                <Bell className="w-4 h-4" /> Class starts in{' '}
+                <span className="font-display text-[22px]">{countdown}</span>
               </p>
             ) : (
-              <p className="text-sm" style={{ color: '#6baf80' }}>
-                Waiting for players... ({room.players.length}/6)
+              <p className="text-sm font-hand text-chalk-board">
+                Waiting for students... ({room.players.length}/6)
               </p>
             )}
           </div>
@@ -232,40 +194,31 @@ export function RoomLobbyScreen() {
             whileTap={{ scale: 0.96 }}
             onClick={handleStartGame}
             disabled={room.players.length < 2}
-            className="w-full rounded-2xl py-4 text-black flex items-center justify-center gap-2 disabled:opacity-40"
+            className="w-full rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-40 font-display text-[22px]"
             style={{
-              background: room.players.length >= 2 ? '#00d060' : '#122318',
-              fontFamily: "'Dela Gothic One', sans-serif",
-              fontSize: '22px',
-              color: room.players.length >= 2 ? '#000' : '#2a4a33',
+              background: room.players.length >= 2 ? '#6b4423' : 'rgba(139,94,60,0.12)',
+              color: room.players.length >= 2 ? '#f5f0e8' : '#8b5e3c',
+              boxShadow: room.players.length >= 2 ? '0 4px 16px rgba(107,68,35,0.28)' : 'none',
             }}
           >
-            <Zap className="w-5 h-5" /> {room.players.length < 2 ? 'Need 2+ Players' : 'Start Game'}
+            <Zap className="w-5 h-5" />
+            {room.players.length < 2 ? 'Need 2+ Students' : 'Start Class!'}
           </motion.button>
         ) : (
           <div
-            className="rounded-2xl py-4 text-center"
-            style={{ background: '#0d2018' }}
+            className="rounded-2xl py-4 text-center border"
+            style={{ background: 'rgba(139,94,60,0.07)', borderColor: '#c8b89a' }}
           >
-            <p className="text-sm" style={{ color: '#6baf80' }}>
-              Waiting for host to start...
+            <p className="text-sm font-hand text-chalk-board flex items-center justify-center gap-1.5">
+              <Hourglass className="w-4 h-4" /> Waiting for the class captain to start...
             </p>
           </div>
         )}
-
-        {/* Leave room */}
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handleLeave}
           disabled={isLeaving}
-          className="w-full rounded-2xl py-3 flex items-center justify-center gap-2 border transition-all disabled:opacity-50"
-          style={{
-            background: 'transparent',
-            borderColor: 'rgba(255,59,92,0.25)',
-            color: '#ff3b5c',
-            fontSize: '14px',
-            fontWeight: 'bold',
-          }}
+          className="w-full rounded-2xl py-3 flex items-center justify-center gap-2 border transition-all disabled:opacity-50 btn-danger"
         >
           <LogOut className="w-4 h-4" />
           {isLeaving ? 'Leaving...' : isHost ? 'Close Room' : 'Leave Room'}

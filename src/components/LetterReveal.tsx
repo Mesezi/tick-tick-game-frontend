@@ -1,7 +1,7 @@
 /**
- * Green circle with large white letter during reveal phase.
+ * LetterReveal — chalkboard-style letter announcement.
+ * Wood-brown badge with chalk-white lettering.
  */
-
 interface LetterRevealProps {
   letter: string;
 }
@@ -9,41 +9,45 @@ interface LetterRevealProps {
 export function LetterReveal({ letter }: LetterRevealProps) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 w-full px-4">
-      <p className="text-base text-[#8aaa8a] font-medium mb-6 uppercase tracking-wide">
+      <p className="text-sm font-bold uppercase tracking-widest mb-6 label-section">
         This round's letter
       </p>
 
       <div
         aria-live="assertive"
         aria-atomic="true"
-        className="animate-letter-reveal w-40 h-40 rounded-full bg-[#00ff88] flex items-center justify-center shadow-[0_0_40px_rgba(0,255,136,0.4)]"
+        className="animate-letter-reveal w-36 h-36 rounded-2xl flex items-center justify-center"
+        style={{
+          background: '#4a3520',
+          border: '3px solid #6b4423',
+          backgroundImage: `radial-gradient(ellipse at 40% 35%, rgba(107,68,35,0.6) 0%, transparent 65%)`,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(107,68,35,0.3)',
+        }}
       >
-        <span className="text-8xl font-bold text-[#0a1a0f] font-heading">
+        <span
+          className="chalk-text font-display leading-none"
+          style={{
+            fontSize: '80px',
+            color: '#f0ede4',
+            textShadow: '0 0 20px rgba(240,237,228,0.3), 2px 2px 0 rgba(0,0,0,0.4)',
+          }}
+        >
           {letter.toUpperCase()}
         </span>
       </div>
 
-      <p className="text-sm text-[#5a7a5a] mt-8 animate-pulse">
+      <p className="text-sm mt-8 animate-pulse font-hand text-desk">
         Get ready to write...
       </p>
 
       <style>{`
         @keyframes letter-reveal {
-          0% {
-            opacity: 0;
-            transform: scale(0.3) rotate(-5deg);
-          }
-          60% {
-            opacity: 1;
-            transform: scale(1.05) rotate(1deg);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1) rotate(0deg);
-          }
+          0%   { opacity: 0; transform: scale(0.3) rotate(-5deg); }
+          60%  { opacity: 1; transform: scale(1.06) rotate(1deg); }
+          100% { opacity: 1; transform: scale(1) rotate(0deg); }
         }
         .animate-letter-reveal {
-          animation: letter-reveal 0.6s ease-out forwards;
+          animation: letter-reveal 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
       `}</style>
     </div>

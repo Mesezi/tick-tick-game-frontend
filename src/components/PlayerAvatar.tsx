@@ -4,12 +4,12 @@
  */
 export const AVATAR_OPTIONS: { key: string; label: string; color: string }[] = [
   { key: 'avatar-1', label: 'Ruby', color: '#e74c3c' },
-  { key: 'avatar-2', label: 'Emerald', color: '#2ecc71' },
+  { key: 'avatar-2', label: 'Walnut', color: '#8b5e3c' },
   { key: 'avatar-3', label: 'Sapphire', color: '#3498db' },
   { key: 'avatar-4', label: 'Amber', color: '#f39c12' },
   { key: 'avatar-5', label: 'Violet', color: '#9b59b6' },
   { key: 'avatar-6', label: 'Coral', color: '#e67e22' },
-  { key: 'avatar-7', label: 'Teal', color: '#1abc9c' },
+  { key: 'avatar-7', label: 'Mocha', color: '#6b4423' },
   { key: 'avatar-8', label: 'Slate', color: '#34495e' },
   { key: 'avatar-9', label: 'Rose', color: '#e91e63' },
   { key: 'avatar-10', label: 'Sky', color: '#00bcd4' },

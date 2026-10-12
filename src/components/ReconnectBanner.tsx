@@ -3,7 +3,8 @@ import type { ReconnectBannerProps } from '../types';
 import { calcRemainingSeconds } from '../utils/timer';
 
 /**
- * Dark banner with orange/yellow warning for disconnected players.
+ * ReconnectBanner — classroom notice for disconnected players.
+ * Amber warning, countdown in red when critical.
  */
 export function ReconnectBanner({
   disconnectedPlayer,
@@ -22,7 +23,6 @@ export function ReconnectBanner({
 
   useEffect(() => {
     recalculate();
-
     const interval = setInterval(() => {
       const seconds = recalculate();
       if (seconds <= 0) {
@@ -30,33 +30,44 @@ export function ReconnectBanner({
         onExpire?.();
       }
     }, 1000);
-
     return () => clearInterval(interval);
   }, [recalculate, onExpire]);
+
+  const isUrgent = remainingSeconds <= 5;
 
   return (
     <div
       role="alert"
       aria-live="assertive"
       aria-atomic="true"
-      className={`
-        fixed bottom-4 left-1/2 -translate-x-1/2 z-50
-        w-11/12 max-w-md px-4 py-3 rounded-xl
-        bg-[#1a2e1f] border border-[#FF6B35] shadow-lg
-        flex items-center gap-3
-      `}
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-md px-4 py-3 rounded-2xl flex items-center gap-3"
+      style={{
+        background: '#4a3520',
+        border: `2px solid ${isUrgent ? '#c0392b' : '#d97706'}`,
+        boxShadow: '0 8px 28px rgba(0,0,0,0.4)',
+        transition: 'border-color 0.3s ease',
+      }}
     >
-      {/* Avatar placeholder */}
+      {/* Avatar */}
       <span
-        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a4a32] text-sm font-bold text-white"
+        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold font-hand text-chalk-white"
+        style={{ background: 'rgba(107,68,35,0.16)' }}
         aria-hidden="true"
       >
         {disconnectedPlayer.avatarId}
       </span>
 
-      {/* Message with countdown */}
-      <span className="text-white font-semibold text-sm">
-        🔌 <span className="text-[#FF6B35]">{disconnectedPlayer.name}</span> disconnected — <span className="text-[#FF6B35] tabular-nums">{remainingSeconds}s</span> to rejoin
+      {/* Message */}
+      <span className="font-semibold text-sm font-hand text-chalk-white">
+        🔌{' '}
+        <span className="text-school-amber">{disconnectedPlayer.name}</span>
+        {' '}disconnected —{' '}
+        <span
+          className={`tabular-nums font-bold ${isUrgent ? 'text-school-red' : 'text-school-amber'}`}
+        >
+          {remainingSeconds}s
+        </span>
+        {' '}to rejoin
       </span>
     </div>
   );

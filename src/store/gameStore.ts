@@ -5,6 +5,7 @@ import type {
   RoomSettings,
   RoundPhase,
   RoundResultsPayload,
+  RoundValidationStatusPayload,
   PodiumEntry,
 } from '../types';
 import { persistenceLayer } from '../persistence/persistenceLayer';
@@ -41,6 +42,7 @@ export interface GameStore {
     categories: string[];
     phase: RoundPhase;
     endsAt: number;
+    summaryEndTimestamp?: number;
     graceEndsAt?: number;
     graceTriggeredBy?: string;
   } | null;
@@ -50,6 +52,8 @@ export interface GameStore {
 
   // Round results (full scoring breakdown from server)
   roundResults: RoundResultsPayload | null;
+  roundValidationStatus: RoundValidationStatusPayload | null;
+  onlineCount: number | null;
 
   // Previous round's rank snapshot for delta indicators (playerId → rank)
   previousRoundRanks: Record<string, number> | null;
@@ -91,6 +95,9 @@ export interface GameStore {
   // Transient navigation flag (not persisted) — controls whether landing screen was dismissed
   hasPassedLanding: boolean;
 
+  // Transient UI flag — waiting for the server snapshot after rejoining
+  isRejoining: boolean;
+
   // Actions
   setSession: (session: GameStore['session']) => void;
   setRoom: (room: GameStore['room']) => void;
@@ -101,9 +108,13 @@ export interface GameStore {
   addDisconnectedPlayer: (player: GameStore['disconnectedPlayers'][0]) => void;
   removeDisconnectedPlayer: (playerId: string) => void;
   setMatchResults: (results: GameStore['matchResults']) => void;
+  setRoundValidationStatus: (status: RoundValidationStatusPayload | null) => void;
+  setOnlineCount: (count: number | null) => void;
   setRematch: (rematch: Partial<GameStore['rematch']>) => void;
   setHasPassedLanding: (val: boolean) => void;
+  setIsRejoining: (val: boolean) => void;
   setPreviousRoundRanks: (ranks: Record<string, number> | null) => void;
+  resetToHome: (session: GameStore['session']) => void;
   reset: () => void;
 }
 
@@ -112,13 +123,16 @@ export interface GameStore {
 const initialState: Omit<GameStore,
   | 'setSession' | 'setRoom' | 'setRound' | 'setAnswer' | 'setPhase'
   | 'setConnection' | 'addDisconnectedPlayer' | 'removeDisconnectedPlayer'
-  | 'setMatchResults' | 'setRematch' | 'setHasPassedLanding' | 'setPreviousRoundRanks' | 'reset'
+  | 'setMatchResults' | 'setRoundValidationStatus' | 'setOnlineCount' | 'setRematch' | 'setHasPassedLanding' | 'setIsRejoining'
+  | 'setPreviousRoundRanks' | 'resetToHome' | 'reset'
 > = {
   session: null,
   room: null,
   round: null,
   answers: {},
   roundResults: null,
+  roundValidationStatus: null,
+  onlineCount: null,
   previousRoundRanks: null,
   connection: {
     status: 'disconnected',
@@ -128,6 +142,7 @@ const initialState: Omit<GameStore,
   disconnectedPlayers: [],
   matchResults: null,
   hasPassedLanding: false,
+  isRejoining: false,
   rematch: {
     status: 'idle',
     requestedBy: null,
@@ -209,14 +224,22 @@ export const useGameStore = create<GameStore>()(
 
     setMatchResults: (results) => set({ matchResults: results }),
 
+    setRoundValidationStatus: (status) => set({ roundValidationStatus: status }),
+
+    setOnlineCount: (count) => set({ onlineCount: count }),
+
     setRematch: (rematch) => {
       set({ rematch: { ...get().rematch, ...rematch } });
     },
 
     setHasPassedLanding: (val) => set({ hasPassedLanding: val }),
 
+    setIsRejoining: (val) => set({ isRejoining: val }),
+
     setPreviousRoundRanks: (ranks) => set({ previousRoundRanks: ranks }),
 
-    reset: () => set({ ...initialState }),
+    resetToHome: (session) => set({ ...initialState, session, onlineCount: get().onlineCount }),
+
+    reset: () => set({ ...initialState, onlineCount: get().onlineCount }),
   }))
 );

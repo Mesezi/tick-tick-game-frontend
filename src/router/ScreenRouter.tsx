@@ -8,7 +8,7 @@ import { RoomLobbyScreen } from '../screens/RoomLobbyScreen';
 import { GameScreen } from '../screens/GameScreen';
 import { MatchSummaryScreen } from '../screens/MatchSummaryScreen';
 import { SaveProgressPrompt } from '../screens/SaveProgressPrompt';
-import { LeaderboardScreen } from '../screens/LeaderboardScreen';
+// import { LeaderboardScreen } from '../screens/LeaderboardScreen';
 
 const screenComponents: Record<Screen, React.ComponentType> = {
   'landing': LandingScreen,
@@ -18,7 +18,7 @@ const screenComponents: Record<Screen, React.ComponentType> = {
   'game': GameScreen,
   'match-summary': MatchSummaryScreen,
   'save-progress': SaveProgressPrompt,
-  'leaderboard': LeaderboardScreen,
+  // 'leaderboard': LeaderboardScreen,
 };
 
 /**

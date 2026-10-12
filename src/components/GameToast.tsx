@@ -28,13 +28,17 @@ interface VariantStyle {
   Icon: LucideIcon;
 }
 
+/**
+ * GameToast — classroom-themed in-game notifications.
+ * Slide-down from top, spring animation, auto-dismiss.
+ */
 const VARIANT_STYLES: Record<GameToastVariant, VariantStyle> = {
-  stop:    { bg: '#2a1500', border: '#ffb800', accent: '#ffb800', Icon: OctagonX },
-  join:    { bg: '#0d2018', border: '#00d060', accent: '#00d060', Icon: UserPlus },
-  info:    { bg: '#0d2018', border: '#6baf80', accent: '#6baf80', Icon: Info },
-  host:    { bg: '#1a1800', border: '#ffb800', accent: '#ffb800', Icon: Crown },
-  success: { bg: '#0d2018', border: '#00d060', accent: '#00d060', Icon: CheckCircle2 },
-  error:   { bg: '#1f0a0a', border: '#ff3b5c', accent: '#ff3b5c', Icon: XCircle },
+  stop:    { bg: '#2a1f00', border: '#d97706', accent: '#d97706', Icon: OctagonX },
+  join:    { bg: '#4a3520', border: '#8b5e3c', accent: 'white', Icon: UserPlus },
+  info:    { bg: '#4a3520', border: '#8b5e3c', accent: 'white', Icon: Info },
+  host:    { bg: '#2a1f00', border: '#d97706', accent: '#d97706', Icon: Crown },
+  success: { bg: '#4a3520', border: '#6b4423', accent: 'white', Icon: CheckCircle2 },
+  error:   { bg: '#2a0e0a', border: '#c0392b', accent: '#e05545', Icon: XCircle },
 };
 
 export function GameToast({
@@ -62,10 +66,10 @@ export function GameToast({
       {visible && (
         <motion.div
           key={toastId}
-          initial={{ y: -80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -80, opacity: 0 }}
-          transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+          initial={{ y: -80, opacity: 0, scale: 0.94 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: -80, opacity: 0, scale: 0.94 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.38 }}
           role="alert"
           aria-live="polite"
           className="fixed top-0 inset-x-0 z-100 flex justify-center px-4 pointer-events-none"
@@ -76,7 +80,7 @@ export function GameToast({
             style={{
               background: bg,
               borderColor: border,
-              boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px ${border}33`,
+              boxShadow: `0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px ${border}33`,
             }}
           >
             <Icon
@@ -84,7 +88,10 @@ export function GameToast({
               style={{ color: accent }}
               aria-hidden="true"
             />
-            <p className="flex-1 text-sm font-bold" style={{ color: accent }}>
+            <p
+              className="flex-1 text-sm font-bold font-hand"
+              style={{ color: accent }}
+            >
               {message}
             </p>
             <button

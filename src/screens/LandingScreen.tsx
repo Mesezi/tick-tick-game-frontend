@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link, MessageCircle, HelpCircle } from 'lucide-react';
+import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link, HelpCircle, BarChart2, Bot, ClipboardList, Gamepad2, Globe, Lightbulb, OctagonX, Pin, Star, Target, Timer, Users } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
@@ -12,278 +12,214 @@ import { InstallBanner } from '../components/InstallBanner';
 import { useInstallPrompt } from '../utils/useInstallPrompt';
 
 /**
- * LandingScreen - Landing page with "Start Playing" CTA and Leaderboard access.
- * Nigerian flag stripe, floating letters, bold Dela Gothic heading, neon green CTA.
+ * LandingScreen – classroom / Nigerian school aesthetic.
+ * Chalkboard background, exercise-book card, chalk-style typography.
  */
 export function LandingScreen() {
   const setHasPassedLanding = useGameStore((s) => s.setHasPassedLanding);
   const session = useGameStore((s) => s.session);
+  const onlineCount = useGameStore((s) => s.onlineCount);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [muted, setMuted] = useState(isMuted());
   const { showBanner, installMode, handleInstall, handleConfirmInstalled, handleDismiss } = useInstallPrompt();
 
   const handlePlay = () => {
     preloadSounds();
-    // If already have a session (returning user), just pass landing
-    if (useGameStore.getState().session) {
-      setHasPassedLanding(true);
-      return;
-    }
-    // New user — go to avatar setup first, guest created after they complete it
     setHasPassedLanding(true);
+  };
+
+  const handleToggleMute = () => {
+    toggleMute();
+    setMuted(isMuted());
   };
 
   return (
     <div
-      className="relative flex-1 flex flex-col items-center justify-center px-8"
-      style={{ overflow: 'hidden' }}
+      className="relative flex-1 flex flex-col overflow-hidden paper-body font-hand"
       data-testid="screen-landing"
     >
-      {/* Nigerian flag stripe */}
-      <div className="absolute top-0 left-0 right-0 h-1 flex">
-        <div className="flex-1" style={{ background: '#008751' }} />
-        <div className="flex-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
-        <div className="flex-1" style={{ background: '#008751' }} />
+      {/* Nigerian flag stripe — top */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 flex z-20">
+        <div className="flex-1 flag-stripe" />
+        <div className="flex-1 bg-paper" />
+        <div className="flex-1 flag-stripe" />
       </div>
 
-      {/* Floating bg letters */}
-      {['S', 'T', 'O', 'P', '!', 'W', 'R'].map((l, i) => (
+      {/* Top-right controls */}
+      <div className="absolute top-4 right-4 z-20 flex gap-2">
+        <button
+          onClick={handleToggleMute}
+          aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+          className="w-9 h-9 rounded-xl flex items-center justify-center border transition-all active:scale-90 text-chalk-mark"
+          style={{
+            background: 'rgba(139,94,60,0.1)',
+            borderColor: 'rgba(139,94,60,0.25)',
+          }}
+        >
+          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {/* Floating ink letters in background */}
+      {['S', 'T', 'O', 'P', '!', 'A', 'B'].map((l, i) => (
         <span
           key={i}
           aria-hidden
-          className="absolute select-none pointer-events-none"
+          className="font-script absolute select-none pointer-events-none text-ink-dark"
           style={{
-            fontFamily: "'Dela Gothic One', sans-serif",
-            color: '#00d060',
-            opacity: 0.05 + (i % 3) * 0.02,
-            fontSize: `${65 + (i * 18) % 55}px`,
-            left: `${(i * 14 + 5) % 82}%`,
-            top: `${(i * 17 + 8) % 78}%`,
-            animation: `bob${i} ${2.5 + i * 0.45}s ease-in-out ${i * 0.2}s infinite alternate`,
+            opacity: 0.04 + (i % 3) * 0.015,
+            fontSize: `${70 + (i * 20) % 60}px`,
+            left: `${(i * 15 + 4) % 84}%`,
+            top: `${(i * 18 + 6) % 80}%`,
+            animation: `bob${i} ${2.8 + i * 0.5}s ease-in-out ${i * 0.25}s infinite alternate`,
+            transform: `rotate(${-8 + i * 3}deg)`,
           }}
         >
           {l}
         </span>
       ))}
 
-      <div className="text-center z-10 w-full max-w-[290px] sm:max-w-[360px]">
-        <img
-          src="/tick-tick-logo.png"
-          alt="Tick-Tick"
-          className="w-40 mx-auto mb-4"
-          style={{ filter: 'drop-shadow(0 8px 24px rgba(0,208,96,0.25))' }}
-        />
-
-        <p
-          className="text-[12px] leading-relaxed mb-6"
-          style={{ color: '#6baf80' }}
+      {/* ── Main card — exercise book style ── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+          className="w-full max-w-85 rounded-2xl overflow-hidden"
         >
-          The classic word game — now multiplayer.
-          Fill every category before someone shouts STOP!
-        </p>
+          <div className="px-6 pt-6 pb-7">
+            {/* School name header */}
+            <div className="text-center pb-3" style={{ borderBottom: '1.5px solid #c8b89a' }}>
+              <p className=" font-bold tracking-[0.25em] uppercase font-hand text-chalk-mark">
+                Naija Edition
+              </p>
+            </div>
 
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={handlePlay}
-          className="w-full rounded-2xl py-4 mb-3 text-black font-bold text-xl"
-          style={{
-            background: '#00d060',
-            fontFamily: "'Dela Gothic One', sans-serif",
-            fontSize: '22px',
-          }}
-        >
-          Start Playing
-        </motion.button>
+            {/* Logo */}
+            <div className="flex justify-center">
+              <img
+                src="/tick-tick-logo.png"
+                alt="Tick-Tick"
+                className="w-36"
+                style={{ filter: 'drop-shadow(0 4px 12px rgba(107,68,35,0.25))' }}
+              />
+            </div>
 
-        <div className="flex gap-2 mb-3">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowLeaderboard(true)}
-            className="flex-1 rounded-2xl py-3 font-bold text-sm flex items-center justify-center gap-2 border"
-            style={{
-              background: 'rgba(255,184,0,0.08)',
-              borderColor: 'rgba(255,184,0,0.3)',
-              color: '#ffb800',
-            }}
-          >
-            <Trophy className="w-4 h-4" />
-            Leaderboard
-          </motion.button>
+            {/* Subtitle */}
+            <p className="text-center  leading-relaxed mb-5 font-hand text-chalk-board">
+              The classic word game — now multiplayer.{' '}
+              Fill every category before someone shouts{' '}
+              <strong className="text-school-red">STOP!</strong>
+            </p>
 
-          {session?.displayName && (
+            {onlineCount != null && onlineCount >= 3 && (
+              <p className="mb-4 flex items-center justify-center gap-1.5 text-sm font-bold font-hand text-chalk-mark" role="status">
+                <Users className="h-4 w-4" aria-hidden="true" />
+                {onlineCount?.toLocaleString()} players online
+              </p>
+            )}
+
+            {/* CTA */}
             <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowProfile(true)}
-              className="flex-1 rounded-2xl py-3 font-bold text-sm flex items-center justify-center gap-2 border"
-              style={{
-                background: 'rgba(0,208,96,0.06)',
-                borderColor: 'rgba(0,208,96,0.2)',
-                color: '#6baf80',
-              }}
+              whileTap={{ scale: 0.96 }}
+              onClick={handlePlay}
+              className="w-full rounded-xl py-4 mb-3 font-bold btn-primary font-display text-[20px]"
+              style={{ boxShadow: '0 4px 16px rgba(107,68,35,0.3), inset 0 1px 0 rgba(255,255,255,0.15)' }}
             >
-              <User className="w-4 h-4" />
-              Profile
+              Start Playing
             </motion.button>
-          )}
-        </div>
 
-       
+            {/* Secondary buttons */}
+            <div className="flex gap-2 mb-3">
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setShowLeaderboard(true)}
+                className="flex-1 rounded-xl py-3 font-bold text-sm flex items-center justify-center gap-1.5 border font-hand text-chalk-mark"
+                style={{ background: 'rgba(139,94,60,0.08)', borderColor: 'rgba(139,94,60,0.25)' }}
+              >
+                <Trophy className="w-4 h-4" />
+                Board
+              </motion.button>
 
-        {/* Link Google nudge — shown to guests who have a profile set up */}
-        {session?.displayName && !session.isAuthenticated && (
-          <motion.button
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setShowProfile(true)}
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border"
-            style={{
-              background: 'rgba(0,208,96,0.05)',
-              borderColor: 'rgba(0,208,96,0.2)',
-            }}
-          >
-            <Link className="w-4 h-4 shrink-0" style={{ color: '#00d060' }} />
-            <button onClick={() => { apiClient.redirectToGoogle(); }} className="flex-1 text-left text-[11px]" style={{ color: '#6baf80' }}>
-              Save your progress — link Google
-            </button>
-            <ArrowLeft className="w-3 h-3 rotate-180 shrink-0" style={{ color: '#00d060' }} />
-          </motion.button>
-        )}
+              {session?.displayName && (
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setShowProfile(true)}
+                  className="flex-1 rounded-xl py-3 font-bold text-sm flex items-center justify-center gap-1.5 border font-hand text-chalk-mark"
+                  style={{ background: 'rgba(139,94,60,0.08)', borderColor: 'rgba(139,94,60,0.25)' }}
+                >
+                  <User className="w-4 h-4" />
+                  Profile
+                </motion.button>
+              )}
 
-        {/* Sign in — shown only on new device (no session at all) */}
-        {!session && (
-          <button
-            onClick={() => { apiClient.redirectToGoogle() }}
-            className="mt-2 text-sm"
-            style={{ color: '#3a5a45' }}
-          >
-            Already have an account? <span style={{ color: '#00d060', fontWeight: 'bold' }}>Sign in →</span>
-          </button>
-        )}
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setShowHowToPlay(true)}
+                className="flex-1 rounded-xl py-3 font-bold text-sm flex items-center justify-center gap-1.5 border font-hand"
+                style={{ background: 'rgba(217,119,6,0.07)', borderColor: 'rgba(217,119,6,0.2)', color: '#92400e' }}
+              >
+                <HelpCircle className="w-4 h-4" />
+                Rules
+              </motion.button>
+            </div>
 
+            {/* Google link nudge */}
+            {session?.displayName && !session.isAuthenticated && (
+              <motion.button
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => apiClient.redirectToGoogle()}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border"
+                style={{ background: 'rgba(139,94,60,0.06)', borderColor: 'rgba(139,94,60,0.2)' }}
+              >
+                <Link className="w-4 h-4 shrink-0 text-chalk-mark" />
+                <span className="flex-1 text-left text-sm font-hand text-chalk-board">
+                  Save your progress — link Google account
+                </span>
+                <span className=" font-hand text-chalk-mark">→</span>
+              </motion.button>
+            )}
 
-         {/* How to Play */}
-        <button
-          onClick={() => setShowHowToPlay(true)}
-          className="flex items-center mx-auto mt-5 justify-center text-sm gap-1.5 mb-3 font-bold"
-          style={{ color: '#ffb800' }}
-        >
-          <HelpCircle className="w-3 h-3" />
-          How to Play
-        </button>
+            {/* Sign in — no session */}
+            {!session && (
+              <button
+                onClick={() => apiClient.redirectToGoogle()}
+                className="mt-3 w-full text-center text-sm font-hand"
+                style={{ color: '#7a6050' }}
+              >
+                Already registered?{' '}
+                <span className="font-bold text-chalk-mark">Sign in →</span>
+              </button>
+            )}
+          </div>
+        </motion.div>
       </div>
 
+      {/* Floating letter animations */}
       <style>{`
         ${[0, 1, 2, 3, 4, 5, 6]
           .map(
             (i) =>
-              `@keyframes bob${i} { from{transform:translateY(0) rotate(${-4 + i * 1.5}deg)} to{transform:translateY(-16px) rotate(${4 - i * 1.5}deg)} }`
+              `@keyframes bob${i} { from{transform:translateY(0) rotate(${-5 + i * 2}deg)} to{transform:translateY(-14px) rotate(${5 - i * 2}deg)} }`
           )
           .join('')}
       `}</style>
 
-      {/* Leaderboard Overlay */}
       <AnimatePresence>
-        {showLeaderboard && (
-          <LeaderboardOverlay onClose={() => setShowLeaderboard(false)} />
-        )}
+        {showLeaderboard && <LeaderboardOverlay onClose={() => setShowLeaderboard(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showProfile && <ProfileOverlay onClose={() => setShowProfile(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showHowToPlay && <HowToPlaySheet onClose={() => setShowHowToPlay(false)} />}
       </AnimatePresence>
 
-      {/* Profile Overlay */}
-      <AnimatePresence>
-        {showProfile && (
-          <ProfileOverlay onClose={() => setShowProfile(false)} />
-        )}
-      </AnimatePresence>
-
-      {/* How to Play sheet */}
-      <AnimatePresence>
-        {showHowToPlay && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-end"
-            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', scrollbarWidth: 'none'}}
-            onClick={(e) => { if (e.target === e.currentTarget) setShowHowToPlay(false); }}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-              className="w-full rounded-t-3xl px-6 pt-6 pb-10 overflow-y-auto"
-              style={{ background: '#0d2018', maxHeight: '85vh', borderTop: '1px solid rgba(0,208,96,0.2)', scrollbarWidth: 'none' }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-xs font-bold tracking-widest uppercase mb-0.5" style={{ color: '#00d060' }}>Quick Guide</p>
-                  <h3 className="text-white" style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '26px', lineHeight: 1 }}>How to Play</h3>
-                </div>
-                <button onClick={() => setShowHowToPlay(false)} className="w-8 h-8 flex items-center justify-center rounded-xl active:scale-90" style={{ background: '#1a3528', color: '#6baf80' }}>
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                {[
-                  { emoji: '🎯', title: 'Get a letter + categories', desc: 'Each round gives you a random letter and 5 categories (Food, Animal, City, etc). Every answer must start with that letter.' },
-                  { emoji: '⏱️', title: 'Type fast', desc: 'You have 90 seconds to fill all categories. Answers save automatically as you type.' },
-                  { emoji: '🛑', title: 'Shout STOP!', desc: 'Finished early? Hit STOP to start a 15-second grace period. After that, the round locks.' },
-                  { emoji: '🤖', title: 'AI scores your answers', desc: 'Correct = 10pts. Minor typo = 9pts. Major typo = 7pts. Duplicate answer = 5pts. Wrong/blank = 0pts.' },
-                  { emoji: '💡', title: 'Be unique', desc: 'If you and another player give the same answer, you both get only 5pts instead of 10. Creative answers win.' },
-                  { emoji: '🇳🇬', title: 'Nigerian terms accepted', desc: 'The AI understands Pidgin, local slang, and multi-word answers like "Jollof Rice".' },
-                  { emoji: '🏆', title: 'Win the match', desc: 'Highest cumulative score after all rounds wins. Top 3 hit the podium and the leaderboard.' },
-                ].map((step, i) => (
-                  <div key={i} className="flex gap-4 p-4 rounded-2xl" style={{ background: '#122318' }}>
-                    <span className="text-2xl shrink-0">{step.emoji}</span>
-                    <div>
-                      <p className="text-white font-bold text-sm mb-0.5">{step.title}</p>
-                      <p className="text-xs leading-relaxed" style={{ color: '#6baf80' }}>{step.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 p-4 rounded-2xl" style={{ background: '#122318' }}>
-                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#a0c8a8' }}>Scoring</p>
-                <div className="space-y-2">
-                  {[
-                    { label: 'Correct (perfectly spelled)', pts: '+10', color: '#00d060' },
-                    { label: 'Minor typo (clearly right)', pts: '+9', color: '#00d060' },
-                    { label: 'Major typo (recognizable)', pts: '+7', color: '#ff9600' },
-                    { label: 'Duplicate (same as other player)', pts: '+5', color: '#ffb800' },
-                    { label: 'Wrong / blank', pts: '0', color: '#ff3b5c' },
-                  ].map((s) => (
-                    <div key={s.label} className="flex items-center justify-between">
-                      <span className="text-[10px]" style={{ color: '#6baf80' }}>{s.label}</span>
-                      <span className="text-xs font-bold" style={{ color: s.color }}>{s.pts}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-4 p-4 rounded-2xl" style={{ background: '#122318' }}>
-                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#a0c8a8' }}>Tips</p>
-                <ul className="space-y-1.5">
-                  {[
-                    'Unique answers earn full points — common ones get reduced to 5',
-                    'Spelling matters but the AI is lenient — close enough counts',
-                    'Speed matters — someone can STOP the round early',
-                    'Nigerian slang and Pidgin are valid — use them!',
-                  ].map((tip, i) => (
-                    <li key={i} className="text-[10px] flex gap-2 items-start" style={{ color: '#6baf80' }}>
-                      <span style={{ color: '#00d060' }}>•</span>
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* PWA install banner */}
       <InstallBanner
         visible={showBanner}
         installMode={installMode}
@@ -292,6 +228,122 @@ export function LandingScreen() {
         onDismiss={handleDismiss}
       />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// How to Play Sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+function HowToPlaySheet({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-50 flex items-end"
+      style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', bounce: 0, duration: 0.38 }}
+        className="w-full rounded-t-3xl overflow-hidden paper-body"
+        style={{ maxHeight: '88dvh', borderTop: '3px solid #c8b89a', boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' }}
+      >
+        {/* Sheet handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-paper-ruled" />
+        </div>
+
+        <div className="overflow-y-auto pb-10 px-6" style={{ scrollbarWidth: 'none', maxHeight: 'calc(88vh - 24px)' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5 pt-3">
+            <div>
+              <p className="label-section mb-0.5 flex items-center gap-1.5 text-chalk-mark">
+                <ClipboardList className="w-3.5 h-3.5" /> Class Notes
+              </p>
+              <h3 className="font-display text-[26px] text-ink-dark leading-none">How to Play</h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-9 h-9 flex items-center justify-center rounded-xl active:scale-90 text-chalk-mark"
+              style={{ background: 'rgba(139,94,60,0.12)', border: '1px solid #c8b89a' }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { icon: <Target className="w-5 h-5 text-chalk-mark shrink-0" />, title: 'Get a letter + categories', desc: 'Each round gives a random letter and 5 categories (Food, Animal, City, etc). Every answer must start with that letter.' },
+              { icon: <Timer className="w-5 h-5 text-school-amber shrink-0" />, title: 'Type fast — like exam time!', desc: 'You have 90 seconds to fill all categories. Answers save automatically as you type. Sharp sharp!' },
+              { icon: <OctagonX className="w-5 h-5 text-school-red shrink-0" />, title: 'Shout STOP!', desc: 'Finished early? Hit STOP to start a 15-second grace period. After that, the round locks — no more changes.' },
+              { icon: <Bot className="w-5 h-5 text-chalk-mark shrink-0" />, title: 'AI marks your answers', desc: 'Correct = 10pts. Minor typo = 9pts. Major typo = 7pts. Duplicate answer = 5pts. Wrong/blank = 0pts.' },
+              { icon: <Lightbulb className="w-5 h-5 text-school-amber shrink-0" />, title: 'Be unique — no copy-copy!', desc: 'If two players give the same answer, both get only 5pts instead of 10. Think different, collect more marks.' },
+              { icon: <Globe className="w-5 h-5 text-chalk-mark shrink-0" />, title: 'Nigerian English accepted!', desc: 'The AI understands Pidgin, local slang, and multi-word answers like "Jollof Rice" or "Eba and Egusi".' },
+              { icon: <Trophy className="w-5 h-5 text-school-amber shrink-0" />, title: 'Win the match', desc: 'Highest cumulative score after all rounds wins. Top 3 hit the podium and the leaderboard.' },
+            ].map((step, i) => (
+              <div
+                key={i}
+                className="flex gap-3 p-4 rounded-2xl"
+                style={{ background: 'rgba(139,94,60,0.08)', border: '1px solid #c8b89a' }}
+              >
+                {step.icon}
+                <div>
+                  <p className="font-bold text-[15px] mb-0.5 font-hand text-ink-dark">{step.title}</p>
+                  <p className="text-sm leading-relaxed font-hand text-chalk-board">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Scoring table */}
+          <div className="mt-4 rounded-2xl overflow-hidden" style={{ background: '#f5f0e8', border: '2px solid #c8b89a' }}>
+            <div className="px-4 py-2.5 bg-chalk-board">
+              <p className="text-sm font-bold uppercase tracking-widest font-hand text-paper flex items-center gap-1.5">
+                <BarChart2 className="w-4 h-4" /> Mark Scheme
+              </p>
+            </div>
+            <div className="divide-y divide-paper-line">
+              {[
+                { label: 'Correct (perfectly spelled)',   pts: '+10', color: '#6b4423' },
+                { label: 'Minor typo (clearly right)',    pts: '+9',  color: '#6b4423' },
+                { label: 'Major typo (recognizable)',     pts: '+7',  color: '#d97706' },
+                { label: 'Duplicate (same as classmate)', pts: '+5',  color: '#92400e' },
+                { label: 'Wrong / blank',                 pts: '0',   color: '#c0392b' },
+              ].map((s, i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                  <span className=" font-hand text-chalk-board">{s.label}</span>
+                  <span className="font-script text-sm font-bold" style={{ color: s.color }}>{s.pts}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-3 p-4 rounded-2xl" style={{ background: 'rgba(139,94,60,0.08)', border: '1px solid #c8b89a' }}>
+            <p className="label-section mb-2 flex items-center gap-1.5 text-chalk-mark">
+              <Pin className="w-3.5 h-3.5" /> Tips from senior students
+            </p>
+            <ul className="space-y-1.5">
+              {[
+                'Unique answers earn full marks — common ones get reduced to 5',
+                'Spelling matters but AI is lenient — close enough counts',
+                'Speed matters — someone can STOP the round early',
+                'Nigerian Pidgin and slang are valid — use them abeg!',
+              ].map((tip, i) => (
+                <li key={i} className=" flex gap-2 items-start font-hand text-chalk-board">
+                  <span className="text-desk">•</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -305,29 +357,18 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const apiType = tab === 'alltime' ? 'all-time' as const : 'weekly' as const;
-  const {
-    data,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-  } = useInfiniteLeaderboard(apiType);
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteLeaderboard(apiType);
   const { data: myRankData } = useMyLeaderboardRank(apiType, !!session?.token);
 
   const entries = data?.pages.flatMap((p) => p.data.entries) ?? [];
   const myRank = myRankData?.data.userRank ?? null;
   const myEntryVisible = myRank ? entries.some((e) => e.id === myRank.id) : false;
 
-  // Intersection observer — load next page when sentinel scrolls into view
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      (obs) => {
-        if (obs[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
+      (obs) => { if (obs[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage(); },
       { threshold: 0.1 }
     );
     observer.observe(el);
@@ -339,53 +380,35 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.2 }}
-      className="absolute inset-0 z-50 flex flex-col overflow-hidden"
-      style={{ background: '#081510' }}
+      transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+      className="absolute inset-0 z-50 flex flex-col overflow-hidden paper-body"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 pt-12 pb-4 shrink-0">
+      <div className="px-6 pt-6 pb-4 shrink-0" style={{ borderBottom: '1px solid #c8b89a' }}>
         <button
           onClick={onClose}
-          className="p-2 rounded-xl border transition-all active:scale-95"
-          style={{ background: '#0d2018', borderColor: '#1a3528' }}
+          className="mb-3 p-2 rounded-xl border transition-all active:scale-95"
+          style={{ background: 'rgba(139,94,60,0.1)', borderColor: '#c8b89a' }}
         >
-          <ArrowLeft className="w-5 h-5" style={{ color: '#6baf80' }} />
+          <ArrowLeft className="w-5 h-5 text-chalk-mark" />
         </button>
-        <div>
-          <p
-            className="text-xs font-bold tracking-widest uppercase mb-0.5"
-            style={{ color: '#6baf80' }}
-          >
-            Global
-          </p>
-          <h2
-            className="text-white"
-            style={{
-              fontFamily: "'Dela Gothic One', sans-serif",
-              fontSize: '30px',
-              lineHeight: 1,
-            }}
-          >
-            Leaderboard
-          </h2>
-        </div>
+        <p className="label-section mb-1 flex items-center gap-1.5 text-desk">
+          <Trophy className="w-3.5 h-3.5" /> Class Rankings
+        </p>
+        <h2 className="font-display text-[30px] text-ink-dark leading-none">Leaderboard</h2>
       </div>
 
       {/* Tabs */}
-      <div className="px-6 mb-4 shrink-0">
-        <div
-          className="flex rounded-xl p-1 gap-1"
-          style={{ background: '#0d2018' }}
-        >
+      <div className="px-6 py-3 shrink-0">
+        <div className="flex rounded-xl p-1 gap-1" style={{ background: 'rgba(139,94,60,0.12)', border: '1px solid #c8b89a' }}>
           {(['weekly', 'alltime'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
+              className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all font-hand"
               style={{
-                background: tab === t ? '#00d060' : 'transparent',
-                color: tab === t ? '#000' : '#6baf80',
+                background: tab === t ? '#6b4423' : 'transparent',
+                color: tab === t ? '#f5f0e8' : '#6b4423',
               }}
             >
               {t === 'weekly' ? 'This Week' : 'All Time'}
@@ -394,23 +417,19 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {/* Content */}
+      {/* List */}
       <div className="flex-1 overflow-y-auto px-6" style={{ scrollbarWidth: 'none' }}>
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <p className="text-sm animate-pulse" style={{ color: '#6baf80' }}>
-              Loading rankings...
-            </p>
+            <p className="text-sm animate-pulse font-hand text-desk">Loading rankings...</p>
           </div>
         ) : entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <span className="text-4xl mb-3" aria-hidden="true">📊</span>
-            <p className="text-sm text-center" style={{ color: '#6baf80' }}>
-              No rankings yet. Be the first to play!
-            </p>
+            <ClipboardList className="w-10 h-10 mb-3 text-desk opacity-50" />
+            <p className="text-sm text-center font-hand text-desk">No rankings yet. Be the first to play!</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 pb-4">
             {entries.map((entry, i) => {
               const rank = i + 1;
               const score = tab === 'weekly' ? entry.weeklyScore : entry.totalScore;
@@ -418,143 +437,85 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
               return (
                 <motion.div
                   key={entry.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(i * 0.04, 0.5) }}
-                  className="flex items-center gap-3 p-4 rounded-xl border"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(i * 0.04, 0.4), type: 'spring', bounce: 0, duration: 0.3 }}
+                  className="flex items-center gap-3 p-3.5 rounded-xl border"
                   style={{
-                    background: isYou ? 'rgba(0,208,96,0.13)' : '#0d2018',
-                    borderColor: isYou ? '#00d060' : 'transparent',
-                    boxShadow: isYou ? '0 0 0 1px rgba(0,208,96,0.25), 0 4px 16px rgba(0,208,96,0.12)' : 'none',
+                    background: isYou ? 'rgba(139,94,60,0.1)' : 'rgba(139,94,60,0.07)',
+                    borderColor: isYou ? '#8b5e3c' : '#c8b89a',
+                    boxShadow: isYou ? '0 0 0 1px rgba(139,94,60,0.2)' : 'none',
                   }}
                 >
-                  {/* Rank */}
                   <span
-                    className="w-8 text-center shrink-0"
-                    style={{
-                      fontSize: rank <= 3 ? '20px' : '16px',
-                      fontFamily: rank > 3 ? "'Dela Gothic One', sans-serif" : undefined,
-                      color: isYou ? '#00d060' : '#3a5a45',
-                    }}
+                    className={`w-8 text-center shrink-0 ${rank > 3 ? 'font-display text-[15px]' : ''} ${isYou ? 'text-chalk-mark' : 'text-desk'}`}
                   >
-                    {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
+                    {rank <= 3 ? (
+                      <span className={`font-display  font-bold ${rank === 1 ? 'text-school-amber' : rank === 2 ? 'text-slate-400' : 'text-desk'}`}>
+                        {rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'}
+                      </span>
+                    ) : rank}
                   </span>
-
-                  {/* Avatar */}
                   <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold font-hand text-chalk-mark"
                     style={{
-                      background: isYou ? 'rgba(0,208,96,0.22)' : entry.type === 'REGISTERED' ? 'rgba(0,208,96,0.15)' : '#1a3528',
-                      color: isYou ? '#00d060' : entry.type === 'REGISTERED' ? '#00d060' : '#6baf80',
+                      background: isYou ? 'rgba(107,68,35,0.15)' : 'rgba(139,94,60,0.12)',
+                      border: `1px solid ${isYou ? 'rgba(107,68,35,0.28)' : '#c8b89a'}`,
                     }}
                   >
                     {entry.displayName ? entry.displayName.slice(0, 2).toUpperCase() : '??'}
                   </div>
-
-                  {/* Name + type */}
                   <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm font-bold truncate flex items-center gap-1.5"
-                      style={{ color: isYou ? '#00d060' : 'white' }}
-                    >
+                    <p className={`text-sm font-bold truncate font-hand ${isYou ? 'text-chalk-mark' : 'text-ink-dark'}`}>
                       {entry.displayName || 'Anonymous'}
                       {isYou && (
-                        <span
-                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                          style={{ background: 'rgba(0,208,96,0.2)', color: '#00d060' }}
-                        >
+                        <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-full ml-1.5 text-chalk-mark" style={{ background: 'rgba(139,94,60,0.14)' }}>
                           you
                         </span>
                       )}
                     </p>
-                    <p className="text-[10px]" style={{ color: isYou ? 'rgba(0,208,96,0.5)' : '#3a5a45' }}>
-                      {entry.type === 'REGISTERED' ? '⭐ Registered' : 'Guest'}
+                    <p className={`text-[12px] font-hand flex items-center gap-1 ${isYou ? 'text-chalk-mark' : 'text-desk'}`}>
+                      {entry.type === 'REGISTERED' ? <><Star className="w-2.5 h-2.5 fill-current" /> Registered</> : 'Guest'}
                     </p>
                   </div>
-
-                  {/* Score */}
-                  <span
-                    className="shrink-0"
-                    style={{
-                      fontFamily: "'Dela Gothic One', sans-serif",
-                      fontSize: '18px',
-                      color: isYou ? '#00d060' : 'white',
-                    }}
-                  >
+                  <span className={`font-display text-[18px] ${isYou ? 'text-chalk-mark' : 'text-ink-dark'}`}>
                     {score.toLocaleString()}
                   </span>
                 </motion.div>
               );
             })}
-
-            {/* Infinite scroll sentinel */}
             <div ref={sentinelRef} className="py-2 flex justify-center">
               {isFetchingNextPage && (
-                <p className="text-xs animate-pulse" style={{ color: '#6baf80' }}>
-                  Loading more...
-                </p>
+                <p className="text-sm animate-pulse font-hand text-desk">Loading more...</p>
               )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Pinned: current user's rank (shown when not visible on current page) */}
+      {/* Pinned: my rank */}
       {myRank && !myEntryVisible && (
-        <div className="px-6 pt-3 pb-4 shrink-0 border-t" style={{ borderColor: 'rgba(0,208,96,0.15)' }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-center" style={{ color: '#3a7a55' }}>
-            Your global rank
-          </p>
-          <div
-            className="flex items-center gap-3 p-4 rounded-xl border"
-            style={{
-              background: 'rgba(0,208,96,0.13)',
-              borderColor: '#00d060',
-              boxShadow: '0 0 0 1px rgba(0,208,96,0.25), 0 4px 20px rgba(0,208,96,0.15)',
-            }}
-          >
-            <span
-              className="w-12 text-center shrink-0"
-              style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '18px', color: '#00d060' }}
-            >
+        <div className="px-6 pt-3 pb-4 shrink-0 border-t border-paper-ruled">
+          <p className="label-section mb-2 text-center text-desk">Your global rank</p>
+          <div className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: 'rgba(139,94,60,0.1)', borderColor: '#8b5e3c' }}>
+            <span className="font-display text-[18px] text-chalk-mark w-12 text-center">
               #{myRank.rank}
             </span>
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-              style={{ background: 'rgba(0,208,96,0.22)', color: '#00d060' }}
-            >
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold font-hand text-chalk-mark" style={{ background: 'rgba(139,94,60,0.14)' }}>
               {myRank.displayName ? myRank.displayName.slice(0, 2).toUpperCase() : '??'}
             </div>
-            <p className="flex-1 text-sm font-bold truncate flex items-center gap-1.5" style={{ color: '#00d060' }}>
+            <p className="flex-1 text-sm font-bold truncate font-hand text-chalk-mark">
               {myRank.displayName || 'You'}
-              
             </p>
-            <span style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '20px', color: '#00d060' }}>
+            <span className="font-display text-[20px] text-chalk-mark">
               {tab === 'weekly' ? myRank.weeklyScore.toLocaleString() : myRank.totalScore.toLocaleString()}
             </span>
           </div>
         </div>
       )}
-
-      {/* Bottom CTA */}
-      {/* <div className="px-6 pb-6 pt-3 shrink-0">
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={onClose}
-          className="w-full rounded-2xl py-4 text-black"
-          style={{
-            background: '#00d060',
-            fontFamily: "'Dela Gothic One', sans-serif",
-            fontSize: '22px',
-          }}
-        >
-          Play Now
-        </motion.button>
-      </div> */}
     </motion.div>
   );
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Profile Overlay
@@ -566,11 +527,6 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
   const [showEdit, setShowEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showContact, setShowContact] = useState(false);
-  const [contactName, setContactName] = useState(session?.displayName || '');
-  const [contactMsg, setContactMsg] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [isSendingContact, setIsSendingContact] = useState(false);
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -587,35 +543,6 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const handleSendContact = async () => {
-    if (!contactName.trim() || !contactMsg.trim()) return;
-    setIsSendingContact(true);
-    try {
-      const formData = new FormData();
-      formData.append('name', contactName);
-      formData.append('email', contactEmail || 'not provided');
-      formData.append('message', contactMsg);
-      formData.append('userId', session?.userId || '');
-
-      const res = await fetch('https://formspree.io/f/mbgrrdbg', {
-        method: 'POST',
-        body: formData,
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!res.ok) throw new Error('Failed');
-      showToast("Message sent! We'll get back to you 🙏", 'success');
-      setContactName(session?.displayName || '');
-      setContactMsg('');
-      setContactEmail('');
-      setShowContact(false);
-    } catch {
-      showToast('Failed to send. Try again.', 'error');
-    } finally {
-      setIsSendingContact(false);
-    }
-  };
-
   const stats = data?.data.stats;
 
   return (
@@ -623,601 +550,172 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.2 }}
-      className="absolute inset-0 z-50 flex flex-col overflow-hidden"
-      style={{ background: '#081510' }}
+      transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+      className="absolute inset-0 z-50 flex flex-col overflow-hidden paper-body"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 pt-12 pb-4 shrink-0">
+      <div className="flex items-center gap-3 px-6 pt-10 pb-4 shrink-0" style={{ borderBottom: '1px solid #c8b89a' }}>
         <button
           onClick={onClose}
           className="p-2 rounded-xl border transition-all active:scale-95"
-          style={{ background: '#0d2018', borderColor: '#1a3528' }}
+          style={{ background: 'rgba(139,94,60,0.1)', borderColor: '#c8b89a' }}
         >
-          <ArrowLeft className="w-5 h-5" style={{ color: '#6baf80' }} />
+          <ArrowLeft className="w-5 h-5 text-chalk-mark" />
         </button>
         <div>
-          <p
-            className="text-xs font-bold tracking-widest uppercase mb-0.5"
-            style={{ color: '#00d060' }}
-          >
-            Player
-          </p>
-          <h2
-            className="text-white"
-            style={{
-              fontFamily: "'Dela Gothic One', sans-serif",
-              fontSize: '30px',
-              lineHeight: 1,
-            }}
-          >
-            Profile
-          </h2>
+          <p className="label-section mb-0.5 text-chalk-mark">Student File</p>
+          <h2 className="font-display text-[28px] text-ink-dark leading-none">Profile</h2>
         </div>
       </div>
 
-      <section className='flex-1 overflow-y-auto '  style={{ scrollbarWidth: 'none' }}>
-
-{/* Player card */}
-      <div className="px-6 mb-5 shrink-0">
+      <div className="flex-1 overflow-y-auto px-6 py-5" style={{ scrollbarWidth: 'none' }}>
+        {/* Player card — exercise book style */}
         <div
-          className="flex items-center gap-4 p-5 rounded-2xl border"
-          style={{ background: '#0d2018', borderColor: '#1a3528' }}
+          className="rounded-2xl overflow-hidden mb-4"
+          style={{
+            background: '#f5f0e8',
+            backgroundImage: `repeating-linear-gradient(transparent, transparent 27px, #d4c9b0 27px, #d4c9b0 28px)`,
+            border: '2px solid #c8b89a',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          }}
         >
-          <span className="text-4xl">{session?.avatarId || '🎮'}</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-white font-bold text-lg truncate">
-              {session?.displayName || 'Anonymous'}
-            </p>
-            <p className="text-xs" style={{ color: '#6baf80' }}>
-              {session?.isAuthenticated ? '⭐ Registered' : 'Guest Player'}
-            </p>
-          </div>
-          {stats && (
-            <div className="text-right">
-              <p
-                style={{
-                  fontFamily: "'Dela Gothic One', sans-serif",
-                  fontSize: '24px',
-                  color: '#ffb800',
-                }}
-              >
-                {stats.totalScore}
-              </p>
-              <p className="text-[10px]" style={{ color: '#6baf80' }}>
-                total pts
-              </p>
+          <div className="px-5 pt-5 pb-5">
+            <div className="flex items-center gap-4">
+              <span className="text-5xl">{session?.avatarId || '🎮'}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-lg truncate font-hand text-ink-dark">
+                  {session?.displayName || 'Anonymous'}
+                </p>
+                <p className="text-sm font-hand text-chalk-mark flex items-center gap-1">
+                  {session?.isAuthenticated ? <><Star className="w-3.5 h-3.5 fill-current" /> Registered Student</> : 'Guest Pupil'}
+                </p>
+              </div>
+              {stats && (
+                <div className="text-right">
+                  <p className="font-display text-[26px] text-chalk-mark">{stats.totalScore}</p>
+                  <p className="text-[12px] font-hand text-chalk-mark">total pts</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
-        {/* Edit profile + Link Google side by side */}
-        <div className="flex gap-2 mt-3">
+
+        {/* Action buttons */}
+        <div className="flex gap-2 mb-5">
           <button
             onClick={() => setShowEdit(true)}
-            className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all active:scale-95"
-            style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
+            className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 btn-ghost"
           >
-            <Pencil className="w-3 h-3" />
+            <Pencil className="w-3.5 h-3.5" />
             Edit Profile
           </button>
           {!session?.isAuthenticated && (
             <button
-              onClick={() => { apiClient.redirectToGoogle(); }}
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all active:scale-95"
-              style={{ background: '#0d2018', borderColor: 'rgba(0,208,96,0.2)', color: '#00d060' }}
+              onClick={() => apiClient.redirectToGoogle()}
+              className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 btn-ghost"
             >
-              <Link className="w-3 h-3" />
+              <Link className="w-3.5 h-3.5" />
               Link Google
             </button>
           )}
         </div>
-      </div>
 
-      {/* Stats + Settings — all scrollable */}
-      <div
-        className="px-6"
-        style={{ scrollbarWidth: 'none' }}
-      >
+        {/* Stats */}
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="h-14 rounded-xl animate-pulse"
-                style={{ background: '#0d2018' }}
-              />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-14 rounded-xl animate-pulse" style={{ background: 'rgba(139,94,60,0.1)' }} />
             ))}
           </div>
-        ) : !stats ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <span className="text-4xl mb-3" aria-hidden="true">🎮</span>
-            <p className="text-sm text-center" style={{ color: '#6baf80' }}>
-              Play some games to see your stats!
-            </p>
+        ) : stats ? (
+          <div className="space-y-2">
+            {[
+              { label: 'Games Played', value: stats.gamesPlayed, icon: <Gamepad2 className="w-5 h-5 text-chalk-mark" /> },
+              { label: 'Wins', value: stats.gamesWon, icon: <Trophy className="w-5 h-5 text-school-amber" /> },
+              { label: 'Total Score', value: stats.totalScore.toLocaleString(), icon: <BarChart2 className="w-5 h-5 text-chalk-mark" /> },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-xl border"
+                style={{ background: 'rgba(139,94,60,0.07)', borderColor: '#c8b89a' }}
+              >
+                <span className="text-xl">{s.icon}</span>                <span className="flex-1 text-sm font-hand text-chalk-board">{s.label}</span>
+                <span className="font-display text-[18px] text-ink-dark">{s.value}</span>
+              </div>
+            ))}
           </div>
-        ) : (
-          <>
-            {/* Score section */}
-            <p
-              className="text-xs font-bold tracking-widest uppercase mb-3"
-              style={{ color: '#a0c8a8' }}
+        ) : null}
+
+        {/* Danger zone */}
+        <div className="mt-6 pt-4" style={{ borderTop: '1px solid #c8b89a' }}>
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full text-center text-sm py-2 font-hand"
+              style={{ color: '#92400e' }}
             >
-              Scores
-            </p>
-            <div className="grid grid-cols-2 gap-2 mb-5">
-              <StatCard label="Total Score" value={stats.totalScore} color="#ffb800" />
-              <StatCard label="Weekly Score" value={stats.weeklyScore} color="#00d060" />
-              <StatCard label="Best Round" value={stats.bestRoundScore} color="#ff9600" />
-              <StatCard label="Best Match" value={stats.bestMatchScore} color="#ff9600" />
-            </div>
-
-            {/* Games section */}
-            <p
-              className="text-xs font-bold tracking-widest uppercase mb-3"
-              style={{ color: '#a0c8a8' }}
-            >
-              Games
-            </p>
-            <div className="grid grid-cols-2 gap-2 mb-5">
-              <StatCard label="Played" value={stats.gamesPlayed} color="#6baf80" />
-              <StatCard label="Won" value={stats.gamesWon} color="#00d060" />
-              <StatCard label="Win Streak" value={stats.currentWinStreak} color="#ffb800" />
-              <StatCard label="Best Streak" value={stats.bestWinStreak} color="#ffb800" />
-            </div>
-
-            {/* Placements */}
-            <p
-              className="text-xs font-bold tracking-widest uppercase mb-3"
-              style={{ color: '#a0c8a8' }}
-            >
-              Placements
-            </p>
-            <div className="flex gap-2 mb-5">
-              <div
-                className="flex-1 py-4 rounded-xl text-center border"
-                style={{ background: 'rgba(255,184,0,0.08)', borderColor: 'rgba(255,184,0,0.2)' }}
-              >
-                <p className="text-lg">🥇</p>
-                <p
-                  style={{
-                    fontFamily: "'Dela Gothic One', sans-serif",
-                    fontSize: '22px',
-                    color: '#ffb800',
-                  }}
-                >
-                  {stats.firstPlaceCount}
-                </p>
-              </div>
-              <div
-                className="flex-1 py-4 rounded-xl text-center border"
-                style={{ background: 'rgba(192,192,192,0.06)', borderColor: 'rgba(192,192,192,0.15)' }}
-              >
-                <p className="text-lg">🥈</p>
-                <p
-                  style={{
-                    fontFamily: "'Dela Gothic One', sans-serif",
-                    fontSize: '22px',
-                    color: '#c0c0c0',
-                  }}
-                >
-                  {stats.secondPlaceCount}
-                </p>
-              </div>
-              <div
-                className="flex-1 py-4 rounded-xl text-center border"
-                style={{ background: 'rgba(205,127,50,0.06)', borderColor: 'rgba(205,127,50,0.15)' }}
-              >
-                <p className="text-lg">🥉</p>
-                <p
-                  style={{
-                    fontFamily: "'Dela Gothic One', sans-serif",
-                    fontSize: '22px',
-                    color: '#cd7f32',
-                  }}
-                >
-                  {stats.thirdPlaceCount}
-                </p>
-              </div>
-            </div>
-
-            {/* Words */}
-            <p
-              className="text-xs font-bold tracking-widest uppercase mb-3"
-              style={{ color: '#a0c8a8' }}
-            >
-              Words
-            </p>
-            <div className="grid grid-cols-2 gap-2 mb-6">
-              <StatCard label="Correct" value={stats.correctWords} color="#00d060" />
-              <StatCard label="Wrong" value={stats.wrongWords} color="#ff3b5c" />
-              <StatCard label="Misspelled" value={stats.misspelledWords} color="#ff9600" />
-              <StatCard label="Unique" value={stats.uniqueWords} color="#6baf80" />
-            </div>
-          </>
-        )}
-
-        {/* ── Settings ── */}
-        <p
-          className="text-xs font-bold tracking-widest uppercase mb-3 mt-2"
-          style={{ color: '#a0c8a8' }}
-        >
-          Settings
-        </p>
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <SoundToggleButton />
-          <button
-            onClick={() => setShowContact(true)}
-            className="p-3 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-1.5 border transition-all active:scale-95"
-            style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
-          >
-            <MessageCircle className="w-5 h-5" />
-            Get in Touch
-          </button>
-        </div>
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="w-full py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 mb-4"
-          style={{ color: '#ff3b5c', opacity: 0.6 }}
-        >
-          Delete Account
-        </button>
-      </div>
-      </section>
-
-      
-
-      {/* Bottom CTA */}
-      <div className="px-6 pb-8 pb-safe pt-4 shrink-0">
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={onClose}
-          className="w-full rounded-2xl py-4 text-black"
-          style={{
-            background: '#00d060',
-            fontFamily: "'Dela Gothic One', sans-serif",
-            fontSize: '22px',
-          }}
-        >
-          Back
-        </motion.button>
-      </div>
-
-      {/* Edit Profile Overlay */}
-      <AnimatePresence>
-        {showEdit && (
-          <ProfileEditOverlay onClose={() => setShowEdit(false)} />
-        )}
-      </AnimatePresence>
-
-      {/* Delete Account Confirmation */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-end"
-            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
-          >
-            <motion.div
-              initial={{ y: 80 }}
-              animate={{ y: 0 }}
-              exit={{ y: 80 }}
-              transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-              className="w-full px-6 pb-10 pt-6 rounded-t-3xl"
-              style={{ background: '#0d2018', borderTop: '1px solid rgba(255,59,92,0.2)' }}
-            >
-              <p className="text-white font-bold text-base mb-1">Delete Account?</p>
-              <p className="text-sm mb-6" style={{ color: '#6baf80' }}>
-                This permanently deletes your profile, scores, and all progress. This cannot be undone.
+              Delete account
+            </button>
+          ) : (
+            <div className="p-4 rounded-xl border" style={{ background: 'rgba(192,57,43,0.06)', borderColor: 'rgba(192,57,43,0.25)' }}>
+              <p className="text-sm font-bold mb-3 text-center font-hand text-school-red">
+                Delete your account? This cannot be undone.
               </p>
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold border transition-all active:scale-95"
-                  style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold btn-ghost"
                 >
                   Cancel
                 </button>
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
+                <button
                   onClick={handleDeleteAccount}
                   disabled={isDeleting}
-                  className="flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50"
-                  style={{ background: '#ff3b5c', color: 'white' }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold font-hand text-paper"
+                  style={{ background: '#c0392b' }}
                 >
-                  {isDeleting ? 'Deleting...' : 'Yes, Delete'}
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Contact Sheet */}
-      <AnimatePresence>
-        {showContact && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-end"
-            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
-            onClick={(e) => { if (e.target === e.currentTarget) setShowContact(false); }}
-          >
-            <motion.div
-              initial={{ y: 80 }}
-              animate={{ y: 0 }}
-              exit={{ y: 80 }}
-              transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-              className="w-full px-6 pb-10 pt-6 rounded-t-3xl"
-              style={{ background: '#0d2018', borderTop: '1px solid rgba(0,208,96,0.2)' }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-white font-bold text-lg">Get in Touch</p>
-                  <p className="text-sm" style={{ color: '#6baf80' }}>We read every message</p>
-                </div>
-                <button
-                  onClick={() => setShowContact(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl active:scale-90"
-                  style={{ background: '#1a3528', color: '#6baf80' }}
-                >
-                  <X className="w-4 h-4" />
+                  {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
-
-              {/* Name (required) */}
-              <input
-                type="text"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder="Your name *"
-                className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none mb-3"
-                style={{ background: '#122318', border: `1px solid ${contactName.trim() ? 'rgba(0,208,96,0.3)' : '#1a3528'}`, caretColor: '#00d060' }}
-              />
-
-              {/* Email (optional) */}
-              <input
-                type="email"
-                value={contactEmail}
-                
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="Your email (optional)"
-                className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none mb-3"
-                style={{ background: '#122318', border: '1px solid #1a3528', caretColor: '#00d060' }}
-              />
-
-              {/* Message */}
-              <textarea
-                value={contactMsg}
-                onChange={(e) => setContactMsg(e.target.value)}
-                placeholder="Tell us what's on your mind..."
-                rows={4}
-                className="w-full rounded-xl px-4 py-3 text-white outline-none resize-none mb-4"
-                style={{ background: '#122318', border: `1px solid ${contactMsg.length > 0 ? 'rgba(0,208,96,0.3)' : '#1a3528'}`, caretColor: '#00d060' }}
-              />
-
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={handleSendContact}
-                disabled={!contactName.trim() || !contactMsg.trim() || isSendingContact}
-                className="w-full py-4 rounded-2xl font-bold text-sm disabled:opacity-40 transition-all"
-                style={{
-                  background: contactName.trim() && contactMsg.trim() ? '#00d060' : '#122318',
-                  color: contactName.trim() && contactMsg.trim() ? '#000' : '#2a4a33',
-                  fontFamily: "'Dela Gothic One', sans-serif",
-                  fontSize: '18px',
-                }}
-              >
-                {isSendingContact ? 'Sending...' : 'Send Message'}
-              </motion.button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
-
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div
-      className="p-3.5 rounded-xl border"
-      style={{ background: '#0d2018', borderColor: '#1a3528' }}
-    >
-      <p
-        className="mb-0.5"
-        style={{
-          fontFamily: "'Dela Gothic One', sans-serif",
-          fontSize: '20px',
-          color,
-        }}
-      >
-        {value.toLocaleString()}
-      </p>
-      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#3a5a45' }}>
-        {label}
-      </p>
-    </div>
-  );
-}
-
-function SoundToggleButton() {
-  const [muted, setMuted] = useState(isMuted());
-  return (
-    <button
-      onClick={() => setMuted(toggleMute())}
-      className="p-3 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-1.5 border transition-all active:scale-95"
-      style={{ background: '#0d2018', borderColor: '#1a3528', color: '#6baf80' }}
-    >
-      {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-      Sound {muted ? 'Off' : 'On'}
-    </button>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Profile Edit Overlay (reused from Profile screen)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'];
-
-function ProfileEditOverlay({ onClose }: { onClose: () => void }) {
-  const session = useGameStore((s) => s.session);
-  const setSession = useGameStore((s) => s.setSession);
-
-  const [displayName, setDisplayName] = useState(session?.displayName || '');
-  const [selectedAvatar, setSelectedAvatar] = useState<number>(
-    AVATARS.indexOf(session?.avatarId || '') >= 0
-      ? AVATARS.indexOf(session!.avatarId)
-      : 0
-  );
-  const [isSaving, setIsSaving] = useState(false);
-
-  const canSave = displayName.length >= 2;
-
-  const handleSave = async () => {
-    if (!canSave || !session) return;
-    setIsSaving(true);
-
-    try {
-      await apiClient.updateProfile({
-        displayName,
-        avatarId: AVATARS[selectedAvatar],
-      });
-
-      setSession({
-        ...session,
-        displayName,
-        avatarId: AVATARS[selectedAvatar],
-      });
-
-      showToast('Profile updated! ✨', 'success');
-      onClose();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update profile';
-      showToast(message, 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="absolute inset-0 z-50 flex flex-col overflow-hidden"
-      style={{ background: '#081510' }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-12 pb-4">
-        <div>
-          <p
-            className="text-xs font-bold tracking-widest uppercase mb-1"
-            style={{ color: '#00d060' }}
-          >
-            Edit Profile
-          </p>
-          <h2
-            className="text-white"
-            style={{
-              fontFamily: "'Dela Gothic One', sans-serif",
-              fontSize: '30px',
-              lineHeight: 1,
-            }}
-          >
-            Your Look
-          </h2>
+            </div>
+          )}
         </div>
-        <button
-          onClick={onClose}
-          className="p-2.5 rounded-xl border transition-all active:scale-95"
-          style={{ background: '#0d2018', borderColor: '#1a3528' }}
-        >
-          <X className="w-5 h-5" style={{ color: '#6baf80' }} />
-        </button>
       </div>
 
-      {/* Content */}
-      <div
-        className="flex-1 overflow-y-auto px-6 pb-4"
-        style={{ scrollbarWidth: 'none' }}
-      >
-        <p
-          className="text-xs font-bold tracking-widest uppercase mb-3"
-          style={{ color: '#a0c8a8' }}
+      {/* Edit profile sheet — inline placeholder */}
+      {showEdit && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-60 flex items-end"
+          style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowEdit(false); }}
         >
-          Avatar
-        </p>
-        <div className="grid grid-cols-4 gap-2.5 mb-8">
-          {AVATARS.map((av, i) => (
-            <motion.button
-              key={i}
-              whileTap={{ scale: 0.87 }}
-              onClick={() => setSelectedAvatar(i)}
-              className="aspect-square rounded-2xl text-3xl flex items-center justify-center border-2 transition-all"
-              style={{
-                background:
-                  selectedAvatar === i ? 'rgba(0,208,96,0.18)' : '#0d2018',
-                borderColor:
-                  selectedAvatar === i ? '#00d060' : 'transparent',
-                boxShadow:
-                  selectedAvatar === i ? '0 0 18px rgba(0,208,96,0.28)' : 'none',
-              }}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.38 }}
+            className="w-full rounded-t-3xl overflow-hidden paper-body px-6 pt-4 pb-10"
+            style={{ borderTop: '3px solid #c8b89a' }}
+          >
+            <div className="flex justify-center mb-4">
+              <div className="w-10 h-1 rounded-full bg-paper-ruled" />
+            </div>
+            <p className="label-section mb-3 text-chalk-mark">Edit Profile</p>
+            <p className="text-sm font-hand text-chalk-board">
+              Profile editing coming soon — stay tuned!
+            </p>
+            <button
+              onClick={() => setShowEdit(false)}
+              className="mt-4 w-full py-3 rounded-xl font-bold btn-ghost"
             >
-              {av}
-            </motion.button>
-          ))}
-        </div>
-
-        <p
-          className="text-xs font-bold tracking-widest uppercase mb-2"
-          style={{ color: '#a0c8a8' }}
-        >
-          Display Name
-        </p>
-        <input
-          type="text"
-          maxLength={20}
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="Your game name..."
-          className="w-full rounded-xl px-4 py-3.5 text-white outline-none transition-all"
-          style={{
-            background: '#0d2018',
-            border: `1.5px solid ${displayName.length >= 2 ? '#00d060' : '#1a3528'}`,
-            caretColor: '#00d060',
-          }}
-        />
-        <div className="flex justify-between mt-1.5">
-          <span className="text-xs" style={{ color: '#3a5a45' }}>
-            {displayName.length < 2 ? 'Min. 2 characters' : 'Looking good!'}
-          </span>
-          <span className="text-xs" style={{ color: '#3a5a45' }}>
-            {displayName.length}/20
-          </span>
-        </div>
-      </div>
-
-      {/* Save button */}
-      <div className="px-6 pb-8 pb-safe pt-2">
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          disabled={!canSave || isSaving}
-          onClick={handleSave}
-          className="w-full rounded-2xl py-4 font-bold transition-all"
-          style={{
-            fontFamily: "'Dela Gothic One', sans-serif",
-            fontSize: '22px',
-            background: canSave ? '#00d060' : '#122318',
-            color: canSave ? '#000' : '#2a4a33',
-          }}
-        >
-          {isSaving ? 'Saving...' : 'Save Changes'}
-        </motion.button>
-      </div>
+              Close
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Home } from 'lucide-react';
+import { ArrowLeft, Home } from 'lucide-react';
 import { ScreenRouter } from './router/ScreenRouter.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConnectionLostOverlay } from './components/ConnectionLostOverlay';
+import { RejoinLoadingOverlay } from './components/RejoinLoadingOverlay';
 import { RejoinPrompt } from './components/RejoinPrompt';
 import { GameToast } from './components/GameToast';
 import { BootScreen } from './components/BootScreen';
@@ -16,8 +18,11 @@ import { useSoundInit } from './hooks/useSoundInit';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const MAX_RECONNECT_ATTEMPTS = 5;
+const REJOIN_TIMEOUT_MS = 15000;
 
 function App() {
+  const isRejoining = useGameStore((s) => s.isRejoining);
+  const setIsRejoining = useGameStore((s) => s.setIsRejoining);
   const connectionStatus = useGameStore((s) => s.connection.status);
   const reconnectAttempts = useGameStore((s) => s.connection.reconnectAttempts);
   const session = useGameStore((s) => s.session);
@@ -27,22 +32,70 @@ function App() {
   const hasPassedLanding = useGameStore((s) => s.hasPassedLanding);
 
   const toast = useToastStore();
+  const showToast = useToastStore((s) => s.show);
   const { isBooting, pendingRejoinRoom, setPendingRejoinRoom } = useAppInit();
   useSoundInit();
 
+  useEffect(() => {
+    if (room && pendingRejoinRoom) {
+      setPendingRejoinRoom(null);
+    }
+  }, [room, pendingRejoinRoom, setPendingRejoinRoom]);
+
+  useEffect(() => {
+    if (!isRejoining) return;
+
+    const timeout = window.setTimeout(() => {
+      setIsRejoining(false);
+      showToast('Rejoining timed out. Please try again.', 'error');
+    }, REJOIN_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [isRejoining, setIsRejoining, showToast]);
+
   const activeScreen = deriveScreen({ session, room, round, matchResults, hasPassedLanding });
-  const showHome = activeScreen !== 'landing' && activeScreen !== 'avatar-setup';
+  const showNavigation = activeScreen !== 'landing';
+  const isBackNavigation = activeScreen === 'avatar-setup' || activeScreen === 'room-lobby';
   const showConnectionProblem = connectionStatus !== 'connected' && !isBooting;
 
   const handleGoHome = () => {
-    const currentSession = useGameStore.getState().session;
-    const currentRoom = useGameStore.getState().room;
+    const store = useGameStore.getState();
+    const currentSession = store.session;
+    const currentRoom = store.room;
     if (currentRoom?.roomCode && currentSession?.token) {
       apiClient.leaveRoom(currentRoom.roomCode).catch(() => {});
     }
-    useGameStore.getState().reset();
-    if (currentSession) useGameStore.getState().setSession(currentSession);
+    const roomPlayer = currentRoom?.players.find((player) => player.userId === currentSession?.userId);
+    const homeSession = currentSession
+      ? {
+          ...currentSession,
+          displayName: currentSession.displayName || roomPlayer?.displayName || null,
+          avatarId: currentSession.avatarId || roomPlayer?.avatarId || '',
+        }
+      : null;
+    store.resetToHome(homeSession);
     setPendingRejoinRoom(null);
+  };
+
+  const handleGoBack = async () => {
+    if (activeScreen === 'avatar-setup') {
+      useGameStore.getState().setHasPassedLanding(false);
+      return;
+    }
+
+    const store = useGameStore.getState();
+    const currentRoom = store.room;
+    const currentSession = store.session;
+    if (currentRoom?.roomCode) {
+      try {
+        await apiClient.leaveRoom(currentRoom.roomCode);
+      } catch (err) {
+        console.warn('[App] Leave room failed:', err);
+      }
+    }
+    store.reset();
+    if (currentSession) store.setSession(currentSession);
+    store.setHasPassedLanding(true);
   };
 
   const handleRetryConnection = () => {
@@ -52,74 +105,122 @@ function App() {
 
   const handleRejoin = () => {
     if (!pendingRejoinRoom) return;
+    if (!socketHandler.isConnected()) {
+      showToast('Not connected to the game server. Please try again.', 'error');
+      return;
+    }
+    setIsRejoining(true);
     socketHandler.emit('join-room', { roomCode: pendingRejoinRoom });
-    useGameStore.getState().setHasPassedLanding(true);
-    setPendingRejoinRoom(null);
   };
 
   return (
     <div
-      className="h-dvh w-full flex items-center justify-center"
+      className="h-dvh w-full flex items-center justify-center font-hand"
       style={{
-        background: 'radial-gradient(ellipse at 50% 0%, #0d2a18 0%, #050f09 50%, #020804 100%)',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        background: 'radial-gradient(ellipse at 50% 20%, #c4a06a 0%, #a07840 40%, #7a5828 100%)',
       }}
     >
+      {/* Phone-frame shell — aged paper */}
       <div
-        className="relative w-full h-full pb-4 overflow-hidden flex flex-col sm:max-w-[480px] md:max-w-[540px] lg:max-w-[600px] sm:h-[100dvh] sm:rounded-3xl sm:shadow-2xl sm:border sm:border-[#1a3528]/50"
-        style={{ background: '#081510' }}
+        className="relative w-full h-full pb-4 overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 lg:max-w-150 sm:h-dvh sm:rounded-3xl sm:shadow-2xl sm:border paper-body"
+        style={{
+          borderColor: '#c8b89a',
+          boxShadow: '0 24px 60px rgba(80,50,20,0.45), 0 0 0 1px rgba(139,94,60,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
+        }}
       >
-        {/* Floating Home button — top left, only on non-landing screens */}
-        {showHome && !isBooting && (
-          <button
-            onClick={handleGoHome}
-            className="absolute left-4 z-40 w-8 h-8 flex items-center justify-center rounded-xl transition-all active:scale-90"
-            style={{ top: 'max(16px, env(safe-area-inset-top, 16px))', background: '#0d2018', border: '1px solid #1a3528' }}
-            aria-label="Go home"
+        {/* Nigerian flag accent — top edge */}
+        <div className="absolute top-0 left-0 right-0 h-1 flex z-50 sm:rounded-t-3xl overflow-hidden pointer-events-none">
+          <div className="flex-1 flag-stripe" />
+          <div className="flex-1 bg-paper" />
+          <div className="flex-1 flag-stripe" />
+        </div>
+
+        {showNavigation && !isBooting && (
+          <header
+            className="flex items-center justify-between px-4 py-2 md:pt-2 shrink-0 z-40"
+            style={{ background: '#f5f0e8', borderBottom: '1px solid #d4c9b0' }}
           >
-            <Home className="w-4 h-4" style={{ color: '#6baf80' }} />
-          </button>
+            <button
+              onClick={isBackNavigation ? handleGoBack : handleGoHome}
+              className="inline-flex h-9 items-center gap-2 rounded-xl border px-3 font-hand text-sm font-bold transition-all active:scale-95"
+              style={{
+                color: '#6b4423',
+                background: 'rgba(139,94,60,0.1)',
+                borderColor: 'rgba(139,94,60,0.25)',
+              }}
+              aria-label={isBackNavigation ? 'Go back' : 'Go home'}
+            >
+              {isBackNavigation
+                ? <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                : <Home className="h-4 w-4" aria-hidden="true" />}
+              {isBackNavigation ? 'Back' : 'Home'}
+            </button>
+
+            {showConnectionProblem && (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+                role="status"
+                aria-label={connectionStatus === 'degraded' ? 'Connection slow' : 'Offline'}
+              >
+                <div
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background: connectionStatus === 'degraded' ? '#d97706' : '#c0392b',
+                    animation: 'pulse-dot 2s ease-in-out infinite',
+                  }}
+                />
+                <span
+                  className=" font-bold tracking-widest font-hand"
+                  style={{ color: connectionStatus === 'degraded' ? '#d97706' : '#c0392b' }}
+                >
+                  {connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
+                </span>
+              </div>
+            )}
+          </header>
         )}
 
-        {/* Connection problem indicator — top right, only when degraded/offline */}
-        <AnimatePresence>
-          {showConnectionProblem && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute right-4 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
-              style={{ top: 'max(16px, env(safe-area-inset-top, 16px))', background: '#0d2018', border: '1px solid #1a3528' }}
+        {!showNavigation && showConnectionProblem && (
+          <div
+            className="absolute right-4 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+            style={{
+              top: 'max(16px, env(safe-area-inset-top, 16px))',
+              background: 'rgba(245,240,232,0.9)',
+              border: '1px solid #c8b89a',
+              backdropFilter: 'blur(8px)',
+            }}
+            role="status"
+            aria-label={connectionStatus === 'degraded' ? 'Connection slow' : 'Offline'}
+          >
+            <div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: connectionStatus === 'degraded' ? '#d97706' : '#c0392b',
+                animation: 'pulse-dot 2s ease-in-out infinite',
+              }}
+            />
+            <span
+              className="text-sm font-bold tracking-widest font-hand"
+              style={{ color: connectionStatus === 'degraded' ? '#d97706' : '#c0392b' }}
             >
-              <div
-                className="w-1.5 h-1.5 rounded-full"
-                style={{
-                  background: connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c',
-                  animation: 'pulse 2s ease-in-out infinite',
-                }}
-              />
-              <span
-                className="text-[9px] font-bold tracking-widest"
-                style={{ color: connectionStatus === 'degraded' ? '#ffb800' : '#ff3b5c' }}
-              >
-                {connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
+            </span>
+          </div>
+        )}
 
         {/* Main content */}
         <AnimatePresence mode="wait">
           {isBooting ? (
-            <BootScreen />
+            <BootScreen key="boot" />
           ) : (
             <motion.div
               key={activeScreen}
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -18 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="flex-1 overflow-hidden flex flex-col"
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+              className="flex-1 overflow-y-auto flex flex-col"
+               style={{ scrollbarWidth: 'none' }}
             >
               <ErrorBoundary>
                 <ScreenRouter />
@@ -140,6 +241,7 @@ function App() {
             </div>
           )}
         </AnimatePresence>
+        {isRejoining && <RejoinLoadingOverlay />}
       </div>
 
       <GameToast
@@ -155,9 +257,9 @@ function App() {
       )}
 
       <style>{`
-        @keyframes pulse {
+        @keyframes pulse-dot {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
+          50% { opacity: 0.35; }
         }
       `}</style>
     </div>

@@ -8,6 +8,7 @@ import type {
   RoundStartPayload,
   GraceStartedPayload,
   RoundLockedPayload,
+  RoundValidationStatusPayload,
   RoundResultsPayload,
   MatchSummaryPayload,
   PlayerConnectedPayload,
@@ -75,6 +76,7 @@ function handleStateSnapshot(payload: unknown): void {
   const data = payload as StateSnapshot;
   if (!data?.room || !data?.players) {
     console.error('[EventHandler] Invalid state-snapshot payload:', payload);
+    useGameStore.getState().setIsRejoining(false);
     return;
   }
 
@@ -105,8 +107,9 @@ function handleStateSnapshot(payload: unknown): void {
       totalRounds: data.room.totalRounds,
       letter: data.currentRound.letter,
       categories: data.currentRound.categories,
-      phase,
+      phase: data.room.status === 'ROUND_SUMMARY' ? 'results' : phase,
       endsAt: data.currentRound.endTimestamp ?? 0,
+      summaryEndTimestamp: data.currentRound.summaryEndTimestamp ?? undefined,
       graceEndsAt: data.currentRound.graceEndTimestamp ?? undefined,
     });
   }
@@ -115,6 +118,9 @@ function handleStateSnapshot(payload: unknown): void {
   if (data.myAnswers) {
     useGameStore.setState({ answers: data.myAnswers });
   }
+
+  store.setIsRejoining(false);
+  store.setHasPassedLanding(true);
 }
 
 /**
@@ -258,6 +264,7 @@ function handleRoundStart(payload: unknown): void {
   const store = useGameStore.getState();
   const totalRounds = store.room?.settings?.totalRounds ?? data.roundNumber;
 
+  store.setRoundValidationStatus(null);
   store.setRound({
     roundNumber: data.roundNumber,
     totalRounds,
@@ -332,6 +339,10 @@ function handleRoundResults(payload: unknown): void {
   const store = useGameStore.getState();
   const round = store.round;
   if (!round) return;
+  if (!Number.isFinite(data.summaryEndTimestamp)) {
+    console.error('[EventHandler] Invalid round-results summaryEndTimestamp:', payload);
+    return;
+  }
 
   // Snapshot current rankings before overwriting so the UI can show deltas
   const existing = store.roundResults;
@@ -343,12 +354,42 @@ function handleRoundResults(payload: unknown): void {
   }
 
   // Store the full results payload for the results screen
-  store.setRound({
-    ...round,
-    phase: 'results',
+  useGameStore.setState({
+    round: { ...round, phase: 'results', summaryEndTimestamp: data.summaryEndTimestamp },
+    roundResults: data,
+    roundValidationStatus: null,
   });
+}
 
-  useGameStore.setState({ roundResults: data });
+/**
+ * Validation progress while the server is evaluating round answers.
+ */
+function handleRoundValidationStatus(payload: unknown): void {
+  const data = payload as RoundValidationStatusPayload;
+  if (
+    !data ||
+    typeof data.status !== 'string' ||
+    typeof data.attempt !== 'number' ||
+    !Number.isFinite(data.attempt) ||
+    typeof data.message !== 'string'
+  ) {
+    console.error('[EventHandler] Invalid round-validation-status payload:', payload);
+    return;
+  }
+
+  useGameStore.getState().setRoundValidationStatus(data);
+}
+
+function handleGlobalOnlineUserCount(payload: unknown): void {
+  // console.info('[EventHandler] Received global-online-user-count:', payload);
+  const count = (payload as { count?: unknown } | null)?.count;
+  if (typeof count !== 'number' || !Number.isInteger(count) || count < 0) {
+    console.error('[EventHandler] Invalid global-online-user-count payload:', payload);
+    return;
+  }
+
+  useGameStore.getState().setOnlineCount(count);
+  // console.info('[EventHandler] Updated onlineCount:', count);
 }
 
 /**
@@ -404,19 +445,6 @@ function handleRoomClosed(_payload: unknown): void {
 }
 
 /**
- * AI re-evaluation corrected scores.
- */
-function handleScoresUpdated(payload: unknown): void {
-  // Same shape as round-results — update the displayed results
-  const data = payload as RoundResultsPayload;
-  if (!data?.players) {
-    console.error('[EventHandler] Invalid scores-updated payload:', payload);
-    return;
-  }
-  useGameStore.setState({ roundResults: data });
-}
-
-/**
  * Room state machine transition.
  */
 function handleStateTransition(payload: unknown): void {
@@ -442,6 +470,7 @@ function handleStateTransition(payload: unknown): void {
 function handleError(payload: unknown): void {
   const data = payload as SocketErrorPayload;
   console.error('[EventHandler] Server error:', data?.code, data?.message);
+  useGameStore.getState().setIsRejoining(false);
 
   // Suppress "must join room" errors — these are stale emits after room closes
   if (data?.message?.toLowerCase().includes('must join the room')) {
@@ -526,19 +555,54 @@ function handleRematchUpdate(payload: unknown): void {
 
 function handleRematchReady(payload: unknown): void {
   const data = payload as { newRoomCode: string; players: unknown[] };
-  if (!data?.newRoomCode) {
+  if (!data?.newRoomCode || !Array.isArray(data.players)) {
     console.error('[EventHandler] Invalid rematch-ready payload:', payload);
     return;
   }
 
   const store = useGameStore.getState();
+  const session = store.session;
+  const myPlayerId = store.room?.players.find(
+    (player) => player.userId === session?.userId,
+  )?.id;
+  const myIds = new Set([session?.userId, myPlayerId].filter(
+    (id): id is string => typeof id === 'string',
+  ));
+  const wasAccepted = data.players.some((player) => {
+    if (typeof player === 'string') return myIds.has(player);
+    if (!player || typeof player !== 'object') return false;
+
+    const acceptedPlayer = player as {
+      id?: unknown;
+      playerId?: unknown;
+      userId?: unknown;
+    };
+    return [acceptedPlayer.id, acceptedPlayer.playerId, acceptedPlayer.userId]
+      .some((id) => typeof id === 'string' && myIds.has(id));
+  });
+
   store.setRematch({
     status: 'ready',
     newRoomCode: data.newRoomCode,
   });
 
-  // Clear match results so deriveScreen stops showing match-summary
-  store.setMatchResults(null);
+  if (!wasAccepted) {
+    showToast('The rematch is starting without you.', 'info');
+    return;
+  }
+
+  // Move the local router into the new room before waiting for its snapshot;
+  // otherwise the old completed room routes back to the results loading screen.
+  useGameStore.setState((state) => ({
+    room: state.room
+      ? { ...state.room, roomCode: data.newRoomCode, status: 'waiting' }
+      : null,
+    round: null,
+    answers: {},
+    roundResults: null,
+    roundValidationStatus: null,
+    matchResults: null,
+  }));
 
   // Auto-navigate: emit join-room for the new room
   socketHandler.emit('join-room', { roomCode: data.newRoomCode });
@@ -577,10 +641,11 @@ export function registerEventHandlers(): void {
   socketHandler.onEvent('answer-ack', handleAnswerAck);
   socketHandler.onEvent('grace-started', handleGraceStarted);
   socketHandler.onEvent('round-locked', handleRoundLocked);
+  socketHandler.onEvent('round-validation-status', handleRoundValidationStatus);
+  socketHandler.onEvent('global-online-user-count', handleGlobalOnlineUserCount);
   socketHandler.onEvent('round-results', handleRoundResults);
   socketHandler.onEvent('match-summary', handleMatchSummary);
   socketHandler.onEvent('room-closed', handleRoomClosed);
-  socketHandler.onEvent('scores-updated', handleScoresUpdated);
   socketHandler.onEvent('state-transition', handleStateTransition);
   socketHandler.onEvent('error', handleError);
   socketHandler.onEvent('validation-error', handleValidationError);
@@ -606,10 +671,11 @@ export function unregisterEventHandlers(): void {
   socketHandler.offEvent('answer-ack');
   socketHandler.offEvent('grace-started');
   socketHandler.offEvent('round-locked');
+  socketHandler.offEvent('round-validation-status');
+  socketHandler.offEvent('global-online-user-count');
   socketHandler.offEvent('round-results');
   socketHandler.offEvent('match-summary');
   socketHandler.offEvent('room-closed');
-  socketHandler.offEvent('scores-updated');
   socketHandler.offEvent('state-transition');
   socketHandler.offEvent('error');
   socketHandler.offEvent('validation-error');
@@ -633,7 +699,7 @@ export const eventHandlers = {
   handleRoundResults,
   handleMatchSummary,
   handleRoomClosed,
-  handleScoresUpdated,
+  handleGlobalOnlineUserCount,
   handleStateTransition,
   handleError,
   handleValidationError,

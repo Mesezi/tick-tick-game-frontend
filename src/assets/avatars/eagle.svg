@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <!-- Body -->
-  <ellipse cx="32" cy="38" rx="12" ry="14" fill="#008751"/>
+  <ellipse cx="32" cy="38" rx="12" ry="14" fill="#6b4423"/>
   <!-- Head -->
   <circle cx="32" cy="20" r="10" fill="#F9FAFB"/>
   <!-- Beak -->

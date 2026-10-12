@@ -1,72 +1,98 @@
-@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Patrick+Hand&family=Caveat:wght@600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Dark Gaming palette */
-  --color-dark-bg: #0a1a0f;
-  --color-dark-surface: #1a2e1f;
-  --color-dark-input: #0f2518;
-  --color-dark-border: #2a4a32;
-  --color-neon-green: #00ff88;
-  --color-neon-orange: #FF6B35;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #8aaa8a;
-  --color-text-muted: #5a7a5a;
+  /* ── Classroom / Nigerian school palette ── */
+  /* Deep wood-brown surfaces */
+  --color-chalk-board:   #4a3520;   /* deep wood brown */
+  --color-chalk-surface: #4a3520;   /* lighter wood-brown surface */
+  --color-chalk-mark:    #6b4423;   /* warm wood edge */
 
-  /* Keep legacy aliases mapped to new palette for any stragglers */
-  --color-slate-blue: #ffffff;
-  --color-chalk: #1a2e1f;
-  --color-beige: #0a1a0f;
-  --color-pencil: #8aaa8a;
+  /* Paper / desk tones */
+  --color-paper:         #f5f0e8;   /* aged exam paper */
+  --color-paper-warm:    #ede8d8;   /* exercise book cream */
+  --color-paper-line:    #d4c9b0;   /* ruled lines */
+  --color-paper-ruled:   #c8b89a;   /* stronger ruled lines */
+  --color-desk:          #8b5e3c;   /* wooden desk brown */
+  --color-desk-dark:     #6b4423;   /* darker wood */
 
-  /* Extended scale (dark theme mapped) */
-  --color-slate-50: #0f2518;
-  --color-slate-100: #1a2e1f;
-  --color-slate-200: #2a4a32;
-  --color-slate-300: #3a5a42;
-  --color-slate-400: #5a7a5a;
-  --color-slate-500: #8aaa8a;
-  --color-slate-600: #aaccaa;
-  --color-slate-700: #ccddcc;
-  --color-slate-800: #e0e0e0;
-  --color-slate-900: #ffffff;
-  --color-slate-950: #ffffff;
+  /* Chalk / text */
+  --color-chalk-white:   #f0ede4;   /* chalk writing */
+  --color-chalk-dim:     #b8b0a0;   /* faded chalk */
+  --color-ink-dark:      #1a1208;   /* biro/pen ink */
+  --color-ink-blue:      #1e3a6e;   /* ballpoint blue */
 
-  /* Accent — neon orange for urgent states */
-  --color-redmark-50: #2a1a10;
-  --color-redmark-100: #3a2010;
-  --color-redmark-200: #4a2a15;
-  --color-redmark-300: #6a3a1a;
-  --color-redmark-400: #cc5522;
-  --color-redmark-500: #FF6B35;
-  --color-redmark-600: #ff8855;
-  --color-redmark-700: #ffaa77;
-  --color-redmark-800: #ffccaa;
-  --color-redmark-900: #ffeedd;
+  /* Cultural detail and gameplay feedback */
+  --color-wood-accent:   #6b4423;
+  --color-wood-bright:   #8b5e3c;
+  --color-school-red:    #c0392b;   /* red pen/marker */
+  --color-school-amber:  #d97706;   /* gold star / grade */
+  --color-school-gold:   #f59e0b;   /* first place gold */
 
-  /* Green — neon green for correct marks */
-  --color-greenmark-500: #00ff88;
-  --color-greenmark-600: #00cc6a;
-  --color-greenmark-700: #00aa55;
+  /* Semantic aliases — now paper-primary */
+  --color-dark-bg:       #f5f0e8;
+  --color-dark-surface:  #ede8d8;
+  --color-dark-input:    #f5f0e8;
+  --color-dark-border:   #c8b89a;
+  --color-neon-orange:   #d97706;
+  --color-text-primary:  #1a1208;
+  --color-text-secondary:#4a3520;
+  --color-text-muted:    #8b5e3c;
 
-  /* Brand mapped to dark palette */
-  --color-brand-50: #0f2518;
-  --color-brand-100: #1a2e1f;
-  --color-brand-200: #2a4a32;
-  --color-brand-300: #3a5a42;
-  --color-brand-400: #5a7a5a;
-  --color-brand-500: #8aaa8a;
-  --color-brand-600: #aaccaa;
-  --color-brand-700: #ccddcc;
-  --color-brand-800: #e0e0e0;
-  --color-brand-900: #ffffff;
-  --color-brand-950: #ffffff;
+  /* Legacy aliases */
+  --color-slate-blue:    #1a1208;
+  --color-chalk:         #ede8d8;
+  --color-beige:         #f5f0e8;
+  --color-pencil:        #4a3520;
 
-  /* Accent alias */
-  --color-accent-500: #FF6B35;
-  --color-accent-600: #ff8855;
+  /* Extended slate scale (paper tones) */
+  --color-slate-50:  #faf8f3;
+  --color-slate-100: #f5f0e8;
+  --color-slate-200: #ede8d8;
+  --color-slate-300: #d4c9b0;
+  --color-slate-400: #c8b89a;
+  --color-slate-500: #b8a888;
+  --color-slate-600: #8b5e3c;
+  --color-slate-700: #6b4423;
+  --color-slate-800: #3a2010;
+  --color-slate-900: #1a1208;
+  --color-slate-950: #0d0904;
 
-  /* Mobile-first breakpoints */
+  /* Red mark scale */
+  --color-redmark-50:  #fdf0ef;
+  --color-redmark-100: #fad8d4;
+  --color-redmark-200: #f4aaa2;
+  --color-redmark-300: #eb7b6e;
+  --color-redmark-400: #e05545;
+  --color-redmark-500: #c0392b;
+  --color-redmark-600: #b03525;
+  --color-redmark-700: #8b2d24;
+  --color-redmark-800: #5a1e18;
+  --color-redmark-900: #3e1410;
+
+  /* Wood mark scale */
+  --color-woodmark-500: #8b5e3c;
+  --color-woodmark-600: #6b4423;
+  --color-woodmark-700: #4a3520;
+
+  /* Brand scale (paper) */
+  --color-brand-50:  #faf8f3;
+  --color-brand-100: #f5f0e8;
+  --color-brand-200: #ede8d8;
+  --color-brand-300: #d4c9b0;
+  --color-brand-400: #c8b89a;
+  --color-brand-500: #8b5e3c;
+  --color-brand-600: #6b4423;
+  --color-brand-700: #4a3520;
+  --color-brand-800: #2a1f10;
+  --color-brand-900: #1a1208;
+  --color-brand-950: #0d0904;
+
+  /* Warm wood accents; amber and gold stay reserved for awards */
+  --color-accent-500: #8b5e3c;
+  --color-accent-600: #6b4423;
+
+  /* Breakpoints */
   --breakpoint-xs: 375px;
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
@@ -74,28 +100,43 @@
   --breakpoint-xl: 1280px;
 
   /* Font families */
-  --font-heading: 'Libre Baskerville', Georgia, serif;
-  --font-body: 'Courier Prime', 'Courier New', monospace;
-  --font-mono: 'Courier Prime', monospace;
+  --font-heading: 'Dela Gothic One', 'Patrick Hand', sans-serif;
+  --font-body:    'Patrick Hand', system-ui, sans-serif;
+  --font-chalk:   'Caveat', cursive;
+  --font-mono:    'Courier Prime', 'Courier New', monospace;
 }
 
+/* ── Keyframes ── */
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  from { opacity: 0; transform: translateX(-50%) translateY(-100%); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+@keyframes chalkDust {
+  0%   { opacity: 0.6; transform: scale(1);   }
+  100% { opacity: 0;   transform: scale(2.4) translateY(-20px); }
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-4px) rotate(-1deg); }
+  40%     { transform: translateX(4px)  rotate(1deg); }
+  60%     { transform: translateX(-3px); }
+  80%     { transform: translateX(3px); }
+}
+
+@keyframes floatUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Root — paper base ── */
 :root {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Patrick Hand', system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.6;
-  color: #ffffff;
-  background: radial-gradient(ellipse at 50% 0%, #0d2a18 0%, #050f09 50%, #020804 100%);
+  color: #1a1208;
+  background: #f5f0e8;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -111,7 +152,7 @@
   box-sizing: border-box;
 }
 
-/* iOS safe area utility classes */
+/* iOS safe area */
 .pt-safe { padding-top: env(safe-area-inset-top); }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 .pl-safe { padding-left: env(safe-area-inset-left); }
@@ -119,7 +160,7 @@
 
 body {
   margin: 0;
-  background: radial-gradient(ellipse at 50% 0%, #0d2a18 0%, #050f09 50%, #020804 100%);
+  background: #e8e0d0;   /* slightly darker paper for outside-shell */
   min-height: 100dvh;
   overflow: hidden;
   position: fixed;
@@ -127,32 +168,214 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: var(--font-heading);
+  font-family: 'Dela Gothic One', sans-serif;
   font-weight: 700;
-  color: #ffffff;
+  color: #1a1208;
 }
 
-/* Notebook paper line effect — repurposed for dark theme */
-.notebook-lines {
-  background-image: repeating-linear-gradient(
-    transparent,
-    transparent 31px,
-    #2a4a32 31px,
-    #2a4a32 32px
-  );
+/* ── Font utility classes ── */
+.font-display {
+  font-family: 'Dela Gothic One', sans-serif;
 }
 
-/* Dark card effect (replaces chalkboard) */
+/* Primary handwritten body font — use this everywhere Patrick Hand is needed */
+.font-hand {
+  font-family: 'Patrick Hand', sans-serif;
+}
+
+/* Alias kept for backwards compat */
+.font-handwritten {
+  font-family: 'Patrick Hand', sans-serif;
+}
+
+.font-script {
+  font-family: 'Caveat', cursive;
+}
+
+/* ── Semantic component utilities ── */
+
+/* Label / section header above inputs and lists */
+.label-section {
+  font-family: 'Patrick Hand', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #b3a193;
+}
+
+/* Exercise-book ruled input container */
+.input-ruled {
+  /* background-color: #f5f0e8;
+  background-image:
+    linear-gradient(to right, transparent 44px, rgba(192,57,43,0.2) 44px, rgba(192,57,43,0.2) 46px, transparent 46px),
+    repeating-linear-gradient(transparent, transparent 27px, #d4c9b0 27px, #d4c9b0 28px); */
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+/* Standard card on paper surface */
+.card-paper {
+  background: rgba(139,94,60,0.06);
+  border: 1px solid #c8b89a;
+  border-radius: 0.75rem;
+}
+
+/* Selected / active variant of card-paper */
+.card-paper-active {
+  background: rgba(107,68,35,0.1);
+  border: 1px solid #6b4423;
+  box-shadow: 0 0 0 1px rgba(107,68,35,0.18);
+  border-radius: 0.75rem;
+}
+
+/* Dark classroom card (on chalkboard surfaces) */
+.card-dark {
+  background: #4a3520;
+  border: 1px solid #6b4423;
+  border-radius: 0.75rem;
+}
+
+/* Primary CTA button */
+.btn-primary {
+  background: #6b4423;
+  color: #f5f0e8;
+  font-family: 'Dela Gothic One', sans-serif;
+  border-radius: 0.875rem;
+  box-shadow: 0 4px 16px rgba(107,68,35,0.28);
+}
+
+/* Destructive / leave button */
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(192,57,43,0.3);
+  color: #c0392b;
+  font-family: 'Patrick Hand', sans-serif;
+  font-weight: 700;
+  border-radius: 0.875rem;
+}
+
+/* Ghost / secondary button */
+.btn-ghost {
+  background: rgba(139,94,60,0.08);
+  border: 1px solid #c8b89a;
+  color: #c8b89a;
+  font-family: 'Patrick Hand', sans-serif;
+  font-weight: 700;
+  border-radius: 0.875rem;
+}
+
+/* Nigerian flag stripe */
+.flag-stripe {
+  background: #6b4423;
+}
+
+/* ── Connection status colours ── */
+.status-connected  { color: #8b5e3c; }
+.status-degraded   { color: #d97706; }
+.status-offline    { color: #c0392b; }
+.bg-status-connected  { background: #8b5e3c; }
+.bg-status-degraded   { background: #d97706; }
+.bg-status-offline    { background: #c0392b; }
+
+/* ── Chalkboard surface — for header bars & contrast sections ── */
 .chalkboard {
-  background-color: #1a2e1f;
-  border: 1px solid #2a4a32;
-  color: #ffffff;
+  background-color: #6b4423;
+  background-image:
+    radial-gradient(ellipse at 20% 30%, rgba(139,94,60,0.35) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 70%, rgba(74,53,32,0.3) 0%, transparent 55%);
+  border: 2px solid #6b4423;
+  color: #f0ede4;
 }
 
-/* Hand-drawn underline effect — neon green */
+/* ── THE paper body — the definitive classroom base ── */
+.paper-body {
+  background-color: #f5f0e8;
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 44px,
+      rgba(192, 57, 43, 0.12) 44px,
+      rgba(192, 57, 43, 0.12) 46px,
+      transparent 46px
+    ),
+    repeating-linear-gradient(
+      transparent,
+      transparent 27px,
+      rgba(180, 160, 125, 0.10) 27px,
+      rgba(180, 160, 125, 0.10) 28px
+    );
+  color: #1a1208;
+}
+
+/* ── Exercise book / notebook paper (wider margin variant) ── */
+.notebook-lines {
+  background-color: #f5f0e8;
+  background-image:
+    /* margin line (red) */
+    linear-gradient(to right, transparent 52px, rgba(192,57,43,0.25) 52px, rgba(192,57,43,0.25) 54px, transparent 54px),
+    /* ruled lines */
+    repeating-linear-gradient(
+      transparent,
+      transparent 27px,
+      rgba(180, 160, 125, 0.10) 27px,
+      rgba(180, 160, 125, 0.10) 28px
+    );
+  color: #1a1208;
+}
+
+/* ── Chalk writing text effect ── */
+.chalk-text {
+  font-family: 'Caveat', cursive;
+  color: #f0ede4;
+  text-shadow:
+    0 0 6px rgba(240,237,228,0.3),
+    1px 1px 0 rgba(0,0,0,0.4);
+}
+
+/* ── Ink text effect (on paper) ── */
+.ink-text {
+  color: #1a1208;
+  font-family: 'Patrick Hand', sans-serif;
+}
+
+/* ── Hand-drawn underline ── */
 .underline-hand {
   text-decoration: underline;
   text-decoration-style: wavy;
-  text-decoration-color: #00ff88;
+  text-decoration-color: #6b4423;
   text-underline-offset: 4px;
+}
+
+/* ── ping-dot for connection indicator ── */
+@keyframes ping-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ── Reduced transparency ── */
+@media (prefers-reduced-transparency: reduce) {
+  .chalkboard { background-image: none; }
+  .notebook-lines { background-image: none; }
+}
+
+
+body {
+  font-size: 17px;
+}
+
+/* Styles applied ONLY when the viewport is 768px wide or larger */
+@media (min-width: 768px) {
+  body {
+    font-size: 19px;
+  }
 }

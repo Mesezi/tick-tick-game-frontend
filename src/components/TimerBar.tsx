@@ -3,7 +3,9 @@ import type { TimerBarProps } from '../types';
 import { calcRemainingSeconds } from '../utils/timer';
 
 /**
- * Large countdown number — green normally, orange during grace/low time.
+ * TimerBar — chalk-style countdown.
+ * Brown → amber → red as time runs low.
+ * During grace period shows warm amber.
  */
 export function TimerBar({ endsAt, isGracePeriod }: TimerBarProps) {
   const [remaining, setRemaining] = useState(() =>
@@ -27,6 +29,11 @@ export function TimerBar({ endsAt, isGracePeriod }: TimerBarProps) {
 
   const isLow = remaining <= 10;
 
+  // Classroom colour logic: brown → amber → red
+  const timerColor = isGracePeriod || isLow
+    ? isLow ? '#c0392b' : '#d97706'
+    : '#8b5e3c';
+
   return (
     <div
       className="text-center"
@@ -35,18 +42,17 @@ export function TimerBar({ endsAt, isGracePeriod }: TimerBarProps) {
       aria-label={`${remaining} seconds remaining`}
     >
       <span
-        className={`text-4xl font-bold tabular-nums tracking-tight font-heading ${
-          isGracePeriod
-            ? 'text-[#FF6B35]'
-            : isLow
-              ? 'text-[#FF6B35]'
-              : 'text-[#00ff88]'
-        }`}
+        className="text-4xl font-bold tabular-nums tracking-tight font-display"
+        style={{
+          color: timerColor,
+          textShadow: `0 0 12px ${timerColor}40`,
+          transition: 'color 0.3s ease',
+        }}
       >
         {display}
       </span>
       {isGracePeriod && (
-        <p className="text-xs text-[#FF6B35] mt-1 font-medium uppercase tracking-wide">
+        <p className="text-sm mt-1 font-bold uppercase tracking-widest font-hand text-school-amber">
           Grace period
         </p>
       )}

@@ -12,7 +12,7 @@ export type Screen =
   | 'game'
   | 'match-summary'
   | 'save-progress'
-  | 'leaderboard';
+  // | 'leaderboard';
 
 /**
  * State shape used by the screen router to derive the active screen.
@@ -37,7 +37,7 @@ export interface ScreenRouterState {
  * - Room in 'waiting' status → RoomLobby
  * - Room in 'in_progress' with active round → Game
  * - Match results present → MatchSummary
- * - Room completed without match results → Leaderboard
+ * - Room completed before match results arrive → MatchSummary loading state
  */
 export function deriveScreen(state: ScreenRouterState): Screen {
   const { session, room, round, matchResults, hasPassedLanding } = state;
@@ -62,6 +62,11 @@ export function deriveScreen(state: ScreenRouterState): Screen {
     return 'match-summary';
   }
 
+  // Wait for the match-summary event after the room enters its completed state.
+  if (room?.status === 'completed') {
+    return 'match-summary';
+  }
+
   // No room joined → lobby to create/join
   if (!room) {
     return 'lobby';
@@ -75,11 +80,6 @@ export function deriveScreen(state: ScreenRouterState): Screen {
   // Room is in progress with an active round → game screen
   if (room.status === 'in_progress' && round) {
     return 'game';
-  }
-
-  // Room completed → leaderboard
-  if (room.status === 'completed') {
-    return 'leaderboard';
   }
 
   // Fallback: room in progress but no round data yet → game screen (waiting for round:start)

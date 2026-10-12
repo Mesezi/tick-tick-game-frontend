@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, ArrowLeft } from 'lucide-react';
+import { ClipboardList, Shield } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { apiClient } from '../api/client';
 import { showToast } from '../components/toastStore';
@@ -12,11 +12,8 @@ const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏',
 type Step = 'profile' | 'link-prompt';
 
 /**
- * AvatarSetupScreen — two-step flow:
- * 1. Pick avatar + display name
- *    - If no session yet (new user): creates guest account first, then saves profile
- *    - If session exists (Google user with no avatar): just saves profile
- * 2. Offer to link Google account (guests only)
+ * AvatarSetupScreen — classroom registration form aesthetic.
+ * Exercise book card, chalk-style headings, ruled paper inputs.
  */
 export function AvatarSetupScreen() {
   const session = useGameStore((s) => s.session);
@@ -33,41 +30,32 @@ export function AvatarSetupScreen() {
   const handleSaveProfile = async () => {
     if (!canContinue) return;
     setIsSaving(true);
-
     try {
       let currentSession = useGameStore.getState().session;
 
-      // No session yet — this is a brand new user who chose "Start Playing"
-      // Create the guest account now (after they've set name + avatar)
+
+      console.log(currentSession)
+
       if (!currentSession) {
         await loginAsGuest();
         currentSession = useGameStore.getState().session;
       }
-
       if (!currentSession) {
         showToast('Could not connect. Check your connection.', 'error');
         setIsSaving(false);
         return;
       }
-
-      // Save profile to backend
       try {
         await apiClient.updateProfile({ displayName: playerName, avatarId });
       } catch {
         console.warn('[AvatarSetup] Backend profile save failed, continuing locally');
       }
-
-      // Update local session
       setSession({ ...currentSession, displayName: playerName, avatarId });
       track('profile_setup_completed', { isAuthenticated: currentSession.isAuthenticated });
-
-      // Google users already authenticated — skip link prompt, go straight to lobby
       if (currentSession.isAuthenticated) {
         showToast(`Welcome, ${playerName}! 🎮`, 'success');
         return;
       }
-
-      // Guest → show link prompt
       setStep('link-prompt');
     } finally {
       setIsSaving(false);
@@ -82,13 +70,15 @@ export function AvatarSetupScreen() {
   const handleSkipLink = () => {
     track('google_link_skipped');
     showToast(`Welcome, ${playerName}! 🎮`, 'success');
-    // Trigger re-render — deriveScreen will route to Lobby since session is now complete
     const s = useGameStore.getState().session;
     if (s) setSession({ ...s });
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" data-testid="screen-avatar-setup">
+    <div
+      className="flex-1 flex flex-col overflow-hidden paper-body"
+      data-testid="screen-avatar-setup"
+    >
       <AnimatePresence mode="wait">
         {step === 'profile' ? (
           <motion.div
@@ -96,42 +86,42 @@ export function AvatarSetupScreen() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
             className="flex-1 flex flex-col overflow-hidden"
           >
-            <div className="px-6 pt-8 pb-4">
-              <button
-                onClick={() => useGameStore.getState().setHasPassedLanding(false)}
-                className="mb-3 p-2 rounded-xl border transition-all active:scale-95"
-                style={{ background: '#0d2018', borderColor: '#1a3528' }}
-              >
-                <ArrowLeft className="w-5 h-5" style={{ color: '#6baf80' }} />
-              </button>
-              <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: '#00d060' }}>
-                Setup
-              </p>
-              <h2
-                className="text-white mb-1"
-                style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '38px', lineHeight: 1 }}
-              >
-                Your Look
-              </h2>
-              <p className="text-sm" style={{ color: '#6baf80' }}>
-                Pick an avatar and enter your display name
-              </p>
+            {/* Header */}
+            <div className="px-6 pt-4 pb-4 shrink-0">
+              {/* Chalkboard heading */}
+              <div className="rounded-2xl px-5 py-4 mb-2 ">
+                <p className="label-section mb-0.5 flex items-center gap-1.5">
+                  <ClipboardList className="w-3.5 h-3.5" /> Student Registration
+                </p>
+                <h2 className="font-display text-[32px] text-chalk-white leading-none">
+                  Pick Your Look
+                </h2>
+                <p className="text-sm mt-1 font-hand text-chalk-board">
+                  Choose an avatar and enter your game name
+                </p>
+              </div>
             </div>
 
+            {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto px-6 pb-4" style={{ scrollbarWidth: 'none' }}>
-              <div className="grid grid-cols-4 gap-2.5 mb-8">
+              {/* Avatar grid */}
+              <p className="label-section mb-3">Choose Avatar</p>
+              <div className="grid grid-cols-4 gap-3 mb-6">
                 {AVATARS.map((av, i) => (
                   <motion.button
                     key={i}
-                    whileTap={{ scale: 0.87 }}
+                    whileTap={{ scale: 0.85 }}
                     onClick={() => setSelectedAvatar(i)}
                     className="aspect-square rounded-2xl text-3xl flex items-center justify-center border-2 transition-all"
                     style={{
-                      background: selectedAvatar === i ? 'rgba(0,208,96,0.18)' : '#0d2018',
-                      borderColor: selectedAvatar === i ? '#00d060' : 'transparent',
-                      boxShadow: selectedAvatar === i ? '0 0 18px rgba(0,208,96,0.28)' : 'none',
+                      background: selectedAvatar === i ? 'rgba(107,68,35,0.1)' : 'rgba(139,94,60,0.07)',
+                      borderColor: selectedAvatar === i ? '#6b4423' : '#c8b89a',
+                      boxShadow: selectedAvatar === i
+                        ? '0 0 0 3px rgba(107,68,35,0.16), 0 4px 12px rgba(107,68,35,0.12)'
+                        : 'none',
                     }}
                   >
                     {av}
@@ -139,79 +129,88 @@ export function AvatarSetupScreen() {
                 ))}
               </div>
 
-              <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: '#a0c8a8' }}>
-                Display Name
-              </label>
-              <input
-                type="text"
-                maxLength={20}
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Your game name..."
-                className="w-full rounded-xl px-4 py-3.5 text-white outline-none transition-all"
+              {/* Name input — exercise book style */}
+              <p className="label-section mb-2">Display Name</p>
+              <div
+                className="input-ruled mb-1"
                 style={{
-                  background: '#0d2018',
-                  border: `1.5px solid ${playerName.length >= 2 ? '#00d060' : '#1a3528'}`,
-                  caretColor: '#00d060',
+                  border: `2px solid ${playerName.length >= 2 ? '#6b4423' : '#c8b89a'}`,
+                  boxShadow: playerName.length >= 2 ? '0 0 0 3px rgba(107,68,35,0.12)' : 'none',
                 }}
-              />
-              <div className="flex justify-between mt-1.5">
-                <span className="text-xs" style={{ color: '#3a5a45' }}>
-                  {playerName.length < 2 ? 'Min. 2 characters' : 'Looking good!'}
+              >
+                <input
+                  type="text"
+                  maxLength={20}
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  placeholder="Your game name..."
+                  className="w-full px-4 py-3.5 outline-none bg-transparent font-hand text-[17px] text-ink-dark"
+                  style={{ caretColor: '#6b4423' }}
+                />
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-hand text-desk">
+                  {playerName.length < 2 ? 'Min. 2 characters' : '✓ Looking good!'}
                 </span>
-                <span className="text-xs" style={{ color: '#3a5a45' }}>
+                <span className="text-sm font-hand text-desk">
                   {playerName.length}/20
                 </span>
               </div>
             </div>
 
-            <div className="px-6 pb-8 pb-safe">
+            {/* CTA */}
+            <div className="px-6 pb-8 pb-safe pt-3 shrink-0">
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 disabled={!canContinue || isSaving}
                 onClick={handleSaveProfile}
-                className="w-full rounded-2xl py-4 text-black font-bold transition-all"
+                className="w-full rounded-2xl py-4 font-bold transition-all font-display text-[22px]"
                 style={{
-                  fontFamily: "'Dela Gothic One', sans-serif",
-                  fontSize: '22px',
-                  background: canContinue && !isSaving ? '#00d060' : '#122318',
-                  color: canContinue && !isSaving ? '#000' : '#2a4a33',
+                  background: canContinue && !isSaving ? '#6b4423' : 'rgba(139,94,60,0.12)',
+                  color: canContinue && !isSaving ? '#f5f0e8' : '#8b5e3c',
+                  boxShadow: canContinue && !isSaving ? '0 4px 16px rgba(107,68,35,0.28)' : 'none',
                 }}
               >
                 {isSaving ? 'Setting up...' : 'Continue →'}
               </motion.button>
             </div>
           </motion.div>
+
         ) : (
           <motion.div
             key="link-prompt"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="flex-1 flex flex-col items-center justify-center px-8 text-center"
+            transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+            className="flex-1 flex flex-col items-center justify-center px-8 text-center paper-body"
           >
-            <div
+            {/* Icon */}
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', bounce: 0.3, duration: 0.5 }}
               className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
-              style={{ background: 'rgba(0,208,96,0.12)' }}
+              style={{ background: 'rgba(139,94,60,0.12)', border: '2px solid rgba(139,94,60,0.28)' }}
             >
-              <Shield className="w-10 h-10" style={{ color: '#00d060' }} />
-            </div>
+              <Shield className="w-10 h-10 text-chalk-mark" />
+            </motion.div>
 
-            <h2
-              className="text-white mb-3"
-              style={{ fontFamily: "'Dela Gothic One', sans-serif", fontSize: '30px', lineHeight: 1.1 }}
-            >
+            <h2 className="mb-3 font-display text-[28px] text-ink-dark leading-tight">
               Save Your Progress
             </h2>
-            <p className="text-sm leading-relaxed mb-8 max-w-[280px]" style={{ color: '#6baf80' }}>
-              Link a Google account so you can recover your scores and profile on any device.
+            <p className="text-sm leading-relaxed mb-8 max-w-70 font-hand text-chalk-board">
+              Link a Google account so you can recover your scores and profile on any device — like saving your exercise book!
             </p>
 
             <motion.button
               whileTap={{ scale: 0.96 }}
               onClick={handleLinkGoogle}
-              className="w-full max-w-[280px] rounded-2xl py-4 mb-3 font-bold text-sm flex items-center justify-center gap-2.5 border"
-              style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: 'white' }}
+              className="w-full max-w-70 rounded-2xl py-4 mb-3 font-bold text-base flex items-center justify-center gap-2.5 border font-hand text-ink-dark"
+              style={{
+                background: 'rgba(139,94,60,0.08)',
+                borderColor: 'rgba(139,94,60,0.3)',
+              }}
             >
               <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" className="shrink-0">
                 <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18Z"/>
@@ -224,8 +223,7 @@ export function AvatarSetupScreen() {
 
             <button
               onClick={handleSkipLink}
-              className="text-sm"
-              style={{ color: '#3a5a45' }}
+              className="text-sm font-hand text-desk"
             >
               Maybe later →
             </button>

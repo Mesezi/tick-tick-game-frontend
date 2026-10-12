@@ -218,6 +218,33 @@ class ApiClient {
     return this.request<{ success: boolean; data: unknown }>(`/api/rooms/${code}`);
   }
 
+  async getShareCardSvg(roomCode: string): Promise<string> {
+    const headers: Record<string, string> = {
+      Accept: 'image/svg+xml',
+    };
+
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(
+      `${API_URL}/api/rooms/${encodeURIComponent(roomCode)}/share-card`,
+      { headers },
+    );
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new ApiError(response.status, message || response.statusText, message);
+    }
+
+    const svg = await response.text();
+    if (!svg.trim()) {
+      throw new Error('The share card response was empty.');
+    }
+
+    return svg;
+  }
+
   async leaveRoom(roomCode: string) {
     return this.request<{ success: boolean }>(`/api/rooms/${roomCode}/leave`, {
       method: 'POST',

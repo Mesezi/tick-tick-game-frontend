@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "generate-icons": "node scripts/generate-icons.mjs",
     "test": "vitest --run",
     "test:watch": "vitest"
   },
@@ -45,6 +46,7 @@
     "fast-check": "^4.9.0",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
+    "sharp": "^0.35.5",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.62.0",
     "vite": "^8.1.1",

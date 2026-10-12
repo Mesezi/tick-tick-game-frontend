@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import type { CategoryInputGridProps, MappedAnswerResult } from '../types';
 
 /**
- * Category input cards with dark gaming aesthetic.
- * Each category gets its own dark card with label, name, and input.
+ * CategoryInputGrid — exercise-book ruled cards.
+ * Each category gets its own notebook-paper card with a biro-ink input.
  */
 export function CategoryInputGrid({
   categories,
@@ -27,19 +27,30 @@ export function CategoryInputGrid({
     [onAnswerChange]
   );
 
-  const getResultForCategory = (category: string): MappedAnswerResult | undefined => {
-    return results?.find((r) => r.category === category);
-  };
+  const getResultForCategory = (category: string): MappedAnswerResult | undefined =>
+    results?.find((r) => r.category === category);
 
   const getResultIndicator = (result: MappedAnswerResult | undefined) => {
     if (!result) return null;
     switch (result.status) {
       case 'accepted':
-        return <span className="text-xs font-bold text-[#00ff88]">✓ {result.points}pts</span>;
+        return (
+          <span className="text-sm font-bold font-script text-chalk-mark">
+            ✓ {result.points}pts
+          </span>
+        );
       case 'partial':
-        return <span className="text-xs font-bold text-[#FF6B35]">~ {result.points}pts</span>;
+        return (
+          <span className="text-sm font-bold font-script text-school-amber">
+            ~ {result.points}pts
+          </span>
+        );
       case 'rejected':
-        return <span className="text-xs font-bold text-[#FF6B35]">✗ {result.points}pts</span>;
+        return (
+          <span className="text-sm font-bold font-script text-school-red">
+            ✗ {result.points}pts
+          </span>
+        );
       default:
         return null;
     }
@@ -47,42 +58,47 @@ export function CategoryInputGrid({
 
   return (
     <div className="w-full max-w-md mx-auto px-4">
-      {/* Category input cards */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2.5">
         {categories.map((category, index) => {
           const result = getResultForCategory(category);
+          const filled = !!(localValues[category] ?? '').trim();
 
           return (
             <div
               key={category}
-              className="rounded-xl bg-[#1a2e1f] border border-[#2a4a32] p-4"
+              className="input-ruled"
+              style={{
+                border: `2px solid ${filled ? 'rgba(107,68,35,0.4)' : '#c8b89a'}`,
+                boxShadow: filled ? '0 0 0 2px rgba(107,68,35,0.1)' : 'none',
+                opacity: disabled ? 0.7 : 1,
+              }}
             >
-              {/* Category label */}
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[#5a7a5a] text-xs uppercase tracking-wide font-bold">
-                  Category {index + 1}
-                </span>
-                <div className="shrink-0">
-                  {getResultIndicator(result)}
+              <div className="px-3.5 pt-2 pb-2">
+                {/* Category label row */}
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="label-section">
+                    {index + 1}. {category}
+                  </span>
+                  <div className="shrink-0">{getResultIndicator(result)}</div>
                 </div>
-              </div>
 
-              {/* Category name */}
-              <p className="text-white font-bold mb-2">{category}</p>
-
-              {/* Input with letter prefix */}
-              <div className="flex items-center gap-2">
-                <span className="text-[#00ff88] font-bold text-lg">{letter.toUpperCase()}</span>
-                <input
-                  id={`category-${category}`}
-                  type="text"
-                  value={localValues[category] ?? ''}
-                  onChange={(e) => handleChange(category, e.target.value)}
-                  disabled={disabled}
-                  placeholder="Type your answer..."
-                  autoComplete="off"
-                  className="flex-1 bg-[#0f2518] border border-[#2a4a32] rounded-lg px-3 py-2 text-white font-body text-base focus:border-[#00ff88] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed placeholder-[#5a7a5a]"
-                />
+                {/* Input row: letter prefix + text field */}
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-lg shrink-0 font-display text-chalk-mark">
+                    {letter.toUpperCase()}
+                  </span>
+                  <input
+                    id={`category-${category}`}
+                    type="text"
+                    value={localValues[category] ?? ''}
+                    onChange={(e) => handleChange(category, e.target.value)}
+                    disabled={disabled}
+                    placeholder="Type your answer..."
+                    autoComplete="off"
+                    className="flex-1 bg-transparent outline-none font-bold font-hand text-[17px] text-ink-dark"
+                    style={{ caretColor: '#6b4423' }}
+                  />
+                </div>
               </div>
             </div>
           );
