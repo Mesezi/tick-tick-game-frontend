@@ -359,7 +359,7 @@ function HowToPlaySheet({ onClose }: { onClose: () => void }) {
 
 function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
   const session = useGameStore((s) => s.session);
-  const [tab, setTab] = useState<'weekly' | 'alltime'>('alltime');
+  const [tab,] = useState<'weekly' | 'alltime'>('alltime');
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const apiType = tab === 'alltime' ? 'all-time' as const : 'weekly' as const;
