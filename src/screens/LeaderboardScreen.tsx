@@ -19,7 +19,7 @@ interface LeaderboardEntry {
 export function LeaderboardScreen() {
   const session = useGameStore((s) => s.session);
 
-  const [lbTab, setLbTab] = useState<'weekly' | 'alltime'>('weekly');
+  const [lbTab, setLbTab] = useState<'weekly' | 'alltime'>('alltime');
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const apiType = lbTab === 'alltime' ? 'all-time' as const : 'weekly' as const;
@@ -70,7 +70,7 @@ export function LeaderboardScreen() {
           className="flex rounded-xl p-1 gap-1"
           style={{ background: 'rgba(139,94,60,0.12)', border: '1px solid #c8b89a' }}
         >
-          {(['weekly', 'alltime'] as const).map((t) => (
+          {(['alltime'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setLbTab(t)}
@@ -81,7 +81,8 @@ export function LeaderboardScreen() {
                 boxShadow: lbTab === t ? '0 2px 8px rgba(107,68,35,0.24)' : 'none',
               }}
             >
-              {t === 'weekly' ? 'This Week' : 'All Time'}
+              {/* {t === 'weekly' ? 'This Week' : 'All Time'} */}
+              All Time
             </button>
           ))}
         </div>

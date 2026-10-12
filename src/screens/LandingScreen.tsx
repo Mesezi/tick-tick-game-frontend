@@ -359,7 +359,7 @@ function HowToPlaySheet({ onClose }: { onClose: () => void }) {
 
 function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
   const session = useGameStore((s) => s.session);
-  const [tab, setTab] = useState<'weekly' | 'alltime'>('weekly');
+  const [tab, setTab] = useState<'weekly' | 'alltime'>('alltime');
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const apiType = tab === 'alltime' ? 'all-time' as const : 'weekly' as const;
@@ -405,7 +405,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Tabs */}
-      <div className="px-6 py-3 shrink-0">
+      {/* <div className="px-6 py-3 shrink-0">
         <div className="flex rounded-xl p-1 gap-1" style={{ background: 'rgba(139,94,60,0.12)', border: '1px solid #c8b89a' }}>
           {(['weekly', 'alltime'] as const).map((t) => (
             <button
@@ -418,10 +418,11 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
               }}
             >
               {t === 'weekly' ? 'This Week' : 'All Time'}
+           
             </button>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* List */}
       <div className="flex-1 overflow-y-auto px-6" style={{ scrollbarWidth: 'none' }}>

@@ -440,8 +440,8 @@ function handleRoomClosed(_payload: unknown): void {
     }
     return;
   }
-  // Otherwise fully reset
-  store.reset();
+  // Otherwise return home without discarding the player's session.
+  store.resetToHome(store.session);
 }
 
 /**
