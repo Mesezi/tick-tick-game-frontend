@@ -137,8 +137,12 @@ function App() {
 
         {showNavigation && !isBooting && (
           <header
-            className="flex items-center justify-between px-4 py-2 md:pt-2 shrink-0 z-40"
-            style={{ background: '#f5f0e8', borderBottom: '1px solid #d4c9b0' }}
+            className="flex items-center justify-between px-4 py-2 shrink-0 z-40"
+            style={{
+              background: '#f5f0e8',
+              borderBottom: '1px solid #d4c9b0',
+              paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
+            }}
           >
             <button
               onClick={isBackNavigation ? handleGoBack : handleGoHome}

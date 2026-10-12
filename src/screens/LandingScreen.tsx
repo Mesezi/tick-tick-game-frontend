@@ -48,7 +48,13 @@ export function LandingScreen() {
       </div>
 
       {/* Top-right controls */}
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
+      <div
+        className="absolute z-20 flex gap-2"
+        style={{
+          top: 'max(1rem, env(safe-area-inset-top))',
+          right: 'max(1rem, env(safe-area-inset-right))',
+        }}
+      >
         <button
           onClick={handleToggleMute}
           aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}

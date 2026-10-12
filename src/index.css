@@ -197,7 +197,7 @@ h1, h2, h3 {
 /* Label / section header above inputs and lists */
 .label-section {
   font-family: 'Patrick Hand', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -370,12 +370,12 @@ h1, h2, h3 {
 
 
 body {
-  font-size: 17px;
+  font-size: 18px;
 }
 
 /* Styles applied ONLY when the viewport is 768px wide or larger */
 @media (min-width: 768px) {
   body {
-    font-size: 19px;
+    font-size: 20px;
   }
 }
