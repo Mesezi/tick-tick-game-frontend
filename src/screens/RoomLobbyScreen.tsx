@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Bell, ClipboardList, Copy, Crown, Hourglass, LogOut, School, Zap } from 'lucide-react';
+import { Bell, ClipboardList, Copy, Crown, Hourglass, Link, LogOut, School, Zap } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
@@ -47,6 +47,26 @@ export function RoomLobbyScreen() {
   const handleCopyCode = () => {
     navigator.clipboard?.writeText(room.roomCode);
     showToast('Room code copied!', 'success');
+  };
+
+  const handleShareInvite = async () => {
+    const inviteUrl = `${window.location.origin}/join/${encodeURIComponent(room.roomCode)}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Join my Tick Tick game',
+          text: `Join my Tick Tick room with code ${room.roomCode}.`,
+          url: inviteUrl,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(inviteUrl);
+      showToast('Invite link copied!', 'success');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      console.error('[RoomLobby] Could not share invite link:', error);
+      showToast('Could not share the invite link.', 'error');
+    }
   };
 
   const handleLeave = useCallback(async () => {
@@ -111,6 +131,14 @@ export function RoomLobbyScreen() {
             <p className="text-sm mt-1.5 font-hand text-chalk-mark">
               {room.players.length}/8 students joined
             </p>
+            <button
+              onClick={handleShareInvite}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-bold font-hand text-chalk-mark"
+              style={{ background: 'rgba(139,94,60,0.08)', borderColor: 'rgba(139,94,60,0.25)' }}
+            >
+              <Link className="h-4 w-4" aria-hidden="true" />
+              Share invite link
+            </button>
           </div>
         )}
         {room.isPublic && (

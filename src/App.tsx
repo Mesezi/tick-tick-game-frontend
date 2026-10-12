@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, Home } from 'lucide-react';
 import { ScreenRouter } from './router/ScreenRouter.tsx';
@@ -11,7 +11,7 @@ import { BootScreen } from './components/BootScreen';
 import { useToastStore } from './components/toastStore';
 import { useGameStore } from './store/gameStore';
 import { socketHandler } from './socket/socketHandler';
-import { apiClient } from './api/client';
+import { ApiError, apiClient } from './api/client';
 import { deriveScreen } from './router/screenRouter';
 import { useAppInit } from './hooks/useAppInit';
 import { useSoundInit } from './hooks/useSoundInit';
@@ -19,6 +19,7 @@ import { useSoundInit } from './hooks/useSoundInit';
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const MAX_RECONNECT_ATTEMPTS = 5;
 const REJOIN_TIMEOUT_MS = 15000;
+const INVITE_ROOM_STORAGE_KEY = 'tick-tick-invite-room';
 
 function App() {
   const isRejoining = useGameStore((s) => s.isRejoining);
@@ -33,7 +34,14 @@ function App() {
 
   const toast = useToastStore();
   const showToast = useToastStore((s) => s.show);
-  const { isBooting, pendingRejoinRoom, setPendingRejoinRoom } = useAppInit();
+  const {
+    isBooting,
+    pendingRejoinRoom,
+    setPendingRejoinRoom,
+    inviteRoomCode,
+    setInviteRoomCode,
+  } = useAppInit();
+  const inviteJoinAttempt = useRef<string | null>(null);
   useSoundInit();
 
   useEffect(() => {
@@ -47,11 +55,73 @@ function App() {
 
     const timeout = window.setTimeout(() => {
       setIsRejoining(false);
-      showToast('Rejoining timed out. Please try again.', 'error');
+      if (inviteRoomCode) {
+        setInviteRoomCode(null);
+        sessionStorage.removeItem(INVITE_ROOM_STORAGE_KEY);
+        showToast('Joining the invited room timed out. Please try again.', 'error');
+      } else {
+        showToast('Rejoining timed out. Please try again.', 'error');
+      }
     }, REJOIN_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeout);
-  }, [isRejoining, setIsRejoining, showToast]);
+  }, [isRejoining, inviteRoomCode, setInviteRoomCode, setIsRejoining, showToast]);
+
+  useEffect(() => {
+    if (room?.roomCode !== inviteRoomCode || !inviteRoomCode) return;
+    setInviteRoomCode(null);
+    sessionStorage.removeItem(INVITE_ROOM_STORAGE_KEY);
+  }, [room?.roomCode, inviteRoomCode, setInviteRoomCode]);
+
+  useEffect(() => {
+    if (
+      !inviteRoomCode ||
+      isBooting ||
+      !session?.displayName ||
+      !session.avatarId ||
+      connectionStatus !== 'connected' ||
+      room?.roomCode === inviteRoomCode ||
+      inviteJoinAttempt.current === inviteRoomCode
+    ) {
+      return;
+    }
+
+    inviteJoinAttempt.current = inviteRoomCode;
+    setIsRejoining(true);
+
+    apiClient.joinRoom(inviteRoomCode, session.displayName)
+      .then(() => {
+        if (!socketHandler.isConnected()) {
+          throw new Error('Not connected to the game server');
+        }
+        socketHandler.emit('join-room', { roomCode: inviteRoomCode });
+      })
+      .catch((error: unknown) => {
+        console.error('[App] Failed to join invited room:', error);
+        setIsRejoining(false);
+        setInviteRoomCode(null);
+        sessionStorage.removeItem(INVITE_ROOM_STORAGE_KEY);
+        inviteJoinAttempt.current = null;
+        if (error instanceof ApiError && error.status === 404) {
+          showToast('Room code expired.', 'error');
+        } else {
+          showToast(
+            error instanceof Error ? error.message : 'Could not join the invited room.',
+            'error',
+          );
+        }
+      });
+  }, [
+    connectionStatus,
+    isBooting,
+    inviteRoomCode,
+    room?.roomCode,
+    session?.avatarId,
+    session?.displayName,
+    setInviteRoomCode,
+    setIsRejoining,
+    showToast,
+  ]);
 
   const activeScreen = deriveScreen({ session, room, round, matchResults, hasPassedLanding });
   const showNavigation = activeScreen !== 'landing';
@@ -245,7 +315,7 @@ function App() {
             </div>
           )}
         </AnimatePresence>
-        {isRejoining && <RejoinLoadingOverlay />}
+        {isRejoining && <RejoinLoadingOverlay message={inviteRoomCode ? 'Joining room...' : undefined} />}
       </div>
 
       <GameToast

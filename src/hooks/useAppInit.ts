@@ -7,6 +7,14 @@ import { apiClient } from '../api/client';
 import { identifyUser, track } from '../utils/analytics';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const INVITE_ROOM_STORAGE_KEY = 'tick-tick-invite-room';
+
+function getInviteRoomCode(): string | null {
+  const match = window.location.pathname.match(/^\/join\/([a-zA-Z0-9]{6})\/?$/);
+  const pathCode = match?.[1].toUpperCase();
+  const storedCode = sessionStorage.getItem(INVITE_ROOM_STORAGE_KEY);
+  return pathCode ?? storedCode;
+}
 
 export async function loginAsGuest(): Promise<void> {
   try {
@@ -42,11 +50,19 @@ export async function loginAsGuest(): Promise<void> {
 export function useAppInit() {
   const [isBooting, setIsBooting] = useState(true);
   const [pendingRejoinRoom, setPendingRejoinRoom] = useState<string | null>(null);
+  const [inviteRoomCode, setInviteRoomCode] = useState<string | null>(null);
 
   useEffect(() => {
     registerEventHandlers();
 
     const init = async () => {
+      const inviteCode = getInviteRoomCode();
+      if (inviteCode) {
+        sessionStorage.setItem(INVITE_ROOM_STORAGE_KEY, inviteCode);
+        setInviteRoomCode(inviteCode);
+        useGameStore.getState().setHasPassedLanding(true);
+      }
+
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
 
@@ -117,7 +133,7 @@ export function useAppInit() {
             identifyUser(user.id, { type: user.type, displayName: user.displayName });
             track('session_restored_via_device_id');
             socketHandler.connect(SOCKET_URL, newToken);
-            if (meRes.data.activeRoom) setPendingRejoinRoom(meRes.data.activeRoom);
+            if (meRes.data.activeRoom && !inviteCode) setPendingRejoinRoom(meRes.data.activeRoom);
           } catch {
             console.warn('[AppInit] Device ID re-auth failed, showing landing');
           }
@@ -140,7 +156,7 @@ export function useAppInit() {
         identifyUser(user.id, { type: user.type, displayName: user.displayName });
         track('session_restored');
         socketHandler.connect(SOCKET_URL, token);
-        if (meRes.data.activeRoom) setPendingRejoinRoom(meRes.data.activeRoom);
+        if (meRes.data.activeRoom && !inviteCode) setPendingRejoinRoom(meRes.data.activeRoom);
       } catch {
         console.warn('[AppInit] Token invalid, clearing');
         persistenceLayer.clearToken();
@@ -171,5 +187,11 @@ export function useAppInit() {
     };
   }, []);
 
-  return { isBooting, pendingRejoinRoom, setPendingRejoinRoom };
+  return {
+    isBooting,
+    pendingRejoinRoom,
+    setPendingRejoinRoom,
+    inviteRoomCode,
+    setInviteRoomCode,
+  };
 }
