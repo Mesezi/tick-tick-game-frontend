@@ -557,10 +557,16 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
     setIsSavingProfile(true);
     try {
       const response = await apiClient.updateProfile({ displayName, avatarId: editAvatar });
+      const latestSession = useGameStore.getState().session;
+      if (!latestSession) {
+        showToast('Your session has expired. Please sign in again.', 'error');
+        return;
+      }
+
       setSession({
-        ...currentSession,
-        displayName: response.data.displayName,
-        avatarId: response.data.avatarId,
+        ...latestSession,
+        displayName: response.data.displayName || displayName,
+        avatarId: response.data.avatarId || editAvatar,
       });
       setShowEdit(false);
       showToast('Profile updated!', 'success');
