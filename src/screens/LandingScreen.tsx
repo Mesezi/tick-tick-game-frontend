@@ -591,11 +591,13 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       persistenceLayer.clearToken();
       socketHandler.disconnect();
       useGameStore.getState().reset();
+      setShowDeleteConfirm(false);
+      onClose();
       showToast('Account deleted', 'info');
-    } catch {
+    } catch (error) {
+      console.error('[Profile] Failed to delete account:', error);
       showToast('Failed to delete account. Try again.', 'error');
       setIsDeleting(false);
-      setShowDeleteConfirm(false);
     }
   };
 
@@ -736,39 +738,79 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
 
         {/* Danger zone */}
         <div className="mt-6 pt-4" style={{ borderTop: '1px solid #c8b89a' }}>
-          {!showDeleteConfirm ? (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full text-center text-sm py-2 font-hand"
-              style={{ color: '#92400e' }}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full text-center text-sm py-2 font-hand"
+            style={{ color: '#92400e' }}
+          >
+            Delete account
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[80] flex items-center justify-center bg-black/60 px-6"
+            onClick={(event) => {
+              if (event.target === event.currentTarget && !isDeleting) setShowDeleteConfirm(false);
+            }}
+          >
+            <motion.div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="delete-account-title"
+              aria-describedby="delete-account-description"
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              className="w-full max-w-sm rounded-2xl border p-5 paper-body shadow-xl"
+              style={{ borderColor: '#c8b89a' }}
             >
-              Delete account
-            </button>
-          ) : (
-            <div className="p-4 rounded-xl border" style={{ background: 'rgba(192,57,43,0.06)', borderColor: 'rgba(192,57,43,0.25)' }}>
-              <p className="text-sm font-bold mb-3 text-center font-hand text-school-red">
-                Delete your account? This cannot be undone.
-              </p>
-              <div className="flex gap-2">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <h3 id="delete-account-title" className="font-display text-xl text-school-red">
+                  Delete your account?
+                </h3>
                 <button
+                  type="button"
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold btn-ghost"
+                  disabled={isDeleting}
+                  aria-label="Close confirmation"
+                  className="rounded-lg p-1.5 text-chalk-mark disabled:opacity-50"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <p id="delete-account-description" className="mb-5 text-sm leading-relaxed font-hand text-chalk-board">
+                Your account and saved progress will be permanently deleted. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="flex-1 rounded-xl border py-3 font-bold btn-ghost disabled:opacity-50"
+                  style={{ borderColor: '#c8b89a' }}
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleDeleteAccount}
                   disabled={isDeleting}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold font-hand text-paper"
+                  className="flex-1 rounded-xl py-3 font-bold font-hand text-paper disabled:opacity-50"
                   style={{ background: '#c0392b' }}
                 >
-                  {isDeleting ? 'Deleting...' : 'Delete'}
+                  {isDeleting ? 'Deleting...' : 'Delete account'}
                 </button>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit profile sheet */}
       {showEdit && (
