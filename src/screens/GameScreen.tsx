@@ -85,9 +85,7 @@ export function GameScreen() {
           const userIndex = sorted.findIndex(
             (p) => p.playerId === session.userId || p.playerId === myPlayerId || p.displayName === session.displayName
           );
-          const hasSoleFirstPlace = sorted[1]?.totalScore !== sorted[0]?.totalScore;
-          if (userIndex === 0 && hasSoleFirstPlace) playSound('winner');
-          else if (
+          if (
             userIndex === sorted.length - 1 &&
             sorted[userIndex].totalScore < sorted[0].totalScore
           ) {
@@ -216,16 +214,6 @@ export function GameScreen() {
   const sortedPlayers = displayResults
     ? [...displayResults.players].sort((a, b) => b.totalScore - a.totalScore)
     : [];
-  const roomPlayerId = room?.players.find((player) => player.userId === session?.userId)?.id;
-  const currentPlayerIndex = sortedPlayers.findIndex(
-    (player) =>
-      player.playerId === session?.userId ||
-      player.playerId === roomPlayerId ||
-      player.displayName === session?.displayName,
-  );
-  const isSoleFirstPlace =
-    currentPlayerIndex === 0 &&
-    sortedPlayers[1]?.totalScore !== sortedPlayers[0]?.totalScore;
 
   return (
     <div
@@ -272,25 +260,32 @@ export function GameScreen() {
 
         {/* Circular chalk timer */}
         <div className="flex justify-end">
-           <div className="relative w-16 h-16 flex items-center justify-center">
-          <svg className="absolute inset-0" width="64" height="64" style={{ transform: 'rotate(-90deg)' }}>
-            <circle cx="32" cy="32" r={R} fill="none" stroke="rgba(200,184,154,0.3)" strokeWidth="4" />
-            <circle
-              cx="32" cy="32" r={R} fill="none"
-              stroke={timerColor} strokeWidth="4"
-              strokeDasharray={C}
-              strokeDashoffset={C * (1 - timerPct)}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s ease' }}
-            />
-          </svg>
-          <span
-            className="font-display text-[22px]"
-            style={{ color: timerColor, transition: 'color 0.3s ease' }}
-          >
-            {timer}
-          </span>
-        </div>
+          <div className="relative h-16 w-16 shrink-0">
+            <svg
+              className="absolute inset-0 block"
+              width="64"
+              height="64"
+              viewBox="0 0 64 64"
+              aria-hidden="true"
+              style={{ transform: 'rotate(-90deg)' }}
+            >
+              <circle cx="32" cy="32" r={R} fill="none" stroke="rgba(200,184,154,0.3)" strokeWidth="4" />
+              <circle
+                cx="32" cy="32" r={R} fill="none"
+                stroke={timerColor} strokeWidth="4"
+                strokeDasharray={C}
+                strokeDashoffset={C * (1 - timerPct)}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s ease' }}
+              />
+            </svg>
+            <span
+              className="absolute inset-0 flex items-center justify-center font-display text-[22px] leading-none tabular-nums"
+              style={{ color: timerColor, transition: 'color 0.3s ease' }}
+            >
+              {timer}
+            </span>
+          </div>
         </div>
        
       </div>
@@ -476,7 +471,6 @@ export function GameScreen() {
               displayResults={displayResults}
               sortedPlayers={sortedPlayers}
               session={session}
-              isSoleFirstPlace={isSoleFirstPlace}
               round={round}
               rankingsCountdown={rankingsCountdown}
               previousRoundRanks={previousRoundRanks}
@@ -591,7 +585,6 @@ function ResultsTabsView({
   displayResults,
   sortedPlayers,
   session,
-  isSoleFirstPlace,
   round,
   rankingsCountdown,
   previousRoundRanks,
@@ -599,7 +592,6 @@ function ResultsTabsView({
   displayResults: RoundResultsPayload;
   sortedPlayers: RoundResultsPayload['players'];
   session: { userId: string; avatarId: string } | null;
-  isSoleFirstPlace: boolean;
   round: { roundNumber: number; totalRounds: number; summaryEndTimestamp?: number };
   rankingsCountdown: number;
   previousRoundRanks: Record<string, number> | null;
@@ -608,8 +600,6 @@ function ResultsTabsView({
 
   return (
     <>
-      {isSoleFirstPlace && <WinnerConfetti />}
-
       {/* Header */}
       <div
         className="px-5 pt-4 pb-3 shrink-0"
@@ -855,27 +845,5 @@ function ResultsTabsView({
         </div>
       </div>
     </>
-  );
-}
-
-function WinnerConfetti() {
-  const colors = ['#d97706', '#6b4423', '#2f855a', '#c0392b', '#f5c542'];
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden" aria-hidden="true">
-      {Array.from({ length: 36 }, (_, index) => (
-        <span
-          key={index}
-          className="winner-confetti-piece"
-          style={{
-            left: `${(index * 37) % 100}%`,
-            backgroundColor: colors[index % colors.length],
-            animationDelay: `${(index % 12) * 0.08}s`,
-            animationDuration: `${2.4 + (index % 5) * 0.18}s`,
-            transform: `rotate(${index * 29}deg)`,
-          }}
-        />
-      ))}
-    </div>
   );
 }

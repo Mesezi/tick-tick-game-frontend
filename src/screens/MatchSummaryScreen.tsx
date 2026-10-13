@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Crown, RotateCcw, Share2, Home, Check, X } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
@@ -6,6 +6,7 @@ import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
 import { getPlayerAvatar } from '../utils/avatarHelper';
 import { showToast } from '../components/toastStore';
+import { playSound } from '../audio/soundManager';
 
 const REMATCH_TIMEOUT_S = 30;
 const ROOM_RETENTION_MS = 60_000;
@@ -32,6 +33,23 @@ export function MatchSummaryScreen() {
   const [voted, setVoted] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isRematchAvailable, setIsRematchAvailable] = useState(true);
+  const hasPlayedWinnerSound = useRef(false);
+
+  const sortedPlayers = [...(matchResults?.allPlayers ?? [])].sort((a, b) => b.totalScore - a.totalScore);
+  const roomPlayer = room?.players.find((p) => p.userId === session?.userId);
+  const myPlayerId = roomPlayer?.id ?? session?.userId;
+  const isSoleWinner =
+    !!session &&
+    sortedPlayers.length > 1 &&
+    !!sortedPlayers[0] &&
+    (sortedPlayers[0].playerId === session.userId || sortedPlayers[0].playerId === myPlayerId) &&
+    sortedPlayers[1]?.totalScore !== sortedPlayers[0].totalScore;
+
+  useEffect(() => {
+    if (!isSoleWinner || hasPlayedWinnerSound.current) return;
+    hasPlayedWinnerSound.current = true;
+    playSound('winner');
+  }, [isSoleWinner]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setIsRematchAvailable(false), ROOM_RETENTION_MS);
@@ -147,7 +165,6 @@ export function MatchSummaryScreen() {
     );
   }
 
-  const sortedPlayers = [...matchResults.allPlayers].sort((a, b) => b.totalScore - a.totalScore);
   const restOfClass = sortedPlayers.slice(3);
   const podium = matchResults.podium;
   const first = podium.find((p) => p.rank === 1);
@@ -158,8 +175,6 @@ export function MatchSummaryScreen() {
   const seconds = Math.round((matchResults.totalDuration % 60000) / 1000);
   const totalDurationStr = `${minutes}:${String(seconds).padStart(2, '0')}`;
 
-  const roomPlayer = room?.players.find((p) => p.userId === session.userId);
-  const myPlayerId = roomPlayer?.id ?? session.userId;
   const isMe = (playerId: string) => playerId === session.userId || playerId === myPlayerId;
 
   const showRematchOverlay = isRematchAvailable && rematch.status === 'pending';
@@ -173,6 +188,8 @@ export function MatchSummaryScreen() {
       className="flex-1 flex flex-col overflow-hidden relative paper-body"
       data-testid="screen-match-summary"
     >
+      {isSoleWinner && <WinnerConfetti />}
+
       <div className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
         {/* ── Header ─────────────────────────────────────────── */}
         <header
@@ -318,6 +335,28 @@ export function MatchSummaryScreen() {
           />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function WinnerConfetti() {
+  const colors = ['#d97706', '#6b4423', '#2f855a', '#c0392b', '#f5c542'];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden" aria-hidden="true">
+      {Array.from({ length: 36 }, (_, index) => (
+        <span
+          key={index}
+          className="winner-confetti-piece"
+          style={{
+            left: `${(index * 37) % 100}%`,
+            backgroundColor: colors[index % colors.length],
+            animationDelay: `${(index % 12) * 0.08}s`,
+            animationDuration: `${2.4 + (index % 5) * 0.18}s`,
+            transform: `rotate(${index * 29}deg)`,
+          }}
+        />
+      ))}
     </div>
   );
 }
