@@ -22,7 +22,7 @@ export async function loginAsGuest(): Promise<void> {
     const { token, guestId } = await apiClient.guestLogin(deviceId);
     persistenceLayer.saveToken(token);
     useGameStore.getState().setSession({
-      token, userId: guestId, displayName: null,
+      token, userId: guestId, email: null, displayName: null,
       avatarId: '', isAuthenticated: false, deviceId,
     });
     identifyUser(guestId, { type: 'GUEST' });
@@ -37,7 +37,7 @@ export async function loginAsGuest(): Promise<void> {
       const { token, guestId } = await apiClient.guestLogin(newDeviceId);
       persistenceLayer.saveToken(token);
       useGameStore.getState().setSession({
-        token, userId: guestId, displayName: null,
+        token, userId: guestId, email: null, displayName: null,
         avatarId: '', isAuthenticated: false, deviceId: newDeviceId,
       });
       socketHandler.connect(SOCKET_URL, token);
@@ -88,6 +88,7 @@ export function useAppInit() {
           useGameStore.getState().setSession({
             token: res.token,
             userId: user.id,
+            email: user.email,
             displayName: user.displayName,
             avatarId: user.avatarId ?? '',
             isAuthenticated: true,
@@ -125,6 +126,7 @@ export function useAppInit() {
             useGameStore.getState().setSession({
               token: newToken,
               userId: user.id,
+              email: user.email,
               displayName: user.displayName,
               avatarId: user.avatarId ?? '',
               isAuthenticated: user.type === 'GOOGLE',
@@ -148,6 +150,7 @@ export function useAppInit() {
         useGameStore.getState().setSession({
           token,
           userId: user.id,
+          email: user.email,
           displayName: user.displayName,
           avatarId: user.avatarId ?? '',
           isAuthenticated: user.type === 'GOOGLE',

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link, HelpCircle, BarChart2, Bot, ClipboardList, Gamepad2, Globe, Lightbulb, OctagonX, Pin, Star, Target, Timer, Users } from 'lucide-react';
+import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link, MessageCircle, HelpCircle, BarChart2, Bot, ClipboardList, Gamepad2, Globe, Lightbulb, OctagonX, Pin, Star, Target, Timer, Users } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
@@ -172,8 +172,8 @@ export function LandingScreen() {
               </motion.button>
             </div>
 
-            {/* Google link nudge */}
-            {session?.displayName && !session.isAuthenticated && (
+            {/* Save progress by linking Google for named guests */}
+            {session?.email == null && session?.displayName != null && (
               <motion.button
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -187,20 +187,21 @@ export function LandingScreen() {
                 <span className="flex-1 text-left text-sm font-hand text-chalk-board">
                   Save your progress — link Google account
                 </span>
-                <span className=" font-hand text-chalk-mark">→</span>
+                <span className="font-hand text-chalk-mark">→</span>
               </motion.button>
             )}
 
-            {/* Sign in — no session */}
-            {!session && (
-              <button
+            {/* Sign in with Google when there is no named account */}
+            {session?.email == null && session?.displayName == null && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
                 onClick={() => apiClient.redirectToGoogle()}
-                className="mt-3 w-full text-center text-sm font-hand"
-                style={{ color: '#7a6050' }}
+                className="mt-3 w-full flex items-center justify-center gap-2.5 rounded-xl border px-4 py-3 font-bold font-hand text-chalk-board"
+                style={{ background: '#fff', borderColor: '#c8b89a' }}
               >
-                Already registered?{' '}
-                <span className="font-bold text-chalk-mark">Sign in →</span>
-              </button>
+                <span aria-hidden="true" className="font-bold text-base text-school-red">G</span>
+                Login with Google
+              </motion.button>
             )}
           </div>
         </motion.div>
@@ -390,7 +391,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
       className="absolute inset-0 z-50 flex flex-col overflow-hidden paper-body"
     >
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 shrink-0" style={{ borderBottom: '1px solid #c8b89a' }}>
+      <div className="px-6 pt-6 pb-4 mb-3 shrink-0" style={{ borderBottom: '1px solid #c8b89a' }}>
         <button
           onClick={onClose}
           className="mb-3 p-2 rounded-xl border transition-all active:scale-95"
@@ -538,6 +539,10 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [isSendingContact, setIsSendingContact] = useState(false);
 
   const handleOpenEdit = () => {
     setEditName(session?.displayName ?? '');
@@ -591,6 +596,36 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       showToast('Failed to delete account. Try again.', 'error');
       setIsDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleSendContact = async () => {
+    const message = contactMessage.trim();
+    if (!message || isSendingContact) return;
+
+    setIsSendingContact(true);
+    try {
+      const formData = new FormData();
+      const email = contactEmail.trim();
+      if (email) formData.append('email', email);
+      formData.append('message', message);
+
+      const response = await fetch('https://formspree.io/f/mbgrrdbg', {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error(`Contact form submission failed (${response.status})`);
+
+      setContactMessage('');
+      setContactEmail('');
+      setShowContact(false);
+      showToast("Message sent! We'll get back to you.", 'success');
+    } catch (error) {
+      console.error('[Profile] Failed to send contact message:', error);
+      showToast('Could not send your message. Please try again.', 'error');
+    } finally {
+      setIsSendingContact(false);
     }
   };
 
@@ -664,6 +699,14 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
             </button>
           )}
         </div>
+
+        <button
+          onClick={() => setShowContact(true)}
+          className="mb-5 w-full rounded-xl border px-4 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 btn-ghost text-chalk-board!"
+        >
+          <MessageCircle className="w-4 h-4" />
+          Get in Touch
+        </button>
 
         {/* Stats */}
         {isLoading ? (
@@ -799,6 +842,86 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
           </motion.div>
         </motion.div>
       )}
+
+      <AnimatePresence>
+        {showContact && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[70] flex items-end"
+            style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
+            onClick={(event) => {
+              if (event.target === event.currentTarget && !isSendingContact) setShowContact(false);
+            }}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.38 }}
+              className="w-full rounded-t-3xl overflow-hidden paper-body px-6 pt-4 pb-safe pb-8"
+              style={{ borderTop: '3px solid #c8b89a' }}
+            >
+              <div className="flex justify-center mb-4">
+                <div className="w-10 h-1 rounded-full bg-paper-ruled" />
+              </div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="label-section mb-1 text-chalk-mark">Get in Touch</p>
+                  <p className="text-sm font-hand text-chalk-board">We read every message.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowContact(false)}
+                  disabled={isSendingContact}
+                  aria-label="Close contact form"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border disabled:opacity-50"
+                  style={{ background: 'rgba(139,94,60,0.1)', borderColor: '#c8b89a' }}
+                >
+                  <X className="w-4 h-4 text-chalk-mark" />
+                </button>
+              </div>
+
+              <label htmlFor="contact-email" className="sr-only">Email (optional)</label>
+              <input
+                id="contact-email"
+                type="email"
+                autoComplete="email"
+                value={contactEmail}
+                onChange={(event) => setContactEmail(event.target.value)}
+                placeholder="Your email (optional)"
+                className="mb-3 w-full rounded-xl border bg-transparent px-4 py-3 font-hand text-[16px] text-ink-dark outline-none"
+                style={{ borderColor: '#c8b89a', caretColor: '#6b4423' }}
+              />
+
+              <label htmlFor="contact-message" className="sr-only">Message</label>
+              <textarea
+                id="contact-message"
+                value={contactMessage}
+                onChange={(event) => setContactMessage(event.target.value)}
+                placeholder="Tell us what's on your mind..."
+                rows={4}
+                maxLength={4000}
+                className="mb-3 w-full resize-none rounded-xl border bg-transparent px-4 py-3 font-hand text-[16px] text-ink-dark outline-none"
+                style={{ borderColor: '#c8b89a', caretColor: '#6b4423' }}
+              />
+              <p className="mb-4 text-xs font-hand text-chalk-mark">
+                Your message and optional email are sent to our contact form provider.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleSendContact}
+                disabled={!contactMessage.trim() || isSendingContact}
+                className="w-full rounded-xl py-3 font-bold btn-primary disabled:opacity-50"
+              >
+                {isSendingContact ? 'Sending...' : 'Send Message'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

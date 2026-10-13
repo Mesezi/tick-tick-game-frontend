@@ -88,7 +88,7 @@ function AnswersTable({
       className="overflow-x-auto -mx-4 px-4 rounded-xl"
       style={{
         background: '#f5f0e8',
-        backgroundImage: `repeating-linear-gradient(transparent, transparent 31px, #d4c9b0 31px, #d4c9b0 32px)`,
+        // backgroundImage: `repeating-linear-gradient(transparent, transparent 31px, #d4c9b0 31px, #d4c9b0 32px)`,
         border: '2px solid #c8b89a',
       }}
     >

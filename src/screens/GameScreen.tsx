@@ -339,9 +339,11 @@ export function GameScreen() {
             );
           })}
         </div>
-      </div>
 
-      {/* STOP button */}
+
+
+
+        {/* STOP button */}
       {subPhase === 'input' && (
         <div className="px-5 pb-8 pb-safe pt-3 shrink-0">
           <motion.button
@@ -360,6 +362,9 @@ export function GameScreen() {
           </motion.button>
         </div>
       )}
+      </div>
+
+      
 
       {/* Grace period overlay */}
       <AnimatePresence>
@@ -535,7 +540,10 @@ function MyAnswersReveal({
             className="rounded-xl overflow-hidden"
             style={{
               background: statusConfig.bg,
-              backgroundImage: `repeating-linear-gradient(transparent, transparent 31px, #d4c9b0 31px, #d4c9b0 32px)`,
+      //         backgroundImage: `repeating-linear-gradient(      transparent,
+      // transparent 27px,
+      // rgba(180, 160, 125, 0.10) 27px,
+      // rgba(180, 160, 125, 0.10) 28px)`,
               border: `2px solid ${statusConfig.border}`,
             }}
           >
@@ -647,7 +655,7 @@ function ResultsTabsView({
                   className="rounded-xl overflow-hidden"
                   style={{
                     background: '#f5f0e8',
-                    backgroundImage: `repeating-linear-gradient(transparent, transparent 31px, #d4c9b0 31px, #d4c9b0 32px)`,
+                    // backgroundImage: `repeating-linear-gradient(transparent, transparent 31px, #d4c9b0 31px, #d4c9b0 32px)`,
                     border: '2px solid #c8b89a',
                   }}
                 >

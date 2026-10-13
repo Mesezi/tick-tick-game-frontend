@@ -17,6 +17,7 @@ export interface GameStore {
   session: {
     token: string;
     userId: string;
+    email: string | null;
     displayName: string | null;
     avatarId: string;
     isAuthenticated: boolean;
