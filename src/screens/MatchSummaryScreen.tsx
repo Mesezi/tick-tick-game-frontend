@@ -101,9 +101,9 @@ export function MatchSummaryScreen() {
 
     setIsSharing(true);
     try {
-      const svg = await apiClient.getShareCardSvg(roomCode);
-      const file = new File([svg], `tick-tick-${roomCode}-share-card.svg`, {
-        type: 'image/svg+xml',
+      const png = await apiClient.getShareCardPng(roomCode);
+      const file = new File([png], `tick-tick-${roomCode}-share-card.png`, {
+        type: 'image/png',
       });
 
       if (navigator.canShare?.({ files: [file] }) && navigator.share) {

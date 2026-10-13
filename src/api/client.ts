@@ -218,9 +218,9 @@ class ApiClient {
     return this.request<{ success: boolean; data: unknown }>(`/api/rooms/${code}`);
   }
 
-  async getShareCardSvg(roomCode: string): Promise<string> {
+  async getShareCardPng(roomCode: string): Promise<Blob> {
     const headers: Record<string, string> = {
-      Accept: 'image/svg+xml',
+      Accept: 'image/png',
     };
 
     if (this.token) {
@@ -237,12 +237,12 @@ class ApiClient {
       throw new ApiError(response.status, message || response.statusText, message);
     }
 
-    const svg = await response.text();
-    if (!svg.trim()) {
+    const png = await response.blob();
+    if (png.size === 0) {
       throw new Error('The share card response was empty.');
     }
 
-    return svg;
+    return png;
   }
 
   async leaveRoom(roomCode: string) {
