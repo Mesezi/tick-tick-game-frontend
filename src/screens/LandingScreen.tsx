@@ -540,6 +540,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [contactName, setContactName] = useState('');
   const [contactMessage, setContactMessage] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [isSendingContact, setIsSendingContact] = useState(false);
@@ -602,13 +603,15 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
   };
 
   const handleSendContact = async () => {
+    const name = contactName.trim();
     const message = contactMessage.trim();
-    if (!message || isSendingContact) return;
+    if (!name || !message || isSendingContact) return;
 
     setIsSendingContact(true);
     try {
       const formData = new FormData();
       const email = contactEmail.trim();
+      formData.append('name', name);
       if (email) formData.append('email', email);
       formData.append('message', message);
 
@@ -619,6 +622,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       });
       if (!response.ok) throw new Error(`Contact form submission failed (${response.status})`);
 
+      setContactName('');
       setContactMessage('');
       setContactEmail('');
       setShowContact(false);
@@ -925,6 +929,20 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
                 </button>
               </div>
 
+              <label htmlFor="contact-name" className="sr-only">Name (required)</label>
+              <input
+                id="contact-name"
+                type="text"
+                autoComplete="name"
+                maxLength={100}
+                required
+                value={contactName}
+                onChange={(event) => setContactName(event.target.value)}
+                placeholder="Your name (required)"
+                className="mb-3 w-full rounded-xl border bg-transparent px-4 py-3 font-hand text-[16px] text-ink-dark outline-none"
+                style={{ borderColor: '#c8b89a', caretColor: '#6b4423' }}
+              />
+
               <label htmlFor="contact-email" className="sr-only">Email (optional)</label>
               <input
                 id="contact-email"
@@ -955,7 +973,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={handleSendContact}
-                disabled={!contactMessage.trim() || isSendingContact}
+                disabled={!contactName.trim() || !contactMessage.trim() || isSendingContact}
                 className="w-full rounded-xl py-3 font-bold btn-primary disabled:opacity-50"
               >
                 {isSendingContact ? 'Sending...' : 'Send Message'}
