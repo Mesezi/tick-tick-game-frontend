@@ -40,7 +40,10 @@ function App() {
   const toastOnAction = useToastStore((s) => s.onAction);
   const dismissToast = useToastStore((s) => s.dismiss);
   const showToast = useToastStore((s) => s.show);
-  const { needRefresh: pwaNeedRefresh, updateServiceWorker } = useRegisterSW();
+  const {
+    needRefresh: [pwaNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW();
   const {
     isBooting,
     pendingRejoinRoom,
@@ -69,7 +72,7 @@ function App() {
     showToast('New version available. Tap to refresh.', 'info', {
       label: 'Refresh',
       onAction: () => {
-        void updateServiceWorker(true);
+        void updateServiceWorker();
       },
     });
   }, [pwaNeedRefresh, showToast, updateServiceWorker]);
