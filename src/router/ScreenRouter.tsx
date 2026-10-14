@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { deriveScreen } from './screenRouter';
 import type { Screen } from './screenRouter';
@@ -6,9 +7,14 @@ import { AvatarSetupScreen } from '../screens/AvatarSetupScreen';
 import { LobbyScreen } from '../screens/LobbyScreen';
 import { RoomLobbyScreen } from '../screens/RoomLobbyScreen';
 import { GameScreen } from '../screens/GameScreen';
-import { MatchSummaryScreen } from '../screens/MatchSummaryScreen';
 import { SaveProgressPrompt } from '../screens/SaveProgressPrompt';
 // import { LeaderboardScreen } from '../screens/LeaderboardScreen';
+
+const MatchSummaryScreen = lazy(() =>
+  import('../screens/MatchSummaryScreen').then(({ MatchSummaryScreen }) => ({
+    default: MatchSummaryScreen,
+  })),
+);
 
 const screenComponents: Record<Screen, React.ComponentType> = {
   'landing': LandingScreen,
@@ -35,5 +41,15 @@ export function ScreenRouter() {
   const activeScreen = deriveScreen({ session, room, round, matchResults, hasPassedLanding });
   const ScreenComponent = screenComponents[activeScreen];
 
-  return <ScreenComponent />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-1 items-center justify-center font-hand text-chalk-mark" role="status">
+          Loading...
+        </div>
+      }
+    >
+      <ScreenComponent />
+    </Suspense>
+  );
 }

@@ -143,6 +143,23 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 #root {
   max-width: 100%;
   margin: 0 auto;

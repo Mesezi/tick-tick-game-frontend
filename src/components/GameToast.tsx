@@ -17,6 +17,8 @@ interface GameToastProps {
   variant?: GameToastVariant;
   visible: boolean;
   toastId?: number;
+  actionLabel?: string;
+  onAction?: () => void;
   onDismiss: () => void;
   duration?: number;
 }
@@ -46,6 +48,8 @@ export function GameToast({
   variant = 'info',
   visible,
   toastId,
+  actionLabel,
+  onAction,
   onDismiss,
   duration = 3500,
 }: GameToastProps) {
@@ -55,11 +59,13 @@ export function GameToast({
   useEffect(() => {
     if (!visible) return;
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(onDismiss, duration);
+    if (!actionLabel) {
+      timerRef.current = setTimeout(onDismiss, duration);
+    }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [visible, toastId, duration, onDismiss]);
+  }, [visible, toastId, duration, onDismiss, actionLabel]);
 
   return (
     <AnimatePresence>
@@ -94,6 +100,23 @@ export function GameToast({
             >
               {message}
             </p>
+            {actionLabel && onAction ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onAction();
+                  onDismiss();
+                }}
+                className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-all active:scale-95"
+                style={{
+                  color: bg,
+                  background: accent,
+                  borderColor: accent,
+                }}
+              >
+                {actionLabel}
+              </button>
+            ) : null}
             <button
               onClick={onDismiss}
               className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-all active:scale-90"

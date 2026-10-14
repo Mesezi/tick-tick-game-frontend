@@ -7,6 +7,9 @@ import { initAnalytics } from './utils/analytics'
 
 initAnalytics();
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+void fetch(`${apiUrl}/health`, { mode: 'no-cors' }).catch(() => {});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

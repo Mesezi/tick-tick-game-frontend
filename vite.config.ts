@@ -44,11 +44,14 @@ export default defineConfig({
         ],
       },
       workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
         // Cache app shell and static assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Don't cache API or socket calls
-        navigateFallback: 'index.html',
+        navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/],
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             // Cache audio files with CacheFirst since they rarely change

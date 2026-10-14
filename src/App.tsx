@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, Home } from 'lucide-react';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 import { ScreenRouter } from './router/ScreenRouter.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConnectionLostOverlay } from './components/ConnectionLostOverlay';
 import { RejoinLoadingOverlay } from './components/RejoinLoadingOverlay';
 import { RejoinPrompt } from './components/RejoinPrompt';
 import { GameToast } from './components/GameToast';
-import { BootScreen } from './components/BootScreen';
 import { useToastStore } from './components/toastStore';
 import { useGameStore } from './store/gameStore';
 import { socketHandler } from './socket/socketHandler';
@@ -34,6 +34,7 @@ function App() {
 
   const toast = useToastStore();
   const showToast = useToastStore((s) => s.show);
+  const { needRefresh: pwaNeedRefresh, updateServiceWorker } = useRegisterSW();
   const {
     isBooting,
     pendingRejoinRoom,
@@ -49,6 +50,17 @@ function App() {
       setPendingRejoinRoom(null);
     }
   }, [room, pendingRejoinRoom, setPendingRejoinRoom]);
+
+  useEffect(() => {
+    if (!pwaNeedRefresh || toast.visible) return;
+
+    toast.show('New version available. Tap to refresh.', 'info', {
+      label: 'Refresh',
+      onAction: () => {
+        updateServiceWorker(true);
+      },
+    });
+  }, [pwaNeedRefresh, toast, updateServiceWorker]);
 
   useEffect(() => {
     if (!isRejoining) return;
@@ -71,6 +83,7 @@ function App() {
     if (room?.roomCode !== inviteRoomCode || !inviteRoomCode) return;
     setInviteRoomCode(null);
     sessionStorage.removeItem(INVITE_ROOM_STORAGE_KEY);
+    window.history.replaceState(window.history.state, '', '/');
   }, [room?.roomCode, inviteRoomCode, setInviteRoomCode]);
 
   useEffect(() => {
@@ -132,8 +145,17 @@ function App() {
     const store = useGameStore.getState();
     const currentSession = store.session;
     const currentRoom = store.room;
+    if (
+      currentRoom?.status === 'in_progress' &&
+      !store.matchResults &&
+      !window.confirm('Leave this match? You may not be able to rejoin.')
+    ) {
+      return;
+    }
     if (currentRoom?.roomCode && currentSession?.token) {
-      apiClient.leaveRoom(currentRoom.roomCode).catch(() => {});
+      apiClient.leaveRoom(currentRoom.roomCode).catch((error: unknown) => {
+        console.warn('[App] Leave room failed:', error);
+      });
     }
     const roomPlayer = currentRoom?.players.find((player) => player.userId === currentSession?.userId);
     const homeSession = currentSession
@@ -145,6 +167,9 @@ function App() {
       : null;
     store.resetToHome(homeSession);
     setPendingRejoinRoom(null);
+    setInviteRoomCode(null);
+    sessionStorage.removeItem(INVITE_ROOM_STORAGE_KEY);
+    window.history.replaceState(window.history.state, '', '/');
   };
 
   const handleGoBack = async () => {
@@ -172,6 +197,34 @@ function App() {
     const sess = useGameStore.getState().session;
     if (sess?.token) socketHandler.connect(SOCKET_URL, sess.token);
   };
+
+  const navigationRef = useRef({ activeScreen, handleGoBack, handleGoHome, isBooting });
+  useEffect(() => {
+    navigationRef.current = { activeScreen, handleGoBack, handleGoHome, isBooting };
+  });
+
+  useEffect(() => {
+    if (window.history.state?.tickTickNavigation !== true) {
+      window.history.pushState({ tickTickNavigation: true }, '', window.location.href);
+    }
+
+    const handlePopState = () => {
+      const navigation = navigationRef.current;
+      if (!navigation.isBooting && navigation.activeScreen === 'landing') return;
+
+      window.history.pushState({ tickTickNavigation: true }, '', window.location.href);
+      if (navigation.isBooting) return;
+
+      if (navigation.activeScreen === 'avatar-setup' || navigation.activeScreen === 'room-lobby') {
+        void navigation.handleGoBack();
+      } else {
+        navigation.handleGoHome();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleRejoin = () => {
     if (!pendingRejoinRoom) return;
@@ -254,9 +307,9 @@ function App() {
           </header>
         )}
 
-        {!showNavigation && showConnectionProblem && (
+        {!showNavigation && (isBooting || showConnectionProblem) && (
           <div
-            className="absolute right-4 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+            className="absolute left-4 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
             style={{
               top: 'max(16px, env(safe-area-inset-top, 16px))',
               background: 'rgba(245,240,232,0.9)',
@@ -264,43 +317,51 @@ function App() {
               backdropFilter: 'blur(8px)',
             }}
             role="status"
-            aria-label={connectionStatus === 'degraded' ? 'Connection slow' : 'Offline'}
+            aria-label={
+              isBooting
+                ? 'Connecting'
+                : connectionStatus === 'degraded'
+                  ? 'Connection slow'
+                  : 'Offline'
+            }
           >
             <div
               className="w-1.5 h-1.5 rounded-full"
               style={{
-                background: connectionStatus === 'degraded' ? '#d97706' : '#c0392b',
+                background: isBooting || connectionStatus === 'degraded' ? '#d97706' : '#c0392b',
                 animation: 'pulse-dot 2s ease-in-out infinite',
               }}
             />
             <span
               className="text-sm font-bold tracking-widest font-hand"
-              style={{ color: connectionStatus === 'degraded' ? '#d97706' : '#c0392b' }}
+              style={{
+                color: isBooting || connectionStatus === 'degraded' ? '#d97706' : '#c0392b',
+              }}
             >
-              {connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
+              {isBooting
+                ? 'CONNECTING...'
+                : connectionStatus === 'degraded'
+                  ? 'SLOW'
+                  : 'OFFLINE'}
             </span>
           </div>
         )}
 
         {/* Main content */}
         <AnimatePresence mode="wait">
-          {isBooting ? (
-            <BootScreen key="boot" />
-          ) : (
-            <motion.div
-              key={activeScreen}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-              className="flex-1 overflow-y-auto flex flex-col"
-               style={{ scrollbarWidth: 'none' }}
-            >
-              <ErrorBoundary>
-                <ScreenRouter />
-              </ErrorBoundary>
-            </motion.div>
-          )}
+          <motion.div
+            key={activeScreen}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+            className="flex-1 overflow-y-auto flex flex-col"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            <ErrorBoundary>
+              <ScreenRouter />
+            </ErrorBoundary>
+          </motion.div>
         </AnimatePresence>
 
         {/* Rejoin prompt */}
@@ -323,6 +384,8 @@ function App() {
         variant={toast.variant}
         visible={toast.visible}
         toastId={toast._id}
+        actionLabel={toast.actionLabel}
+        onAction={toast.onAction}
         onDismiss={toast.dismiss}
       />
 
