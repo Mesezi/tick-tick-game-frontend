@@ -260,7 +260,7 @@ export function GameScreen() {
 
         {/* Circular chalk timer */}
         <div className="flex justify-end">
-          <div className="relative h-16 w-16 shrink-0">
+          <div className="relative h-[64px] w-[64px] shrink-0">
             <svg
               className="absolute inset-0 block"
               width="64"
@@ -280,7 +280,7 @@ export function GameScreen() {
               />
             </svg>
             <span
-              className="absolute inset-0 flex items-center justify-center font-display text-[22px] leading-none tabular-nums"
+              className="absolute inset-0 flex items-center justify-center font-display text-[20px] leading-none tabular-nums"
               style={{ color: timerColor, transition: 'color 0.3s ease' }}
             >
               {timer}

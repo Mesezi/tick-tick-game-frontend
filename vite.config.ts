@@ -11,8 +11,8 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      registerType: 'prompt',
+      injectRegister: null,
       includeAssets: ['favicon.svg', 'icons.svg', 'tick-tick-logo.png', 'audio/*.mp3'],
       manifest: {
         name: 'Tick Tick — Multiplayer Word Game',
@@ -44,8 +44,6 @@ export default defineConfig({
         ],
       },
       workbox: {
-        clientsClaim: true,
-        skipWaiting: true,
         // Cache app shell and static assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Don't cache API or socket calls

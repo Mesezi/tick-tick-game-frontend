@@ -32,7 +32,13 @@ function App() {
   const matchResults = useGameStore((s) => s.matchResults);
   const hasPassedLanding = useGameStore((s) => s.hasPassedLanding);
 
-  const toast = useToastStore();
+  const toastMessage = useToastStore((s) => s.message);
+  const toastVariant = useToastStore((s) => s.variant);
+  const toastVisible = useToastStore((s) => s.visible);
+  const toastId = useToastStore((s) => s._id);
+  const toastActionLabel = useToastStore((s) => s.actionLabel);
+  const toastOnAction = useToastStore((s) => s.onAction);
+  const dismissToast = useToastStore((s) => s.dismiss);
   const showToast = useToastStore((s) => s.show);
   const { needRefresh: pwaNeedRefresh, updateServiceWorker } = useRegisterSW();
   const {
@@ -43,6 +49,7 @@ function App() {
     setInviteRoomCode,
   } = useAppInit();
   const inviteJoinAttempt = useRef<string | null>(null);
+  const pwaUpdatePromptShown = useRef(false);
   useSoundInit();
 
   useEffect(() => {
@@ -52,15 +59,20 @@ function App() {
   }, [room, pendingRejoinRoom, setPendingRejoinRoom]);
 
   useEffect(() => {
-    if (!pwaNeedRefresh || toast.visible) return;
+    if (!pwaNeedRefresh) {
+      pwaUpdatePromptShown.current = false;
+      return;
+    }
+    if (pwaUpdatePromptShown.current) return;
 
-    toast.show('New version available. Tap to refresh.', 'info', {
+    pwaUpdatePromptShown.current = true;
+    showToast('New version available. Tap to refresh.', 'info', {
       label: 'Refresh',
       onAction: () => {
-        updateServiceWorker(true);
+        void updateServiceWorker(true);
       },
     });
-  }, [pwaNeedRefresh, toast, updateServiceWorker]);
+  }, [pwaNeedRefresh, showToast, updateServiceWorker]);
 
   useEffect(() => {
     if (!isRejoining) return;
@@ -380,13 +392,13 @@ function App() {
       </div>
 
       <GameToast
-        message={toast.message}
-        variant={toast.variant}
-        visible={toast.visible}
-        toastId={toast._id}
-        actionLabel={toast.actionLabel}
-        onAction={toast.onAction}
-        onDismiss={toast.dismiss}
+        message={toastMessage}
+        variant={toastVariant}
+        visible={toastVisible}
+        toastId={toastId}
+        actionLabel={toastActionLabel}
+        onAction={toastOnAction}
+        onDismiss={dismissToast}
       />
 
       {connectionStatus === 'disconnected' && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && (

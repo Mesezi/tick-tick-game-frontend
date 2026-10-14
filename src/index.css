@@ -144,11 +144,11 @@
 }
 
 * {
-  overscroll-behavior: none;
+  /* overscroll-behavior: none; */
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
-  touch-action: manipulation;
+  /* touch-action: manipulation; */
   user-select: none;
 }
 

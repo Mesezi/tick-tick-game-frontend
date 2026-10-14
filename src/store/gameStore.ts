@@ -205,6 +205,7 @@ export const useGameStore = create<GameStore>()(
     },
 
     setConnection: (connection) => {
+      console.log('Updating connection state:', connection);
       set({ connection: { ...get().connection, ...connection } });
     },
 
