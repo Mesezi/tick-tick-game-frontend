@@ -7,6 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConnectionLostOverlay } from './components/ConnectionLostOverlay';
 import { RejoinLoadingOverlay } from './components/RejoinLoadingOverlay';
 import { RejoinPrompt } from './components/RejoinPrompt';
+import { BootScreen } from './components/BootScreen';
 import { GameToast } from './components/GameToast';
 import { useToastStore } from './components/toastStore';
 import { useGameStore } from './store/gameStore';
@@ -364,19 +365,23 @@ function App() {
 
         {/* Main content */}
         <AnimatePresence mode="wait">
-          <motion.div
-            key={activeScreen}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-            className="flex-1 overflow-y-auto flex flex-col"
-            style={{ scrollbarWidth: 'none' }}
-          >
-            <ErrorBoundary>
-              <ScreenRouter />
-            </ErrorBoundary>
-          </motion.div>
+          {isBooting ? (
+            <BootScreen key="boot" />
+          ) : (
+            <motion.div
+              key={activeScreen}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+              className="flex-1 overflow-y-auto flex flex-col"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              <ErrorBoundary>
+                <ScreenRouter />
+              </ErrorBoundary>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* Rejoin prompt */}
