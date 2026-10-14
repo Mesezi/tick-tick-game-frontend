@@ -46,6 +46,22 @@
         background: #4a3520;
       }
 
+      html,
+      body,
+      #root {
+        background: #4a3520;
+      }
+
+      body {
+        min-height: 100dvh;
+        padding:
+          max(0.75rem, env(safe-area-inset-top))
+          max(0.75rem, env(safe-area-inset-right))
+          max(0.75rem, env(safe-area-inset-bottom))
+          max(0.75rem, env(safe-area-inset-left));
+        box-sizing: border-box;
+      }
+
       #root {
         min-height: 100dvh;
       }
@@ -58,9 +74,22 @@
         align-items: center;
         justify-content: center;
         gap: 1.25rem;
+        z-index: 10;
+        padding:
+          env(safe-area-inset-top)
+          env(safe-area-inset-right)
+          env(safe-area-inset-bottom)
+          env(safe-area-inset-left);
         background: #4a3520;
         color: #8b5e3c;
         font: bold 18px system-ui, sans-serif;
+        transition: opacity 220ms ease, visibility 220ms ease;
+      }
+
+      html.app-ready .startup-fallback {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
       }
 
       .startup-fallback img {
@@ -131,17 +160,16 @@
     </script>
   </head>
   <body>
-    <div id="root">
-      <div class="startup-fallback" role="status" aria-label="Loading Tick Tick">
-        <img src="/tick-tick-logo.png" alt="" />
-        <div class="startup-fallback-dots" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <span>Loading...</span>
+    <div class="startup-fallback" role="status" aria-label="Loading Tick Tick">
+      <img src="/tick-tick-logo.png" alt="" />
+      <div class="startup-fallback-dots" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
       </div>
+      <span>Loading...</span>
     </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

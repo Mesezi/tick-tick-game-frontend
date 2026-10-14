@@ -26,3 +26,7 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+requestAnimationFrame(() => {
+  document.documentElement.classList.add('app-ready');
+});
