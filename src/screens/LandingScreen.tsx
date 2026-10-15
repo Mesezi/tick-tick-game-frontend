@@ -695,7 +695,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
             <Pencil className="w-3.5 h-3.5" />
             Edit Profile
           </button>
-          {!session?.isAuthenticated && (
+          {session?.email == null && !session?.isAuthenticated && (
             <button
               onClick={() => apiClient.redirectToGoogle()}
               className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 btn-ghost text-chalk-board!"

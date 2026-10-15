@@ -13,7 +13,6 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: null,
-      includeAssets: ['favicon.svg', 'icons.svg', 'tick-tick-logo.png', 'audio/*.mp3'],
       manifest: {
         name: 'Tick Tick — Multiplayer Word Game',
         short_name: 'Tick Tick',
@@ -40,25 +39,6 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',
-          },
-        ],
-      },
-      workbox: {
-        // Cache app shell and static assets
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Don't cache API or socket calls
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/],
-        cleanupOutdatedCaches: true,
-        runtimeCaching: [
-          {
-            // Cache audio files with CacheFirst since they rarely change
-            urlPattern: /\.mp3$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'audio-cache',
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
           },
         ],
       },
