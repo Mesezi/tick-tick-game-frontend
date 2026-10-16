@@ -3,8 +3,9 @@ import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { registerEventHandlers, unregisterEventHandlers } from '../socket/eventHandlers';
 import { persistenceLayer } from '../persistence/persistenceLayer';
-import { apiClient } from '../api/client';
+import { ApiError, apiClient } from '../api/client';
 import { identifyUser, track } from '../utils/analytics';
+import { showToast } from '../components/toastStore';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const INVITE_ROOM_STORAGE_KEY = 'tick-tick-invite-room';
@@ -71,10 +72,11 @@ export function useAppInit() {
       if (code) {
         // Clean URL immediately so a refresh doesn't reprocess
         window.history.replaceState({}, '', window.location.pathname);
+        // Keep the pre-OAuth session available if account linking is rejected.
+        const existingToken = persistenceLayer.loadToken();
 
         try {
           // If a guest token exists, send it so backend can link accounts
-          const existingToken = persistenceLayer.loadToken();
           if (existingToken) apiClient.setToken(existingToken);
 
           const res = await apiClient.googleLogin(code);
@@ -100,7 +102,41 @@ export function useAppInit() {
           useGameStore.getState().setHasPassedLanding(true);
         } catch (err) {
           console.error('[AppInit] Google OAuth exchange failed:', err);
-          // Clear code params and fall through — user lands on landing screen
+          const failureMessage = err instanceof Error
+            ? err.message
+            : 'Google sign-in failed. Please try again.';
+          showToast(
+            err instanceof ApiError && err.status === 409
+              ? `${failureMessage}. Your current session is still active.`
+              : failureMessage,
+            'error',
+          );
+          // A conflict means this Google account belongs to a different user.
+          // Rehydrate the original session after the OAuth page reload.
+          if (err instanceof ApiError && err.status === 409 && existingToken) {
+            try {
+              apiClient.setToken(existingToken);
+              const meRes = await apiClient.getCurrentUser();
+              const { user } = meRes.data;
+              useGameStore.getState().setSession({
+                token: existingToken,
+                userId: user.id,
+                email: user.email,
+                displayName: user.displayName,
+                avatarId: user.avatarId ?? '',
+                isAuthenticated: user.type === 'GOOGLE',
+                deviceId: persistenceLayer.getDeviceId(),
+              });
+              identifyUser(user.id, { type: user.type, displayName: user.displayName });
+              socketHandler.connect(SOCKET_URL, existingToken);
+              useGameStore.getState().setHasPassedLanding(true);
+              if (meRes.data.activeRoom && !inviteCode) {
+                setPendingRejoinRoom(meRes.data.activeRoom);
+              }
+            } catch (restoreError) {
+              console.error('[AppInit] Could not restore session after Google account conflict:', restoreError);
+            }
+          }
         }
         return;
       }

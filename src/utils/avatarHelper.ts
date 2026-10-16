@@ -7,7 +7,6 @@ export const AVATAR_PORTRAITS = [
   { id: 'bookworm-boy', label: 'Bookworm boy', src: '/avatars/bookworm%20boy.png' },
   { id: 'boy', label: 'Boy', src: '/avatars/boy.png' },
   { id: 'chef-girl', label: 'Chef girl', src: '/avatars/chef%20girl.png' },
-  { id: 'chef', label: 'Chef', src: '/avatars/chef.png' },
   { id: 'energy-boy', label: 'Energy boy', src: '/avatars/energy%20boy.png' },
   { id: 'female-athlete', label: 'Female athlete', src: '/avatars/female%20athlete.png' },
   { id: 'girl-bookworm', label: 'Girl bookworm', src: '/avatars/girl%20bookworm.png' },
