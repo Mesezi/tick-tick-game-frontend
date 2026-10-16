@@ -22,6 +22,17 @@ function roundedRect(
   context.roundRect(x, y, width, height, radius);
 }
 
+async function loadShareCardLogo(): Promise<HTMLImageElement | null> {
+  const image = new Image();
+  image.src = '/tick-tick-logo.png';
+  try {
+    await image.decode();
+    return image;
+  } catch {
+    return null;
+  }
+}
+
 /** Render the server-provided match summary data into a shareable PNG. */
 export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
   if (typeof document === 'undefined') {
@@ -33,6 +44,14 @@ export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
   canvas.height = HEIGHT;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Could not create a canvas to render the share card.');
+
+  // Canvas does not wait for CSS web fonts automatically. Load the app's
+  // heading/body fonts and logo before drawing so the exported PNG is branded.
+  await Promise.all([
+    document.fonts.load('400 30px "Patrick Hand"'),
+    document.fonts.load('400 30px "Dela Gothic One"'),
+  ]);
+  const logo = await loadShareCardLogo();
 
   context.fillStyle = '#f5f0e8';
   context.fillRect(0, 0, WIDTH, HEIGHT);
@@ -47,11 +66,17 @@ export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
 
   context.textAlign = 'center';
   context.fillStyle = '#f5f0e8';
-  context.font = 'bold 34px Arial, sans-serif';
-  context.fillText('TICK TICK', WIDTH / 2, 105);
-  context.font = 'bold 68px Arial, sans-serif';
+  if (logo) {
+    const logoHeight = 145;
+    const logoWidth = Math.min(410, (logo.width / logo.height) * logoHeight);
+    context.drawImage(logo, (WIDTH - logoWidth) / 2, 22, logoWidth, logoHeight);
+  } else {
+    context.font = '400 38px "Dela Gothic One", sans-serif';
+    context.fillText('TICK TICK', WIDTH / 2, 105);
+  }
+  context.font = '400 56px "Dela Gothic One", sans-serif';
   context.fillText('MATCH RESULTS', WIDTH / 2, 198);
-  context.font = '28px Arial, sans-serif';
+  context.font = '400 30px "Patrick Hand", sans-serif';
   context.fillStyle = '#ead8bd';
   context.fillText(
     `ROOM ${data.roomCode}  ·  ${data.roundsPlayed} ROUNDS  ·  ${formatDuration(data.durationMs)}`,
@@ -61,7 +86,7 @@ export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
 
   context.textAlign = 'left';
   context.fillStyle = '#6b4423';
-  context.font = 'bold 30px Arial, sans-serif';
+  context.font = '400 34px "Dela Gothic One", sans-serif';
   context.fillText('FINAL STANDINGS', 88, 405);
 
   const players = data.players.slice(0, 8);
@@ -82,15 +107,15 @@ export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
 
     context.textAlign = 'left';
     context.fillStyle = '#6b4423';
-    context.font = 'bold 28px Arial, sans-serif';
+    context.font = '400 30px "Dela Gothic One", sans-serif';
     context.fillText(`#${player.rank}`, 100, y + standingsRowHeight / 2 + 10);
     context.fillStyle = '#21180f';
-    context.font = 'bold 30px Arial, sans-serif';
+    context.font = '400 34px "Patrick Hand", sans-serif';
     context.fillText(player.displayName, 205, y + standingsRowHeight / 2 + 10, 560);
 
     context.textAlign = 'right';
     context.fillStyle = '#6b4423';
-    context.font = 'bold 30px Arial, sans-serif';
+    context.font = '400 34px "Dela Gothic One", sans-serif';
     context.fillText(String(player.totalScore), WIDTH - 104, y + standingsRowHeight / 2 + 10);
   });
 
@@ -104,7 +129,7 @@ export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
     const headingY = standingsBottom + 82;
     context.textAlign = 'left';
     context.fillStyle = '#6b4423';
-    context.font = 'bold 30px Arial, sans-serif';
+    context.font = '400 34px "Dela Gothic One", sans-serif';
     context.fillText('TOP SCORING WORDS', 88, headingY);
 
     const highlightsTop = headingY + 32;
@@ -120,13 +145,13 @@ export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
 
       context.textAlign = 'left';
       context.fillStyle = '#6b4423';
-      context.font = 'bold 24px Arial, sans-serif';
+      context.font = '400 28px "Dela Gothic One", sans-serif';
       context.fillText(`#${highlight.rank}`, 98, y + 38);
       context.fillStyle = '#21180f';
-      context.font = 'bold 38px Arial, sans-serif';
+      context.font = '400 40px "Patrick Hand", sans-serif';
       context.fillText(highlight.word, 190, y + 48, 600);
       context.fillStyle = '#8b5e3c';
-      context.font = '22px Arial, sans-serif';
+      context.font = '400 26px "Patrick Hand", sans-serif';
       context.fillText(
         `${highlight.playerName}  ·  ${highlight.category}  ·  ${highlight.letter}  ·  Round ${highlight.roundNumber}`,
         190,
@@ -135,7 +160,7 @@ export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
       );
       context.textAlign = 'right';
       context.fillStyle = '#6b4423';
-      context.font = 'bold 30px Arial, sans-serif';
+      context.font = '400 34px "Dela Gothic One", sans-serif';
       context.fillText(`+${highlight.score}`, WIDTH - 102, y + 68);
       contentBottom = y + highlightHeight;
     });
@@ -143,7 +168,7 @@ export async function renderShareCardPng(data: ShareCardData): Promise<Blob> {
 
   context.textAlign = 'center';
   context.fillStyle = '#8b5e3c';
-  context.font = '24px Arial, sans-serif';
+  context.font = '400 28px "Patrick Hand", sans-serif';
   context.fillText(
     'Play with friends at playticktick.com',
     WIDTH / 2,
