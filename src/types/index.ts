@@ -78,7 +78,10 @@ export interface AnswerResult {
 }
 
 export interface PlayerRoundResult {
+  /** Room-scoped player identifier used by existing game events. */
   playerId: string;
+  /** Account or guest user identifier used to identify this player across views. */
+  userId: string;
   displayName: string;
   avatarId: string;
   roundScore: number;
@@ -107,6 +110,28 @@ export interface MatchSummaryPayload {
   allPlayers: { playerId: string; displayName: string; avatarId: string; totalScore: number }[];
   totalDuration: number; // ms
   shareCardUrl: string;
+}
+
+/** Data contract returned by GET /api/rooms/:code/share-card. */
+export interface ShareCardData {
+  schemaVersion: 2;
+  roomCode: string;
+  durationMs: number;
+  roundsPlayed: number;
+  players: {
+    rank: number;
+    displayName: string;
+    totalScore: number;
+  }[];
+  highlights: {
+    rank: number;
+    playerName: string;
+    word: string;
+    category: string;
+    letter: string;
+    roundNumber: number;
+    score: number;
+  }[];
 }
 
 export interface PlayerConnectedPayload {

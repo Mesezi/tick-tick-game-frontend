@@ -152,6 +152,25 @@
   user-select: none;
 }
 
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #6b4423 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #6b4423;
+  border-radius: 999px;
+}
+
 input,
 textarea,
 [contenteditable="true"] {

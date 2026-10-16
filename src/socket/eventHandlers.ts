@@ -331,7 +331,10 @@ function handleRoundLocked(payload: unknown): void {
  */
 function handleRoundResults(payload: unknown): void {
   const data = payload as RoundResultsPayload;
-  if (!data?.players) {
+  if (
+    !Array.isArray(data?.players) ||
+    data.players.some((player) => typeof player.userId !== 'string' || !player.userId)
+  ) {
     console.error('[EventHandler] Invalid round-results payload:', payload);
     return;
   }

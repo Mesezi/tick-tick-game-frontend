@@ -1,29 +1,34 @@
-/**
- * Avatar helper - Resolves a player's avatar emoji from their avatarId.
- * Falls back to a hash-based assignment if avatarId is empty/missing.
- */
+/** Existing emoji choices remain available alongside the portrait PNGs. */
+export const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'] as const;
 
-const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'];
+export const AVATAR_PORTRAITS = [
+  { id: 'artist-boy', label: 'Artist boy', src: '/avatars/artist%20boy.png' },
+  { id: 'bell-ringer', label: 'Bell ringer', src: '/avatars/bell%20ringer.png' },
+  { id: 'bookworm-boy', label: 'Bookworm boy', src: '/avatars/bookworm%20boy.png' },
+  { id: 'boy', label: 'Boy', src: '/avatars/boy.png' },
+  { id: 'chef-girl', label: 'Chef girl', src: '/avatars/chef%20girl.png' },
+  { id: 'chef', label: 'Chef', src: '/avatars/chef.png' },
+  { id: 'energy-boy', label: 'Energy boy', src: '/avatars/energy%20boy.png' },
+  { id: 'female-athlete', label: 'Female athlete', src: '/avatars/female%20athlete.png' },
+  { id: 'girl-bookworm', label: 'Girl bookworm', src: '/avatars/girl%20bookworm.png' },
+  { id: 'head-boy', label: 'Head boy', src: '/avatars/head%20boy.png' },
+  { id: 'head-girl', label: 'Head girl', src: '/avatars/head%20girl.png' },
+  { id: 'rebel', label: 'Rebel', src: '/avatars/rebel.png' },
+  { id: 'scientist-girl', label: 'Scientist girl', src: '/avatars/scientist%20girl.png' },
+] as const;
 
-/**
- * Get a player's avatar emoji. Uses their avatarId directly if it's a valid emoji
- * from our set, otherwise falls back to a hash-based consistent assignment.
- */
-export function getPlayerAvatar(avatarId?: string, fallbackId?: string): string {
-  // Direct match — avatarId is the emoji itself
-  if (avatarId && AVATARS.includes(avatarId)) {
-    return avatarId;
-  }
+const PORTRAIT_BY_ID = new Map(AVATAR_PORTRAITS.map((portrait) => [portrait.id, portrait]));
 
-  // Fallback id (e.g. userId) to generate a consistent avatar
-  const id = avatarId || fallbackId || '';
-  if (!id) return '🎮';
-
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
-  }
-  return AVATARS[Math.abs(hash) % AVATARS.length];
+export function getAvatarPortrait(avatarId?: string) {
+  return avatarId ? PORTRAIT_BY_ID.get(avatarId) : undefined;
 }
 
-export { AVATARS };
+/** Resolve an emoji avatar, with a stable fallback for unknown or missing IDs. */
+export function getPlayerAvatar(avatarId?: string, fallbackId?: string): string {
+  if (avatarId && (AVATARS as readonly string[]).includes(avatarId)) return avatarId;
+  const id = avatarId || fallbackId || '';
+  if (!id) return '🎮';
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+  return AVATARS[Math.abs(hash) % AVATARS.length];
+}

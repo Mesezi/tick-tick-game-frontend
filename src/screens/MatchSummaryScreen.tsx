@@ -4,9 +4,10 @@ import { Crown, RotateCcw, Share2, Home, Check, X } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
-import { getPlayerAvatar } from '../utils/avatarHelper';
+import { AvatarDisplay } from '../components/AvatarDisplay';
 import { showToast } from '../components/toastStore';
 import { playSound } from '../audio/soundManager';
+import { renderShareCardPng } from '../utils/shareCard';
 
 const REMATCH_TIMEOUT_S = 30;
 const ROOM_RETENTION_MS = 60_000;
@@ -101,7 +102,8 @@ export function MatchSummaryScreen() {
 
     setIsSharing(true);
     try {
-      const png = await apiClient.getShareCardPng(roomCode);
+      const cardData = await apiClient.getShareCardData(roomCode);
+      const png = await renderShareCardPng(cardData);
       const file = new File([png], `tick-tick-${roomCode}-share-card.png`, {
         type: 'image/png',
       });
@@ -255,7 +257,7 @@ export function MatchSummaryScreen() {
                       {rank}
                     </span>
                     <span className="text-xl leading-none">
-                      {getPlayerAvatar(p.avatarId, p.playerId)}
+                      <AvatarDisplay avatarId={p.avatarId} fallbackId={p.playerId} className="h-full w-full object-contain" />
                     </span>
                     <span
                       className={`flex-1 min-w-0 truncate text-[15px] font-bold font-hand ${
@@ -446,7 +448,7 @@ function PodiumSlot({
       </div>
 
       <span className={`${s.avatar} leading-none`}>
-        {getPlayerAvatar(player.avatarId, player.playerId)}
+        <AvatarDisplay avatarId={player.avatarId} fallbackId={player.playerId} className="h-16 w-16 object-contain" />
       </span>
 
       <p className="mt-1.5 mb-2 w-full truncate text-center text-[14px] font-bold font-hand text-ink-dark">

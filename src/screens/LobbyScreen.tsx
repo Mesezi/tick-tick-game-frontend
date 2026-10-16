@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { BookOpen, CheckCircle, KeyRound, Pencil, PenLine, Users, Zap } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
+import { AvatarDisplay } from '../components/AvatarDisplay';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
 import { useCategoryPacks } from '../api/queries';
@@ -121,7 +122,7 @@ export function LobbyScreen() {
         style={{ borderBottom: '2px solid rgba(107,68,35,0.6)' }}
       >
         <div className="flex items-center gap-2.5">
-          <span className="text-2xl leading-none">{session?.avatarId || '🦁'}</span>
+          <AvatarDisplay avatarId={session?.avatarId} className="h-8 w-8 shrink-0 object-contain text-2xl" />
           <div className="flex-1 min-w-0">
             <h2 className="font-display text-[22px] leading-tight">
               Game Lobby

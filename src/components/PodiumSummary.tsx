@@ -1,5 +1,5 @@
 import type { PodiumSummaryProps } from '../types';
-import { PlayerAvatar } from './PlayerAvatar';
+import { AvatarDisplay } from './AvatarDisplay';
 import { Crown, Medal } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -76,7 +76,7 @@ export function PodiumSummary({ podium, currentPlayerId }: PodiumSummaryProps) {
                     borderRadius: '50%',
                   }}
                 >
-                  <PlayerAvatar avatarKey={player.playerId} size={isFirst ? 64 : 48} />
+                  <AvatarDisplay avatarId={player.avatarId} fallbackId={player.playerId} className={`object-contain ${isFirst ? 'h-16 w-16 text-5xl' : 'h-12 w-12 text-4xl'}`} />
                 </div>
 
                 {/* Name */}
@@ -136,7 +136,7 @@ export function PodiumSummary({ podium, currentPlayerId }: PodiumSummaryProps) {
                 <span className="text-lg shrink-0 w-8 flex items-center justify-center" aria-hidden="true">
                   {getRankLabel(player.rank)}
                 </span>
-                <PlayerAvatar avatarKey={player.playerId} size={36} />
+                <AvatarDisplay avatarId={player.avatarId} fallbackId={player.playerId} className="h-9 w-9 shrink-0 object-contain text-2xl" />
                 <span
                   className={`flex-1 font-semibold truncate font-hand ${isMe ? 'text-desk' : 'text-chalk-white'}`}
                 >

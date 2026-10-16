@@ -1,3 +1,5 @@
+import type { ShareCardData } from '../types';
+
 /**
  * REST API client for the Naija Categories Game backend.
  * Handles auth, room management, categories, and leaderboards.
@@ -218,31 +220,37 @@ class ApiClient {
     return this.request<{ success: boolean; data: unknown }>(`/api/rooms/${code}`);
   }
 
-  async getShareCardPng(roomCode: string): Promise<Blob> {
-    const headers: Record<string, string> = {
-      Accept: 'image/png',
-    };
-
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    const response = await fetch(
-      `${API_URL}/api/rooms/${encodeURIComponent(roomCode)}/share-card`,
-      { headers },
+  async getShareCardData(roomCode: string): Promise<ShareCardData> {
+    const response = await this.request<{ success: boolean; data: ShareCardData }>(
+      `/api/rooms/${encodeURIComponent(roomCode)}/share-card`,
+      { headers: { Accept: 'application/json' } },
     );
-
-    if (!response.ok) {
-      const message = await response.text();
-      throw new ApiError(response.status, message || response.statusText, message);
+    const card = response.data;
+    if (
+      card?.schemaVersion !== 2 ||
+      card.roomCode !== roomCode ||
+      !Number.isFinite(card.durationMs) ||
+      !Number.isFinite(card.roundsPlayed) ||
+      !Array.isArray(card.players) ||
+      !Array.isArray(card.highlights) ||
+      card.players.some((player) =>
+        !Number.isFinite(player.rank) ||
+        typeof player.displayName !== 'string' ||
+        !Number.isFinite(player.totalScore),
+      ) ||
+      card.highlights.some((highlight) =>
+        !Number.isFinite(highlight.rank) ||
+        typeof highlight.playerName !== 'string' ||
+        typeof highlight.word !== 'string' ||
+        typeof highlight.category !== 'string' ||
+        typeof highlight.letter !== 'string' ||
+        !Number.isFinite(highlight.roundNumber) ||
+        !Number.isFinite(highlight.score),
+      )
+    ) {
+      throw new Error('The share card response has an invalid format.');
     }
-
-    const png = await response.blob();
-    if (png.size === 0) {
-      throw new Error('The share card response was empty.');
-    }
-
-    return png;
+    return card;
   }
 
   async leaveRoom(roomCode: string) {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ReconnectBannerProps } from '../types';
 import { calcRemainingSeconds } from '../utils/timer';
+import { AvatarDisplay } from './AvatarDisplay';
 
 /**
  * ReconnectBanner — classroom notice for disconnected players.
@@ -49,13 +50,11 @@ export function ReconnectBanner({
       }}
     >
       {/* Avatar */}
-      <span
-        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold font-hand text-chalk-white"
-        style={{ background: 'rgba(107,68,35,0.16)' }}
-        aria-hidden="true"
-      >
-        {disconnectedPlayer.avatarId}
-      </span>
+      <AvatarDisplay
+        avatarId={disconnectedPlayer.avatarId}
+        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold font-hand text-chalk-white object-contain"
+        imageClassName="object-contain"
+      />
 
       {/* Message */}
       <span className="font-semibold text-sm font-hand text-chalk-white">

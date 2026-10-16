@@ -10,6 +10,8 @@ import { preloadSounds, isMuted, toggleMute } from '../audio/soundManager';
 import { showToast } from '../components/toastStore';
 import { InstallBanner } from '../components/InstallBanner';
 import { useInstallPrompt } from '../utils/useInstallPrompt';
+import { AVATARS, AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
+import { AvatarDisplay } from '../components/AvatarDisplay';
 
 /**
  * LandingScreen – classroom / Nigerian school aesthetic.
@@ -667,7 +669,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
         >
           <div className="px-5 pt-5 pb-5">
             <div className="flex items-center gap-4">
-              <span className="text-5xl">{session?.avatarId || '🎮'}</span>
+              <AvatarDisplay avatarId={session?.avatarId} className="h-22 w-22 shrink-0 object-contain text-5xl" />
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-lg truncate font-hand text-ink-dark">
                   {session?.displayName || 'Anonymous'}
@@ -831,7 +833,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', bounce: 0, duration: 0.38 }}
-            className="w-full rounded-t-3xl overflow-hidden paper-body px-6 pt-4 pb-safe pb-8"
+            className="w-full max-h-[90dvh] overflow-y-auto overscroll-contain rounded-t-3xl paper-body px-6 pt-4 pb-8"
             style={{ borderTop: '3px solid #c8b89a' }}
           >
             <div className="flex justify-center mb-4">
@@ -851,23 +853,25 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
               style={{ borderColor: '#c8b89a', caretColor: '#6b4423' }}
             />
             <p className="mb-2 label-section">Choose Avatar</p>
-            <div className="mb-5 grid grid-cols-6 gap-2">
-              {['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'].map((avatar) => (
+            <div className="mb-5 max-h-[34dvh] overflow-y-auto overscroll-contain">
+              <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+              {[...AVATAR_PORTRAITS.map((portrait) => portrait.id), ...AVATARS].map((avatar) => (
                 <button
                   key={avatar}
                   type="button"
                   onClick={() => setEditAvatar(avatar)}
-                  aria-label={`Choose ${avatar} avatar`}
+                  aria-label={`Choose ${getAvatarPortrait(avatar)?.label ?? avatar} avatar`}
                   aria-pressed={editAvatar === avatar}
-                  className="aspect-square rounded-xl border-2 text-2xl transition-all"
+                  className="aspect-square rounded-xl border-2 text-2xl transition-all overflow-hidden flex items-center justify-center"
                   style={{
                     background: editAvatar === avatar ? 'rgba(107,68,35,0.1)' : 'rgba(139,94,60,0.05)',
                     borderColor: editAvatar === avatar ? '#6b4423' : '#c8b89a',
                   }}
                 >
-                  {avatar}
+                  <AvatarDisplay avatarId={avatar} imageClassName="h-full w-full object-contain pt-2" />
                 </button>
               ))}
+              </div>
             </div>
             <div className="flex gap-3">
               <button
@@ -906,7 +910,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', bounce: 0, duration: 0.38 }}
-              className="w-full rounded-t-3xl overflow-hidden paper-body px-6 pt-4 pb-safe pb-8"
+              className="w-full rounded-t-3xl overflow-hidden paper-body px-6 pt-4 pb-8"
               style={{ borderTop: '3px solid #c8b89a' }}
             >
               <div className="flex justify-center mb-4">

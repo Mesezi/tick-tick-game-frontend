@@ -4,7 +4,7 @@ import { Bell, ClipboardList, Copy, Crown, Hourglass, Link, LogOut, School, Zap 
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
-import { getPlayerAvatar } from '../utils/avatarHelper';
+import { AvatarDisplay } from '../components/AvatarDisplay';
 import { showToast } from '../components/toastStore';
 
 /**
@@ -172,7 +172,7 @@ export function RoomLobbyScreen() {
                 <span className="text-sm font-bold w-5 text-center shrink-0 font-hand text-desk">
                   {i + 1}.
                 </span>
-                <span className="text-2xl">{getPlayerAvatar(p.avatarId, p.id)}</span>
+                <AvatarDisplay avatarId={p.avatarId} fallbackId={p.id} className="h-8 w-8 shrink-0 object-contain text-2xl" />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold truncate font-hand text-ink-dark">
                     {p.displayName}

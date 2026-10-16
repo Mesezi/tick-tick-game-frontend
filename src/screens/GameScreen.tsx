@@ -6,7 +6,7 @@ import { socketHandler } from '../socket/socketHandler';
 import { persistenceLayer } from '../persistence/persistenceLayer';
 import { createKeyedDebouncedEmit } from '../utils/debouncedEmit';
 import { playSound, playTimerTick } from '../audio/soundManager';
-import { getPlayerAvatar } from '../utils/avatarHelper';
+import { AvatarDisplay } from '../components/AvatarDisplay';
 import { GameToast } from '../components/GameToast';
 import type { GameToastVariant } from '../components/GameToast';
 import type { RoundResultsPayload } from '../types';
@@ -79,12 +79,7 @@ export function GameScreen() {
         setSubPhase('rankings');
         if (displayResults.players.length > 1 && session?.userId) {
           const sorted = [...displayResults.players].sort((a, b) => b.totalScore - a.totalScore);
-          const store = useGameStore.getState();
-          const roomPlayer = store.room?.players.find((p) => p.userId === session.userId);
-          const myPlayerId = roomPlayer?.id ?? session.userId;
-          const userIndex = sorted.findIndex(
-            (p) => p.playerId === session.userId || p.playerId === myPlayerId || p.displayName === session.displayName
-          );
+          const userIndex = sorted.findIndex((p) => p.userId === session.userId);
           if (
             userIndex === sorted.length - 1 &&
             sorted[userIndex].totalScore < sorted[0].totalScore
@@ -445,7 +440,9 @@ export function GameScreen() {
 
             <div className="px-5 pb-6 pt-2 shrink-0 text-center">
               {(() => {
-                const myResult = displayResults.players.find(p => p.playerId === session?.userId);
+                const myResult = displayResults.players.find(
+                  (p) => p.userId === session?.userId,
+                );
                 return myResult ? (
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -498,15 +495,7 @@ function MyAnswersReveal({
   results: RoundResultsPayload;
   currentUserId: string;
 }) {
-  const store = useGameStore.getState();
-  const sessionUserId = store.session?.userId ?? '';
-  const roomPlayer = store.room?.players.find((p) => p.userId === sessionUserId);
-  const myPlayerId = roomPlayer?.id ?? sessionUserId;
-
-  const myResult =
-    results.players.find(
-      (p) => p.playerId === currentUserId || p.playerId === sessionUserId || p.playerId === myPlayerId
-    ) || results.players.find((p) => p.displayName === store.session?.displayName);
+  const myResult = results.players.find((p) => p.userId === currentUserId);
 
   if (!myResult) return null;
 
@@ -605,6 +594,7 @@ function ResultsTabsView({
   previousRoundRanks: Record<string, number> | null;
 }) {
   const [activeTab, setActiveTab] = useState<'answers' | 'leaderboard'>('answers');
+  const currentUserId = session?.userId;
 
   return (
     <>
@@ -676,7 +666,9 @@ function ResultsTabsView({
                         : status === 'typo'    ? { color: '#d97706', label: '~' }
                         : status === 'duplicate' ? { color: '#92400e', label: 'D' }
                         : { color: '#c0392b', label: '✗' };
-                      const isYou = p.playerId === session?.userId;
+                      const isYou = p.userId === currentUserId;
+
+
                       return (
                         <div
                           key={p.playerId}
@@ -688,8 +680,8 @@ function ResultsTabsView({
                           >
                             {mark.label}
                           </span>
-                          <span className="text-sm shrink-0">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
-                          <span className="font-bold shrink-0 w-14 truncate font-hand text-chalk-mark">
+                          <AvatarDisplay avatarId={p.avatarId} fallbackId={p.playerId} className="h-5 w-5 shrink-0 object-contain text-sm" />
+                          <span className="font-bold shrink-0 w-20 truncate font-hand text-chalk-mark">
                             {isYou ? 'You' : p.displayName.split('_')[0].slice(0, 8)}
                           </span>
                           <p className="flex-1 text-sm truncate min-w-0 font-hand text-ink-dark">
@@ -715,10 +707,10 @@ function ResultsTabsView({
               style={{ background: 'rgba(139,94,60,0.08)', border: '1px solid #c8b89a' }}
             >
               {displayResults.players.map((p) => {
-                const isYou = p.playerId === session?.userId;
+                const isYou = p.userId === currentUserId;
                 return (
                   <div key={p.playerId} className="flex flex-col items-center gap-0.5">
-                    <span className="text-sm">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
+                    <AvatarDisplay avatarId={p.avatarId} fallbackId={p.playerId} className="h-5 w-5 object-contain text-sm" />
                     <span
                       className="font-display text-[15px]"
                       style={{ color: isYou ? '#6b4423' : '#d97706' }}
@@ -752,7 +744,7 @@ function ResultsTabsView({
           /* Leaderboard */
           <div className="space-y-2">
             {sortedPlayers.map((p, i) => {
-              const isYou = p.playerId === session?.userId;
+              const isYou = p.userId === currentUserId;
               const rank = i === 0 ? 1
                 : sortedPlayers[i - 1].totalScore === p.totalScore
                 ? (sortedPlayers.findIndex(x => x.totalScore === p.totalScore) + 1)
@@ -786,7 +778,7 @@ function ResultsTabsView({
                   >
                     {rank === 1 ? <Crown className="w-5 h-5 inline" /> : rank}
                   </span>
-                  <span className="text-xl shrink-0">{getPlayerAvatar(p.avatarId, p.playerId)}</span>
+                  <AvatarDisplay avatarId={p.avatarId} fallbackId={p.playerId} className="h-7 w-7 shrink-0 object-contain text-xl" />
                   <div className="flex-1 min-w-0">
                     <p className={`font-bold truncate font-hand ${isYou ? 'text-chalk-mark' : 'text-ink-dark'}`}>
                       {p.displayName}

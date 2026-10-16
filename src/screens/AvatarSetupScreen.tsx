@@ -6,8 +6,10 @@ import { apiClient } from '../api/client';
 import { showToast } from '../components/toastStore';
 import { loginAsGuest } from '../hooks/useAppInit';
 import { track } from '../utils/analytics';
+import { AVATARS, AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
+import { AvatarDisplay } from '../components/AvatarDisplay';
 
-const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🐘', '🦏', '🦓', '🐊', '🦒', '🐆'];
+const AVATAR_OPTIONS = [...AVATAR_PORTRAITS.map((portrait) => portrait.id), ...AVATARS];
 
 type Step = 'profile' | 'link-prompt';
 
@@ -20,12 +22,12 @@ export function AvatarSetupScreen() {
   const setSession = useGameStore((s) => s.setSession);
 
   const [step, setStep] = useState<Step>('profile');
-  const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState(session?.displayName || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const canContinue = selectedAvatar !== null && playerName.length >= 2;
-  const avatarId = selectedAvatar !== null ? AVATARS[selectedAvatar] : '';
+  const avatarId = selectedAvatar ?? '';
 
   const handleSaveProfile = async () => {
     if (!canContinue) return;
@@ -110,21 +112,23 @@ export function AvatarSetupScreen() {
               {/* Avatar grid */}
               <p className="label-section mb-3">Choose Avatar</p>
               <div className="grid grid-cols-4 gap-3 mb-6">
-                {AVATARS.map((av, i) => (
+                {AVATAR_OPTIONS.map((av) => (
                   <motion.button
-                    key={i}
+                    key={av}
                     whileTap={{ scale: 0.85 }}
-                    onClick={() => setSelectedAvatar(i)}
-                    className="aspect-square rounded-2xl text-3xl flex items-center justify-center border-2 transition-all"
+                    onClick={() => setSelectedAvatar(av)}
+                    aria-label={`Choose ${getAvatarPortrait(av)?.label ?? av} avatar`}
+                    aria-pressed={selectedAvatar === av}
+                    className="aspect-square rounded-2xl text-3xl flex items-center justify-center border-2 transition-all overflow-hidden"
                     style={{
-                      background: selectedAvatar === i ? 'rgba(107,68,35,0.1)' : 'rgba(139,94,60,0.07)',
-                      borderColor: selectedAvatar === i ? '#6b4423' : '#c8b89a',
-                      boxShadow: selectedAvatar === i
+                      background: selectedAvatar === av ? 'rgba(107,68,35,0.1)' : 'rgba(139,94,60,0.07)',
+                      borderColor: selectedAvatar === av ? '#6b4423' : '#c8b89a',
+                      boxShadow: selectedAvatar === av
                         ? '0 0 0 3px rgba(107,68,35,0.16), 0 4px 12px rgba(107,68,35,0.12)'
                         : 'none',
                     }}
                   >
-                    {av}
+                    <AvatarDisplay avatarId={av} imageClassName="h-full w-full object-cover" />
                   </motion.button>
                 ))}
               </div>

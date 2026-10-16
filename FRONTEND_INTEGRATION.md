@@ -464,6 +464,79 @@ socket.on("room-closed", ({ roomCode }) => {
 
 ---
 
+### Share card endpoint contract
+
+The frontend requests completed match data as JSON and renders the PNG in the
+browser. The endpoint must return `Content-Type: application/json`; it must not
+return image bytes. Keep the existing route:
+
+```
+GET /api/rooms/:code/share-card
+Authorization: Bearer <token>
+Accept: application/json
+```
+
+The response uses a versioned card data object. `players` must be ordered by
+rank (best rank first); `rank` should be calculated by the server using the
+same tie rules as the match standings. `highlights` contains up to three
+highest-scoring validated answers across the match, ordered by answer score
+descending, then round number ascending to break ties. Each highlight includes
+its player, word, category, letter, round, and points. User
+and account IDs are intentionally omitted because they are not needed to render
+a public share image.
+
+```json
+{
+  "success": true,
+  "data": {
+    "schemaVersion": 2,
+    "roomCode": "ABC123",
+    "durationMs": 300000,
+    "roundsPlayed": 5,
+    "players": [
+      { "rank": 1, "displayName": "Ada", "totalScore": 142 },
+      { "rank": 2, "displayName": "Tunde", "totalScore": 128 },
+      { "rank": 3, "displayName": "Mina", "totalScore": 116 }
+    ],
+    "highlights": [
+      {
+        "rank": 1,
+        "playerName": "Ada",
+        "word": "Nkwobi",
+        "category": "Food",
+        "letter": "N",
+        "roundNumber": 2,
+        "score": 9
+      },
+      {
+        "rank": 2,
+        "playerName": "Tunde",
+        "word": "Nairobi",
+        "category": "Cities",
+        "letter": "N",
+        "roundNumber": 2,
+        "score": 8
+      },
+      {
+        "rank": 3,
+        "playerName": "Mina",
+        "word": "Ife",
+        "category": "Names",
+        "letter": "I",
+        "roundNumber": 4,
+        "score": 9
+      }
+    ]
+  }
+}
+```
+
+The frontend validates schema version 2, draws the Tick Tick card (including
+the top-scoring words) on a canvas, exports it as a PNG `Blob`, then uses the
+browser share API or downloads the file. If the card contract changes
+incompatibly, increment `schemaVersion` and update the frontend renderer with
+the backend change.
+
 ## 7. Complete Socket.io Event Lifecycle Diagram
 
 ```
