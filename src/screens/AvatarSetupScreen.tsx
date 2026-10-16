@@ -94,7 +94,7 @@ export function AvatarSetupScreen() {
             {/* Header */}
             <div className="px-6 pt-4 pb-4 shrink-0">
               {/* Chalkboard heading */}
-              <div className="rounded-2xl px-5 py-4 mb-2 ">
+              <div className="rounded-2xl px-5 py-4">
                 <p className="label-section mb-0.5 flex items-center gap-1.5">
                   <ClipboardList className="w-3.5 h-3.5" /> Student Registration
                 </p>
@@ -111,7 +111,7 @@ export function AvatarSetupScreen() {
             <div className="flex-1 overflow-y-auto px-6 pb-4" style={{ scrollbarWidth: 'none' }}>
               {/* Avatar grid */}
               <p className="label-section mb-3">Choose Avatar</p>
-              <div className="grid grid-cols-4 gap-3 mb-6">
+              <div className="grid  grid-cols-4 md:grid-cols-5 gap-3 mb-6">
                 {AVATAR_OPTIONS.map((av) => (
                   <motion.button
                     key={av}
@@ -128,7 +128,7 @@ export function AvatarSetupScreen() {
                         : 'none',
                     }}
                   >
-                    <AvatarDisplay avatarId={av} imageClassName="h-full w-full object-cover" />
+                    <AvatarDisplay avatarId={av} imageClassName="h-full w-full object-contain pt-2" />
                   </motion.button>
                 ))}
               </div>
