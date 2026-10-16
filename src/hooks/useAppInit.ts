@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { registerEventHandlers, unregisterEventHandlers } from '../socket/eventHandlers';
 import { persistenceLayer } from '../persistence/persistenceLayer';
-import { ApiError, apiClient } from '../api/client';
+import { apiClient } from '../api/client';
 import { identifyUser, track } from '../utils/analytics';
 import { showToast } from '../components/toastStore';
 
@@ -74,10 +74,11 @@ export function useAppInit() {
         window.history.replaceState({}, '', window.location.pathname);
         // Keep the pre-OAuth session available if account linking is rejected.
         const existingToken = persistenceLayer.loadToken();
+        const authMode = apiClient.consumeGoogleAuthMode();
 
         try {
-          // If a guest token exists, send it so backend can link accounts
-          if (existingToken) apiClient.setToken(existingToken);
+          // Only attach the current guest token for an explicit account-link flow.
+          apiClient.setToken(authMode === 'link' ? existingToken : null);
 
           const res = await apiClient.googleLogin(code);
           persistenceLayer.saveToken(res.token);
@@ -100,20 +101,15 @@ export function useAppInit() {
           track('auth_google_success');
           socketHandler.connect(SOCKET_URL, res.token);
           useGameStore.getState().setHasPassedLanding(true);
-        } catch (err) {
+        } catch (err:any) {
           console.error('[AppInit] Google OAuth exchange failed:', err);
+          
           const failureMessage = err instanceof Error
             ? err.message
             : 'Google sign-in failed. Please try again.';
-          showToast(
-            err instanceof ApiError && err.status === 409
-              ? `${failureMessage}. Your current session is still active.`
-              : failureMessage,
-            'error',
-          );
-          // A conflict means this Google account belongs to a different user.
-          // Rehydrate the original session after the OAuth page reload.
-          if (err instanceof ApiError && err.status === 409 && existingToken) {
+          let restoredExistingSession = false;
+          // Rehydrate the original session after any failed OAuth attempt.
+          if (existingToken) {
             try {
               apiClient.setToken(existingToken);
               const meRes = await apiClient.getCurrentUser();
@@ -127,6 +123,7 @@ export function useAppInit() {
                 isAuthenticated: user.type === 'GOOGLE',
                 deviceId: persistenceLayer.getDeviceId(),
               });
+              restoredExistingSession = true;
               identifyUser(user.id, { type: user.type, displayName: user.displayName });
               socketHandler.connect(SOCKET_URL, existingToken);
               useGameStore.getState().setHasPassedLanding(true);
@@ -137,6 +134,13 @@ export function useAppInit() {
               console.error('[AppInit] Could not restore session after Google account conflict:', restoreError);
             }
           }
+          
+          showToast(
+            restoredExistingSession
+              ? `${failureMessage}. Your current session is still active.`
+              : failureMessage,
+            'error',
+          );
         }
         return;
       }

@@ -66,7 +66,7 @@ export function AvatarSetupScreen() {
 
   const handleLinkGoogle = async () => {
     track('google_link_started');
-    await apiClient.redirectToGoogle();
+    await apiClient.redirectToGoogle('link');
   };
 
   const handleSkipLink = () => {

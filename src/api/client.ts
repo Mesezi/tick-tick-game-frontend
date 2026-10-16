@@ -6,6 +6,8 @@ import type { ShareCardData } from '../types';
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const GOOGLE_AUTH_MODE_KEY = 'tick-tick-google-auth-mode';
+export type GoogleAuthMode = 'login' | 'link';
 
 class ApiClient {
   private token: string | null = null;
@@ -18,13 +20,13 @@ class ApiClient {
     return this.token;
   }
 
-  private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(path: string, options: RequestInit = {}, includeAuth = true): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
 
-    if (this.token) {
+    if (includeAuth && this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
@@ -34,8 +36,20 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(response.status, errorData.message || response.statusText, errorData);
+      const errorData: unknown = await response.json().catch(() => ({}));
+      let message = response.statusText;
+      if (typeof errorData === 'object' && errorData !== null) {
+        const payload = errorData as {
+          message?: unknown;
+          error?: { message?: unknown };
+        };
+        if (typeof payload.message === 'string') {
+          message = payload.message;
+        } else if (typeof payload.error?.message === 'string') {
+          message = payload.error.message;
+        }
+      }
+      throw new ApiError(response.status, message, errorData);
     }
 
     return response.json() as Promise<T>;
@@ -58,12 +72,25 @@ class ApiClient {
   /**
    * Fetches the Google OAuth URL from the backend then redirects the user.
    */
-  async redirectToGoogle(): Promise<void> {
+  async redirectToGoogle(mode: GoogleAuthMode): Promise<void> {
+    localStorage.setItem(GOOGLE_AUTH_MODE_KEY, mode);
     const redirectUri = window.location.origin; // root URL — no path, works on any host
     const res = await this.request<{ success: boolean; data: { url: string } }>(
-      `/api/auth/google/redirect?redirect_uri=${encodeURIComponent(redirectUri)}`
+      `/api/auth/google/redirect?redirect_uri=${encodeURIComponent(redirectUri)}`,
+      {},
+      mode === 'link',
     );
     window.location.href = res.data.url;
+  }
+
+  consumeGoogleAuthMode(): GoogleAuthMode {
+    try {
+      const mode = localStorage.getItem(GOOGLE_AUTH_MODE_KEY);
+      localStorage.removeItem(GOOGLE_AUTH_MODE_KEY);
+      return mode === 'link' ? 'link' : 'login';
+    } catch {
+      return 'login';
+    }
   }
 
   /**

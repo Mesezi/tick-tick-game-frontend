@@ -43,6 +43,7 @@ Generate a UUID on first app launch, persist it locally (localStorage/AsyncStora
 ```
 POST /api/auth/google
 Content-Type: application/json
+Authorization: Bearer <guest_token>  // Include only when linking Google to the current guest
 
 {
   "code": "<google_authorization_code>"
@@ -64,7 +65,9 @@ Content-Type: application/json
 }
 ```
 
-Frontend must handle the Google OAuth consent flow and pass the resulting authorization code.
+Frontend must handle the Google OAuth consent flow and pass the resulting authorization code. Omit the
+Authorization header for a normal Google sign-in; include the current guest token only when the user
+chooses an explicit account-link action.
 
 ### Get Current User
 

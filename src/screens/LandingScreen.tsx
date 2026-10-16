@@ -181,7 +181,7 @@ export function LandingScreen() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => apiClient.redirectToGoogle()}
+                onClick={() => apiClient.redirectToGoogle('link')}
                 className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border"
                 style={{ background: 'rgba(139,94,60,0.06)', borderColor: 'rgba(139,94,60,0.2)' }}
               >
@@ -197,7 +197,7 @@ export function LandingScreen() {
             {session?.email == null && session?.displayName == null && (
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => apiClient.redirectToGoogle()}
+                onClick={() => apiClient.redirectToGoogle('login')}
                 className="mt-3 w-full flex items-center justify-center gap-2.5 rounded-xl border px-4 py-3 font-bold font-hand text-chalk-board"
                 style={{ background: '#fff', borderColor: '#c8b89a' }}
               >
@@ -589,14 +589,38 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
+    const deviceId = persistenceLayer.getDeviceId();
     try {
       await apiClient.deleteAccount();
       persistenceLayer.clearToken();
       socketHandler.disconnect();
       useGameStore.getState().reset();
+
+      try {
+        const { token, guestId } = await apiClient.guestLogin(deviceId);
+        persistenceLayer.saveToken(token);
+        useGameStore.getState().setSession({
+          token,
+          userId: guestId,
+          email: null,
+          displayName: null,
+          avatarId: '',
+          isAuthenticated: false,
+          deviceId,
+        });
+        socketHandler.connect(import.meta.env.VITE_API_URL || 'http://localhost:4000', token);
+      } catch (guestError) {
+        console.error('[Profile] Account deleted, but guest session could not be restored:', guestError);
+        setShowDeleteConfirm(false);
+        onClose();
+        showToast('Account deleted, but guest sign-in failed. Please try again.', 'error');
+        setIsDeleting(false);
+        return;
+      }
+
       setShowDeleteConfirm(false);
       onClose();
-      showToast('Account deleted', 'info');
+      showToast('Google account deleted. You are now playing as a guest.', 'info');
     } catch (error) {
       console.error('[Profile] Failed to delete account:', error);
       showToast('Failed to delete account. Try again.', 'error');
@@ -699,7 +723,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
           </button>
           {session?.email == null && !session?.isAuthenticated && (
             <button
-              onClick={() => apiClient.redirectToGoogle()}
+              onClick={() => apiClient.redirectToGoogle('link')}
               className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 btn-ghost text-chalk-board!"
             >
               <Link className="w-3.5 h-3.5" />
