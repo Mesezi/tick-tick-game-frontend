@@ -17,9 +17,13 @@ export const AVATAR_PORTRAITS = [
   { id: 'scientist-girl', label: 'Scientist girl', src: '/avatars/scientist%20girl.png' },
 ] as const;
 
-const PORTRAIT_BY_ID = new Map(AVATAR_PORTRAITS.map((portrait) => [portrait.id, portrait]));
+type AvatarPortrait = (typeof AVATAR_PORTRAITS)[number];
 
-export function getAvatarPortrait(avatarId?: string) {
+const PORTRAIT_BY_ID = new Map<string, AvatarPortrait>(
+  AVATAR_PORTRAITS.map((portrait): [string, AvatarPortrait] => [portrait.id, portrait]),
+);
+
+export function getAvatarPortrait(avatarId?: string): AvatarPortrait | undefined {
   return avatarId ? PORTRAIT_BY_ID.get(avatarId) : undefined;
 }
 
