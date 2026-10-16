@@ -342,10 +342,15 @@ function handleRoundResults(payload: unknown): void {
   const store = useGameStore.getState();
   const round = store.round;
   if (!round) return;
-  if (!Number.isFinite(data.summaryEndTimestamp)) {
-    console.error('[EventHandler] Invalid round-results summaryEndTimestamp:', payload);
-    return;
-  }
+  // Older backend deployments may omit this timestamp. Results are still
+  // authoritative; keep the reveal usable and use the configured 30s summary
+  // window as a client-side fallback.
+  const summaryEndTimestamp = Number.isFinite(data.summaryEndTimestamp)
+    ? data.summaryEndTimestamp
+    : Date.now() + 30_000;
+  const resultRoundNumber = Number.isFinite(data.roundNumber)
+    ? data.roundNumber
+    : round.roundNumber;
 
   // Snapshot current rankings before overwriting so the UI can show deltas
   const existing = store.roundResults;
@@ -358,8 +363,8 @@ function handleRoundResults(payload: unknown): void {
 
   // Store the full results payload for the results screen
   useGameStore.setState({
-    round: { ...round, phase: 'results', summaryEndTimestamp: data.summaryEndTimestamp },
-    roundResults: data,
+    round: { ...round, roundNumber: resultRoundNumber, phase: 'results', summaryEndTimestamp },
+    roundResults: { ...data, roundNumber: resultRoundNumber, summaryEndTimestamp },
     roundValidationStatus: null,
   });
 }
