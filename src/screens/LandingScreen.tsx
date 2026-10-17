@@ -10,7 +10,7 @@ import { preloadSounds, isMuted, toggleMute } from '../audio/soundManager';
 import { showToast } from '../components/toastStore';
 import { InstallBanner } from '../components/InstallBanner';
 import { useInstallPrompt } from '../utils/useInstallPrompt';
-import { AVATARS, AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
+import { AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
 import { AvatarDisplay } from '../components/AvatarDisplay';
 
 /**
