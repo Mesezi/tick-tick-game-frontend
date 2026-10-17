@@ -310,7 +310,7 @@ function App() {
     >
       {/* Phone-frame shell — aged paper */}
       <div
-        className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 lg:max-w-150 sm:h-dvh sm:rounded-3xl sm:shadow-2xl sm:border paper-body max-h-[800px]"
+        className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 sm:h-dvh sm:rounded-3xl sm:shadow-2xl sm:border paper-body max-h-[800px]"
         style={{
           borderColor: '#c8b89a',
           boxShadow: '0 24px 60px rgba(80,50,20,0.45), 0 0 0 1px rgba(139,94,60,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
@@ -428,8 +428,7 @@ function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-                className="flex-1 overflow-y-auto flex flex-col"
-                style={{ scrollbarWidth: 'none' }}
+                className="flex-1 overflow-y-auto flex flex-col scrollbar-mobile-hidden"
               >
                 <ErrorBoundary>
                   <ScreenRouter />

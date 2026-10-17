@@ -1,6 +1,28 @@
 @import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Patrick+Hand&family=Caveat:wght@600;700&display=swap');
 @import "tailwindcss";
 
+@media (max-width: 767px) {
+  .scrollbar-mobile-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-mobile-hidden::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .scrollbar-mobile-hidden {
+    scrollbar-width: auto;
+    -ms-overflow-style: auto;
+  }
+
+  .scrollbar-mobile-hidden::-webkit-scrollbar {
+    display: initial;
+  }
+}
+
 @theme {
   /* ── Classroom / Nigerian school palette ── */
   /* Deep wood-brown surfaces */

@@ -209,7 +209,7 @@ export function MatchSummaryScreen() {
     >
       {isSoleWinner && <WinnerConfetti />}
 
-      <div className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex-1 overflow-auto scrollbar-mobile-hidden">
         {/* ── Header ─────────────────────────────────────────── */}
         <header
           className="px-6 pt-5 pb-5 text-center"

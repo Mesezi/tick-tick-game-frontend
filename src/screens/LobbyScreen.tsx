@@ -140,7 +140,7 @@ export function LobbyScreen() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-5 py-3" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex-1 overflow-auto px-5 py-3 scrollbar-mobile-hidden">
         {/* Quick Match */}
         <motion.button
           whileTap={{ scale: 0.96 }}

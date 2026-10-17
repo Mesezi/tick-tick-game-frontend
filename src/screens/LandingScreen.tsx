@@ -267,7 +267,7 @@ function HowToPlaySheet({ onClose }: { onClose: () => void }) {
           <div className="w-10 h-1 rounded-full bg-paper-ruled" />
         </div>
 
-        <div className="overflow-y-auto pb-10 px-6" style={{ scrollbarWidth: 'none', maxHeight: 'calc(88vh - 24px)' }}>
+        <div className="overflow-y-auto pb-10 px-6 scrollbar-mobile-hidden" style={{ maxHeight: 'calc(88vh - 24px)' }}>
           {/* Header */}
           <div className="flex items-center justify-between mb-5 pt-3">
             <div>
@@ -428,7 +428,7 @@ function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
       </div> */}
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-6" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex-1 overflow-y-auto px-6 scrollbar-mobile-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-sm animate-pulse font-hand text-desk">Loading rankings...</p>
@@ -686,7 +686,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-5" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex-1 overflow-y-auto px-6 py-5 scrollbar-mobile-hidden">
         {/* Player card — exercise book style */}
         <div
           className="rounded-2xl overflow-hidden mb-4"

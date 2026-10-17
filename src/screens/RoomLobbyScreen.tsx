@@ -149,7 +149,7 @@ export function RoomLobbyScreen() {
       </div>
 
       {/* Student roster */}
-      <div className="px-6 py-4" style={{ scrollbarWidth: 'none' }}>
+      <div className="px-6 py-4 scrollbar-mobile-hidden">
         <p className="label-section mb-3 flex items-center gap-1.5">
           <ClipboardList className="w-3.5 h-3.5" /> Students Present
         </p>

@@ -288,7 +288,7 @@ export function GameScreen() {
      
 
       {/* Input fields */}
-      <div className="flex-1 overflow-y-auto px-4" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex-1 overflow-y-auto px-4 scrollbar-mobile-hidden">
      
       
         <div className={`space-y-2 ${subPhase === 'grace' ? 'pb-32' : 'pb-3'}`}>
@@ -434,7 +434,7 @@ export function GameScreen() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-4 pt-3" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex-1 overflow-y-auto px-5 pb-4 pt-3 scrollbar-mobile-hidden">
               <MyAnswersReveal results={displayResults} currentUserId={session?.userId ?? ''} />
             </div>
 
@@ -635,7 +635,7 @@ function ResultsTabsView({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto px-5 pb-2" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex-1 overflow-auto px-5 pb-2 scrollbar-mobile-hidden">
         {activeTab === 'answers' ? (
           <div>
             <div className="space-y-3">

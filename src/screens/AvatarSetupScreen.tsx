@@ -108,7 +108,7 @@ export function AvatarSetupScreen() {
             </div>
 
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto px-6 pb-4" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex-1 overflow-y-auto px-6 pb-4 scrollbar-mobile-hidden">
               {/* Avatar grid */}
               <p className="label-section mb-3">Choose Avatar</p>
               <div className="grid  grid-cols-4 md:grid-cols-5 gap-3 mb-6">

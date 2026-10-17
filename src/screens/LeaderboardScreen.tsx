@@ -89,7 +89,7 @@ export function LeaderboardScreen() {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-6" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex-1 overflow-y-auto px-6 scrollbar-mobile-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-sm animate-pulse font-hand text-chalk-mark">
