@@ -311,7 +311,7 @@ export function GameScreen() {
                 <div className="px-3.5 pt-2 pb-1.5">
                   <div className="flex items-center justify-between mb-0.5">
                     <span
-                      className=" font-bold uppercase tracking-widest font-hand"
+                      className="text-sm font-bold uppercase tracking-widest font-hand"
                       style={{ color: filled ? '#6b4423' : '#8b5e3c' }}
                     >
                       {idx + 1}. {cat}
@@ -326,7 +326,7 @@ export function GameScreen() {
                     onChange={(e) => handleAnswerChange(cat, e.target.value)}
                     readOnly={isReadOnly}
                     placeholder={`${round.letter.toUpperCase()}...`}
-                    className="w-full bg-transparent outline-none font-bold font-hand text-[17px] text-ink-dark"
+                    className="w-full bg-transparent outline-none font-bold font-hand text-ink-dark"
                     style={{ caretColor: '#6b4423' }}
                   />
                 </div>

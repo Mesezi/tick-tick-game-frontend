@@ -879,7 +879,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
             <p className="mb-2 label-section">Choose Avatar</p>
             <div className="mb-5 max-h-[34dvh] overflow-y-auto overscroll-contain">
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-              {[...AVATAR_PORTRAITS.map((portrait) => portrait.id), ...AVATARS].map((avatar) => (
+              {[...AVATAR_PORTRAITS.map((portrait) => portrait.id)].map((avatar) => (
                 <button
                   key={avatar}
                   type="button"

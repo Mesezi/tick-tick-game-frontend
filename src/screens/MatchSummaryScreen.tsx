@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Crown, RotateCcw, Share2, Home, Check, X } from 'lucide-react';
+import { Crown, RotateCcw, Share2, Home, Check, X, Timer } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
@@ -34,6 +34,7 @@ export function MatchSummaryScreen() {
   const [voted, setVoted] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isRematchAvailable, setIsRematchAvailable] = useState(true);
+  const [rematchTimeLeft, setRematchTimeLeft] = useState(ROOM_RETENTION_MS / 1000);
   const hasPlayedWinnerSound = useRef(false);
 
   const sortedPlayers = [...(matchResults?.allPlayers ?? [])].sort((a, b) => b.totalScore - a.totalScore);
@@ -53,8 +54,15 @@ export function MatchSummaryScreen() {
   }, [isSoleWinner]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setIsRematchAvailable(false), ROOM_RETENTION_MS);
-    return () => window.clearTimeout(timeout);
+    const expiresAt = Date.now() + ROOM_RETENTION_MS;
+    const updateRemaining = () => {
+      const remainingMs = Math.max(0, expiresAt - Date.now());
+      setRematchTimeLeft(Math.ceil(remainingMs / 1000));
+      if (remainingMs === 0) setIsRematchAvailable(false);
+    };
+    updateRemaining();
+    const interval = window.setInterval(updateRemaining, 250);
+    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -103,7 +111,16 @@ export function MatchSummaryScreen() {
     setIsSharing(true);
     try {
       const cardData = await apiClient.getShareCardData(roomCode);
-      const png = await renderShareCardPng(cardData);
+      const playersWithAvatars = cardData.players.map((player) => {
+        const matchPlayer = matchResults?.allPlayers.find(
+          (candidate) => candidate.displayName === player.displayName,
+        );
+        const roomPlayer = room?.players.find(
+          (candidate) => candidate.displayName === player.displayName,
+        );
+        return { ...player, avatarId: matchPlayer?.avatarId ?? roomPlayer?.avatarId };
+      });
+      const png = await renderShareCardPng({ ...cardData, players: playersWithAvatars });
       const file = new File([png], `tick-tick-${roomCode}-share-card.png`, {
         type: 'image/png',
       });
@@ -137,7 +154,7 @@ export function MatchSummaryScreen() {
     } finally {
       setIsSharing(false);
     }
-  }, [isSharing, roomCode]);
+  }, [isSharing, matchResults?.allPlayers, room?.players, roomCode]);
 
   const handleGoHome = useCallback(() => {
     const store = useGameStore.getState();
@@ -301,6 +318,10 @@ export function MatchSummaryScreen() {
             style={{ boxShadow: '0 4px 16px rgba(107,68,35,0.28)' }}
           >
             <RotateCcw className="w-5 h-5" /> Rematch
+            <span className="ml-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold" style={{ background: 'rgba(0,0,0,0.14)' }}>
+              <Timer className="h-4 w-4" aria-hidden="true" />
+              {rematchTimeLeft}s
+            </span>
           </motion.button>
         )}
 

@@ -6,10 +6,10 @@ import { apiClient } from '../api/client';
 import { showToast } from '../components/toastStore';
 import { loginAsGuest } from '../hooks/useAppInit';
 import { track } from '../utils/analytics';
-import { AVATARS, AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
+import { AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
 import { AvatarDisplay } from '../components/AvatarDisplay';
 
-const AVATAR_OPTIONS = [...AVATAR_PORTRAITS.map((portrait) => portrait.id), ...AVATARS];
+const AVATAR_OPTIONS = [...AVATAR_PORTRAITS.map((portrait) => portrait.id)];
 
 type Step = 'profile' | 'link-prompt';
 

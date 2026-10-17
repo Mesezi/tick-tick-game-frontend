@@ -16,6 +16,18 @@ export const AVATAR_PORTRAITS = [
   { id: 'scientist-girl', label: 'Scientist girl', src: '/avatars/scientist%20girl.png' },
 ] as const;
 
+/** Start fetching and decoding portraits early so avatar pickers open smoothly. */
+export function preloadAvatarPortraits(): void {
+  for (const portrait of AVATAR_PORTRAITS) {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = portrait.src;
+    void image.decode().catch(() => {
+      // The picker can still render its normal image fallback if preload fails.
+    });
+  }
+}
+
 type AvatarPortrait = (typeof AVATAR_PORTRAITS)[number];
 
 const PORTRAIT_BY_ID = new Map<string, AvatarPortrait>(

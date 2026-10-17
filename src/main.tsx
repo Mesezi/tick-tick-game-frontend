@@ -4,11 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.tsx'
 import { initAnalytics } from './utils/analytics'
+import { preloadAvatarPortraits } from './utils/avatarHelper'
 
 initAnalytics();
-
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-void fetch(`${apiUrl}/health`, { mode: 'no-cors' }).catch(() => {});
+preloadAvatarPortraits();
 
 const queryClient = new QueryClient({
   defaultOptions: {

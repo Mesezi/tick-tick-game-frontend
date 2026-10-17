@@ -121,6 +121,7 @@ export interface ShareCardData {
   players: {
     rank: number;
     displayName: string;
+    avatarId?: string;
     totalScore: number;
   }[];
   highlights: {
