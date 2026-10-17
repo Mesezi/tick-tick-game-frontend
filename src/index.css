@@ -16,6 +16,7 @@
   .scrollbar-mobile-hidden {
     scrollbar-width: auto;
     -ms-overflow-style: auto;
+    overflow-x: hidden;
   }
 
   .scrollbar-mobile-hidden::-webkit-scrollbar {
