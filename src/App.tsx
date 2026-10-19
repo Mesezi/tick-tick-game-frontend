@@ -196,9 +196,10 @@ function App() {
   const showNavigation = activeScreen !== 'landing';
   const isBackNavigation = activeScreen === 'avatar-setup' || activeScreen === 'room-lobby';
   const showConnectionProblem = connectionStatus !== 'connected' && !isBooting;
-  const blockGameForNetwork = !isOnline || backendAvailable === false || (
-    Boolean(session && (room || hasPassedLanding)) && connectionStatus === 'disconnected'
-  );
+  // A dropped socket is recoverable: Socket.IO reconnects in the background.
+  // Only block the app when the device is offline or the initial API health
+  // check confirms the backend is unavailable.
+  const blockGameForNetwork = !isOnline || backendAvailable === false;
 
   useEffect(() => {
     if (!blockGameForNetwork) return;
