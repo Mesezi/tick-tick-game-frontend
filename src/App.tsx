@@ -304,8 +304,9 @@ function App() {
 
   return (
     <div
-      className="fixed inset-0 w-full flex items-center justify-center font-hand"
+      className="fixed inset-x-0 top-0 w-full flex items-center justify-center font-hand"
       style={{
+        height: 'calc(100dvh + env(safe-area-inset-bottom, 0px))',
         background: 'radial-gradient(ellipse at 50% 20%, #c4a06a 0%, #a07840 40%, #7a5828 100%)',
       }}
     >
