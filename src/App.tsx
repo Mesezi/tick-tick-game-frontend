@@ -304,7 +304,7 @@ function App() {
 
   return (
     <div
-      className="fixed inset-0 w-full flex items-center justify-center font-hand"
+      className="fixed inset-0 z-10 w-full flex items-center justify-center font-hand"
       style={{
         background: 'radial-gradient(ellipse at 50% 20%, #c4a06a 0%, #a07840 40%, #7a5828 100%)',
       }}
