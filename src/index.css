@@ -211,6 +211,28 @@ textarea,
   box-sizing: border-box;
 }
 
+/* Continue the paper canvas into the iOS standalone safe area. The app shell
+   keeps its normal viewport height; only the exposed area behind it changes. */
+html,
+body,
+#root {
+  background-color: #f5f0e8;
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 44px,
+      rgba(192, 57, 43, 0.12) 44px,
+      rgba(192, 57, 43, 0.12) 46px,
+      transparent 46px
+    ),
+    repeating-linear-gradient(
+      transparent,
+      transparent 27px,
+      rgba(180, 160, 125, 0.10) 27px,
+      rgba(180, 160, 125, 0.10) 28px
+    );
+}
+
 /* iOS safe area */
 .pt-safe { padding-top: env(safe-area-inset-top); }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
@@ -219,7 +241,7 @@ textarea,
 
 body {
   margin: 0;
-  background: #e8e0d0;   /* slightly darker paper for outside-shell */
+  background-color: #f5f0e8;
   min-height: 100dvh;
   overflow: hidden;
 }
