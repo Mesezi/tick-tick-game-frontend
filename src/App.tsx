@@ -311,7 +311,7 @@ function App() {
     >
       {/* Phone-frame shell — aged paper */}
       <div
-        className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 sm:h-dvh sm:rounded-3xl sm:shadow-2xl sm:border paper-body max-h-[800px]"
+        className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 sm:h-dvh sm:rounded-3xl sm:shadow-2xl sm:border paper-body sm:max-h-[800px]"
         style={{
           borderColor: '#c8b89a',
           boxShadow: '0 24px 60px rgba(80,50,20,0.45), 0 0 0 1px rgba(139,94,60,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
