@@ -211,6 +211,18 @@ textarea,
   box-sizing: border-box;
 }
 
+/* iOS standalone can report a layout viewport that stops above the home-indicator area.
+   Extend the app frame through that inset; the dock owns its internal safe-area padding. */
+.app-shell-frame {
+  height: calc(100% + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 640px) {
+  .app-shell-frame {
+    height: 100dvh;
+  }
+}
+
 /* iOS safe area */
 .pt-safe { padding-top: env(safe-area-inset-top); }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
@@ -219,7 +231,7 @@ textarea,
 
 body {
   margin: 0;
-  background: #e8e0d0;   /* slightly darker paper for outside-shell */
+  background: #f5f0e8;
   min-height: 100dvh;
   overflow: hidden;
 }

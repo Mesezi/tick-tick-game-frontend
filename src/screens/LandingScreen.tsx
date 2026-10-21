@@ -490,7 +490,7 @@ export function ProfileOverlay({ onClose }: { onClose: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-      className="absolute inset-0 z-50 flex flex-col overflow-hidden paper-body"
+      className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden paper-body"
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-6 pt-10 pb-4 shrink-0" style={{ borderBottom: '1px solid #c8b89a' }}>

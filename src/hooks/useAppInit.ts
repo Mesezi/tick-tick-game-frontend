@@ -151,14 +151,19 @@ export function useAppInit() {
       const token = persistenceLayer.loadToken();
 
       if (!token) {
-        // No token — but if device ID exists, the user has played before
-        // (token was likely purged by iOS). Re-authenticate using device ID.
-        const deviceId = persistenceLayer.getDeviceId();
-        const isReturningDevice = localStorage.getItem('naija_device_id') !== null;
+        // Only recover a guest token when a device ID was already saved.
+        // Do not create a device ID during boot; fresh users get one when
+        // they submit student registration and guest login is performed.
+        let storedDeviceId: string | null = null;
+        try {
+          storedDeviceId = localStorage.getItem('naija_device_id');
+        } catch {
+          // Storage can be unavailable in private browsing; registration can still continue.
+        }
 
-        if (isReturningDevice) {
+        if (storedDeviceId) {
           try {
-            const { token: newToken } = await apiClient.guestLogin(deviceId);
+            const { token: newToken } = await apiClient.guestLogin(storedDeviceId);
             persistenceLayer.saveToken(newToken);
             apiClient.setToken(newToken);
 
@@ -173,7 +178,7 @@ export function useAppInit() {
               username: user.username ?? null,
               avatarId: user.avatarId ?? '',
               isAuthenticated: user.type === 'GOOGLE',
-              deviceId,
+              deviceId: storedDeviceId,
             });
             identifyUser(user.id, { type: user.type, displayName: user.displayName });
             track('session_restored_via_device_id');

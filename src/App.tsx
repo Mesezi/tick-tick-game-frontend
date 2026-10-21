@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, Bell, Check, Home, X } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -44,6 +44,7 @@ function App() {
   const [roomInviteBusy, setRoomInviteBusy] = useState(false);
   const isRejoining = useGameStore((s) => s.isRejoining);
   const setIsRejoining = useGameStore((s) => s.setIsRejoining);
+  const setHasPassedLanding = useGameStore((s) => s.setHasPassedLanding);
   const connectionStatus = useGameStore((s) => s.connection.status);
   const session = useGameStore((s) => s.session);
   const room = useGameStore((s) => s.room);
@@ -59,6 +60,16 @@ function App() {
   const toastOnAction = useToastStore((s) => s.onAction);
   const dismissToast = useToastStore((s) => s.dismiss);
   const showToast = useToastStore((s) => s.show);
+  const handleDockSelect = useCallback((tab: DockTab) => {
+    const needsProfile = tab === 'friends' || tab === 'notifications' || tab === 'profile';
+    const profileReady = Boolean(session?.token && session.displayName && session.avatarId);
+    if (needsProfile && !profileReady) {
+      showToast('Complete student registration to use this screen.', 'info');
+      return;
+    }
+    setDockTab(tab);
+  }, [session?.token, session?.displayName, session?.avatarId, showToast]);
+  const profileReady = Boolean(session?.token && session.displayName && session.avatarId);
   const {
     needRefresh: [pwaNeedRefresh],
     updateServiceWorker,
@@ -86,10 +97,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const openNotifications = () => setDockTab('notifications');
+    const openNotifications = () => handleDockSelect('notifications');
     window.addEventListener('open-notifications', openNotifications);
     return () => window.removeEventListener('open-notifications', openNotifications);
-  }, []);
+  }, [handleDockSelect]);
 
   useEffect(() => {
     if (!session?.token) return;
@@ -418,14 +429,14 @@ function App() {
 
   return (
     <div
-      className="fixed inset-0 z-10 w-full flex items-center justify-center font-hand"
+      className="fixed inset-0 z-10 w-full flex items-start justify-start font-hand sm:items-center sm:justify-center"
       style={{
         background: 'radial-gradient(ellipse at 50% 20%, #c4a06a 0%, #a07840 40%, #7a5828 100%)',
       }}
     >
       {/* Phone-frame shell — aged paper */}
       <div
-        className="relative w-full h-full overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 sm:h-dvh sm:rounded-3xl sm:shadow-2xl sm:border paper-body sm:max-h-[800px]"
+        className="app-shell-frame relative w-full overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 sm:rounded-3xl sm:shadow-2xl sm:border paper-body sm:max-h-[800px]"
         style={{
           borderColor: '#c8b89a',
           boxShadow: '0 24px 60px rgba(80,50,20,0.45), 0 0 0 1px rgba(139,94,60,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
@@ -466,10 +477,11 @@ function App() {
 
             <div className="ml-auto flex items-center gap-2">
             <button
-              onClick={() => setDockTab('notifications')}
+              disabled={!profileReady}
+              onClick={() => handleDockSelect('notifications')}
               aria-label="Open notifications"
-              title="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl border text-chalk-mark"
+              title={profileReady ? 'Notifications' : 'Complete student registration to use notifications'}
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl border text-chalk-mark disabled:cursor-not-allowed disabled:opacity-45"
               style={{ background: 'rgba(139,94,60,0.1)', borderColor: 'rgba(139,94,60,0.25)' }}
             >
               <Bell className="h-4 w-4" />
@@ -563,7 +575,7 @@ function App() {
               <div className="mt-3 flex gap-2">
                 <button disabled={roomInviteBusy} onClick={() => void acceptRoomInvite()} className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-chalk-board px-3 text-sm font-bold text-paper disabled:opacity-50"><Check className="h-4 w-4" />Join room</button>
                 <button disabled={roomInviteBusy} onClick={() => void declineRoomInvite()} className="min-h-10 rounded-xl border border-paper-ruled px-4 text-sm font-bold text-chalk-mark disabled:opacity-50">Decline</button>
-                <button onClick={() => { setDockTab('notifications'); setIncomingRoomInvite(null); }} className="min-h-10 rounded-xl border border-paper-ruled px-3 text-sm font-bold text-chalk-mark">Inbox</button>
+                <button onClick={() => { handleDockSelect('notifications'); setIncomingRoomInvite(null); }} className="min-h-10 rounded-xl border border-paper-ruled px-3 text-sm font-bold text-chalk-mark">Inbox</button>
               </div>
             </motion.aside>
           )}
@@ -604,7 +616,8 @@ function App() {
             active={dockTab}
             inMatch={room?.status === 'in_progress'}
             friendRequests={friendRequestCount}
-            onSelect={setDockTab}
+            protectedAccess={profileReady}
+            onSelect={handleDockSelect}
           />
         )}
 
