@@ -44,7 +44,6 @@ function App() {
   const [roomInviteBusy, setRoomInviteBusy] = useState(false);
   const isRejoining = useGameStore((s) => s.isRejoining);
   const setIsRejoining = useGameStore((s) => s.setIsRejoining);
-  const setHasPassedLanding = useGameStore((s) => s.setHasPassedLanding);
   const connectionStatus = useGameStore((s) => s.connection.status);
   const session = useGameStore((s) => s.session);
   const room = useGameStore((s) => s.room);
