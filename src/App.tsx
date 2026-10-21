@@ -550,6 +550,7 @@ function App() {
               transition={{ type: 'spring', bounce: 0, duration: 0.28 }}
               className="absolute left-3 right-3 top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] z-[60] mx-auto max-w-lg rounded-2xl border border-[#d4c9b0] bg-[#f8f3e9] p-4 shadow-xl"
               role="status"
+              
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
