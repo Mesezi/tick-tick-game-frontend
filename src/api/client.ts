@@ -9,6 +9,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const GOOGLE_AUTH_MODE_KEY = 'tick-tick-google-auth-mode';
 export type GoogleAuthMode = 'login' | 'link';
 
+export interface FriendUser { id: string; userId?: string; username?: string | null; displayName: string; avatarId?: string | null; }
+export interface FriendEntry extends FriendUser { isOnline: boolean; friendshipId?: string; }
+export interface FriendRequest { id: string; user?: FriendUser; requester?: FriendUser; recipient?: FriendUser; createdAt?: string; }
+export interface RoomInvite { id: string; room: { code: string }; inviter: FriendUser; expiresAt: string; }
+
 class ApiClient {
   private token: string | null = null;
 
@@ -98,10 +103,10 @@ class ApiClient {
    * If a guest token is set (Authorization header), backend links the accounts.
    * Response includes `linked: true` if a guest account was just upgraded.
    */
-  async googleLogin(code: string): Promise<{ token: string; user: { id: string; email: string; displayName: string }; linked: boolean }> {
+  async googleLogin(code: string): Promise<{ token: string; user: { id: string; email: string; displayName: string; username: string | null }; linked: boolean }> {
     const res = await this.request<{
       success: boolean;
-      data: { token: string; user: { id: string; email: string; displayName: string }; linked: boolean };
+      data: { token: string; user: { id: string; email: string; displayName: string; username: string | null }; linked: boolean };
     }>('/api/auth/google', {
       method: 'POST',
       body: JSON.stringify({ code }),
@@ -124,6 +129,7 @@ class ApiClient {
           type: 'GUEST' | 'GOOGLE';
           email: string | null;
           displayName: string | null;
+          username: string | null;
           avatarId: string | null;
           totalScore: number;
           weeklyScore: number;
@@ -132,6 +138,53 @@ class ApiClient {
         activeRoom: string | null;
       };
     }>('/api/auth/me');
+  }
+
+  async getFriends(query = '', limit = 20, cursor?: string) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (query) params.set('query', query);
+    if (cursor) params.set('cursor', cursor);
+    return this.request<{ success: boolean; data: { friends: FriendEntry[]; nextCursor: string | null } }>(`/api/friends?${params}`);
+  }
+
+  async getFriendRequests(direction: 'incoming' | 'outgoing', limit = 20, cursor?: string) {
+    const params = new URLSearchParams({ direction, limit: String(limit) });
+    if (cursor) params.set('cursor', cursor);
+    return this.request<{ success: boolean; data: { requests: FriendRequest[]; nextCursor: string | null } }>(`/api/friends/requests?${params}`);
+  }
+
+  async searchFriendUsers(query: string, limit = 20, cursor?: string) {
+    const params = new URLSearchParams({ query, limit: String(limit) });
+    if (cursor) params.set('cursor', cursor);
+    return this.request<{ success: boolean; data: { items: FriendUser[]; nextCursor: string | null } }>(`/api/friends/users/search?${params}`);
+  }
+
+  async sendFriendRequest(userId: string) {
+    return this.request<{ success: boolean; data: unknown }>('/api/friends/requests', { method: 'POST', body: JSON.stringify({ userId }) });
+  }
+
+  async respondFriendRequest(id: string, action: 'accept' | 'decline') {
+    return this.request<{ success: boolean; data: unknown }>(`/api/friends/requests/${encodeURIComponent(id)}/${action}`, { method: 'POST' });
+  }
+
+  async removeFriend(userId: string) {
+    return this.request<{ success: boolean }>(`/api/friends/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+  }
+
+  async getRoomInvites() {
+    return this.request<{ success: boolean; data: { invites: RoomInvite[] } }>('/api/room-invites');
+  }
+
+  async sendRoomInvite(roomCode: string, inviteeId: string) {
+    return this.request<{ success: boolean; data: { inviteId?: string; invite?: { id: string }; [key: string]: unknown } }>(`/api/rooms/${encodeURIComponent(roomCode)}/invites`, { method: 'POST', body: JSON.stringify({ inviteeId }) });
+  }
+
+  async respondRoomInvite(id: string, action: 'accept' | 'decline') {
+    return this.request<{ success: boolean; data: { room?: { code: string }; [key: string]: unknown } }>(`/api/room-invites/${encodeURIComponent(id)}/${action}`, { method: 'POST' });
+  }
+
+  async cancelRoomInvite(id: string) {
+    return this.request<{ success: boolean }>(`/api/room-invites/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
   async getStats() {
@@ -159,12 +212,18 @@ class ApiClient {
     }>('/api/auth/stats');
   }
 
-  async updateProfile(profile: { displayName: string; avatarId: string }) {
+  async checkUsernameAvailability(username: string) {
+    const params = new URLSearchParams({ username });
+    return this.request<{ success: boolean; data: { available?: boolean; status?: string; reason?: string } }>(`/api/auth/usernames/availability?${params}`);
+  }
+
+  async updateProfile(profile: { displayName: string; avatarId: string; username?: string }) {
     return this.request<{
       success: boolean;
       data: {
         displayName: string;
         avatarId: string;
+        username?: string | null;
       };
     }>('/api/auth/profile', {
       method: 'PATCH',

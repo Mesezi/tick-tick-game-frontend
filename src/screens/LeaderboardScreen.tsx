@@ -54,9 +54,9 @@ export function LeaderboardScreen() {
 
       {/* Header */}
       <div
-        className="px-6 pt-4 pb-4 shrink-0 bg-chalk-board"
+        className="px-6 pt-4 pb-4 shrink-0"
       >
-        <p className="text-[12px] font-bold tracking-[0.25em] uppercase mb-1 font-hand text-chalk-white flex items-center gap-1.5">
+        <p className="text-[12px] font-bold tracking-[0.25em] uppercase mb-1 font-hand text-chalk-board flex items-center gap-1.5">
           <Trophy className="w-3.5 h-3.5" /> Honours Board
         </p>
         <h2 className="font-display text-[36px] text-chalk-white leading-none">

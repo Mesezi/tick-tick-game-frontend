@@ -19,6 +19,7 @@ export interface GameStore {
     userId: string;
     email: string | null;
     displayName: string | null;
+    username: string | null;
     avatarId: string;
     isAuthenticated: boolean;
     deviceId: string;

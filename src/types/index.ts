@@ -188,6 +188,7 @@ export interface SessionData {
   token: string;
   userId: string;
   displayName: string | null;
+  username: string | null;
   avatarId: string;
   isAuthenticated: boolean; // true = Google, false = guest
   deviceId: string;

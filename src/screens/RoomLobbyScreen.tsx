@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Bell, ClipboardList, Copy, Crown, Hourglass, Link, LogOut, School, Zap } from 'lucide-react';
+import { Bell, ClipboardList, Copy, Crown, Hourglass, Link, Loader2, LogOut, School, UserPlus, X, Zap } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
@@ -16,6 +16,13 @@ export function RoomLobbyScreen() {
   const session = useGameStore((s) => s.session);
   const [isLeaving, setIsLeaving] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [inviteFriends, setInviteFriends] = useState<{ id: string; userId?: string; displayName: string; avatarId?: string | null; isOnline: boolean }[]>([]);
+  const [inviteFriendsCursor, setInviteFriendsCursor] = useState<string | null>(null);
+  const [loadingMoreInviteFriends, setLoadingMoreInviteFriends] = useState(false);
+  const [loadingInviteFriends, setLoadingInviteFriends] = useState(false);
+  const [showInviteFriends, setShowInviteFriends] = useState(false);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [sentInvites, setSentInvites] = useState<{ id: string; displayName: string }[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -67,6 +74,47 @@ export function RoomLobbyScreen() {
       console.error('[RoomLobby] Could not share invite link:', error);
       showToast('Could not share the invite link.', 'error');
     }
+  };
+
+  const openFriendInvites = async () => {
+    setShowInviteFriends(true);
+    setLoadingInviteFriends(true);
+    setInviteFriends([]);
+    setInviteFriendsCursor(null);
+    try {
+      const response = await apiClient.getFriends('', 20);
+      setInviteFriends(response.data.friends ?? []);
+      setInviteFriendsCursor(response.data.nextCursor ?? null);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not load your friends.', 'error');
+    } finally {
+      setLoadingInviteFriends(false);
+    }
+  };
+
+  const loadMoreInviteFriends = async () => {
+    if (!inviteFriendsCursor || loadingMoreInviteFriends) return;
+    setLoadingMoreInviteFriends(true);
+    try {
+      const response = await apiClient.getFriends('', 20, inviteFriendsCursor);
+      setInviteFriends((current) => [...current, ...(response.data.friends ?? [])]);
+      setInviteFriendsCursor(response.data.nextCursor ?? null);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not load more friends.', 'error');
+    } finally { setLoadingMoreInviteFriends(false); }
+  };
+
+  const inviteFriend = async (friend: { id: string; userId?: string; displayName: string }) => {
+    const inviteeId = friend.userId ?? friend.id;
+    setInvitingId(inviteeId);
+    try {
+      const response = await apiClient.sendRoomInvite(room.roomCode, inviteeId);
+      const inviteId = response.data?.inviteId ?? response.data?.invite?.id;
+      if (inviteId) setSentInvites((current) => [...current.filter((invite) => invite.id !== inviteId), { id: inviteId, displayName: friend.displayName }]);
+      showToast(`Invite sent to ${friend.displayName}.`, 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not send the invite.', 'error');
+    } finally { setInvitingId(null); }
   };
 
   const handleLeave = useCallback(async () => {
@@ -139,6 +187,53 @@ export function RoomLobbyScreen() {
               <Link className="h-4 w-4" aria-hidden="true" />
               Share invite link
             </button>
+            {isHost && <button onClick={() => void openFriendInvites()} className="ml-2 mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-bold font-hand text-chalk-mark" style={{ background: 'rgba(139,94,60,0.08)', borderColor: 'rgba(139,94,60,0.25)' }}>
+              <UserPlus className="h-4 w-4" aria-hidden="true" /> Invite friends
+            </button>}
+            {showInviteFriends && (
+              <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" role="presentation">
+                <button aria-label="Close friend invites" onClick={() => setShowInviteFriends(false)} className="absolute inset-0 h-full w-full cursor-default" />
+                <section role="dialog" aria-modal="true" aria-labelledby="invite-friends-title" className="relative z-10 flex max-h-[85dvh] w-full max-w-lg flex-col rounded-t-3xl border border-paper-ruled bg-paper p-5 shadow-2xl sm:rounded-2xl">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h2 id="invite-friends-title" className="font-display text-2xl text-chalk-board">Invite friends</h2>
+                      <p className="text-sm text-chalk-mark">Choose a friend to invite to this lobby.</p>
+                    </div>
+                    <button aria-label="Close friend invites" onClick={() => setShowInviteFriends(false)} className="rounded-full p-2 text-chalk-mark hover:bg-black/5"><X className="h-5 w-5" /></button>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    {loadingInviteFriends ? (
+                      <p className="flex items-center justify-center gap-2 py-8 text-sm text-chalk-mark" role="status"><Loader2 className="h-4 w-4 animate-spin" /> Loading friends?</p>
+                    ) : inviteFriends.length ? (
+                      <div className="space-y-2">
+                        {inviteFriends.map((friend) => {
+                          const friendId = friend.userId ?? friend.id;
+                          return (
+                            <div key={friendId} className="flex items-center gap-3 rounded-xl border border-paper-ruled bg-white/60 p-3">
+                              <AvatarDisplay avatarId={friend.avatarId ?? undefined} fallbackId={friendId} title={friend.displayName} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-paper-ruled bg-paper text-xl" 
+                              // imageClassName="h-full w-full rounded-full object-contain p-1" 
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-bold text-chalk-board">{friend.displayName}</p>
+                                <p className="inline-flex items-center gap-1.5 text-xs text-chalk-mark">
+                                  <span aria-hidden="true" className={`h-2 w-2 rounded-full ${friend.isOnline ? 'bg-emerald-600' : 'bg-stone-400'}`} />
+                                  {friend.isOnline ? 'Online' : 'Offline'}
+                                </p>
+                              </div>
+                              <button disabled={invitingId === friendId} onClick={() => void inviteFriend(friend)} className="min-h-10 rounded-lg bg-chalk-board px-4 text-sm font-bold text-paper disabled:opacity-50">{invitingId === friendId ? 'Sending..' : 'Invite'}</button>
+                            </div>
+                          );
+                        })}
+                        {inviteFriendsCursor && <button onClick={() => void loadMoreInviteFriends()} disabled={loadingMoreInviteFriends} className="min-h-10 w-full rounded-lg border border-paper-ruled text-sm font-bold text-chalk-mark disabled:opacity-50">{loadingMoreInviteFriends ? 'Loading?' : 'Show more friends'}</button>}
+                      </div>
+                    ) : (
+                      <p className="rounded-xl border border-dashed border-paper-ruled p-5 text-center text-sm text-chalk-mark">You don?t have any friends to invite yet.</p>
+                    )}
+                  </div>
+                  {!!sentInvites.length && <div className="mt-4 border-t border-paper-ruled pt-3"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-chalk-mark">Sent from this lobby</p>{sentInvites.map((invite) => <div key={invite.id} className="flex items-center gap-2 py-1 text-sm"><span className="flex-1">{invite.displayName}</span><button onClick={async () => { try { await apiClient.cancelRoomInvite(invite.id); setSentInvites((current) => current.filter((item) => item.id !== invite.id)); showToast('Invite cancelled.', 'success'); } catch (error) { showToast(error instanceof Error ? error.message : 'Could not cancel invite.', 'error'); } }} className="px-2 py-1 font-bold text-school-red">Cancel</button></div>)}</div>}
+                </section>
+              </div>
+            )}
           </div>
         )}
         {room.isPublic && (
