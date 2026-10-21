@@ -8,6 +8,7 @@ import { loginAsGuest } from '../hooks/useAppInit';
 import { track } from '../utils/analytics';
 import { AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
 import { AvatarDisplay } from '../components/AvatarDisplay';
+import { UsernameField, isValidUsername, isUsernameTakenError, type UsernameStatus } from '../components/UsernameField';
 
 const AVATAR_OPTIONS = [...AVATAR_PORTRAITS.map((portrait) => portrait.id)];
 
@@ -24,9 +25,11 @@ export function AvatarSetupScreen() {
   const [step, setStep] = useState<Step>('profile');
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState(session?.displayName || '');
+  const [username, setUsername] = useState(session?.username ?? '');
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>(session?.username ? 'checking' : 'idle');
   const [isSaving, setIsSaving] = useState(false);
 
-  const canContinue = selectedAvatar !== null && playerName.length >= 2;
+  const canContinue = selectedAvatar !== null && playerName.trim().length >= 2 && isValidUsername(username.trim()) && usernameStatus === 'available';
   const avatarId = selectedAvatar ?? '';
 
   const handleSaveProfile = async () => {
@@ -47,18 +50,21 @@ export function AvatarSetupScreen() {
         setIsSaving(false);
         return;
       }
-      try {
-        await apiClient.updateProfile({ displayName: playerName, avatarId });
-      } catch {
-        console.warn('[AvatarSetup] Backend profile save failed, continuing locally');
-      }
-      setSession({ ...currentSession, displayName: playerName, avatarId });
+      const response = await apiClient.updateProfile({ displayName: playerName.trim(), avatarId, username: username.trim() });
+      setSession({ ...currentSession, displayName: playerName.trim(), username: response.data.username ?? username.trim(), avatarId });
       track('profile_setup_completed', { isAuthenticated: currentSession.isAuthenticated });
       if (currentSession.isAuthenticated) {
         showToast(`Welcome, ${playerName}! 🎮`, 'success');
         return;
       }
       setStep('link-prompt');
+    } catch (error) {
+      if (isUsernameTakenError(error)) {
+        setUsernameStatus('taken');
+        showToast('That username was just claimed. Choose another one.', 'error');
+      } else {
+        showToast(error instanceof Error ? error.message : 'Could not save your profile. Please try again.', 'error');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -159,6 +165,15 @@ export function AvatarSetupScreen() {
                 <span className="text-sm font-hand text-desk">
                   {playerName.length}/20
                 </span>
+              </div>
+
+              <div className="mt-5 mb-6">
+                <UsernameField
+                  value={username}
+                  onChange={setUsername}
+                  currentUsername={session?.username}
+                  onStatusChange={setUsernameStatus}
+                />
               </div>
             </div>
 

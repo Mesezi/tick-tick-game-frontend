@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, ArrowLeft, User, Pencil, X, Volume2, VolumeX, Link, MessageCircle, HelpCircle, BarChart2, Bot, ClipboardList, Gamepad2, Globe, Lightbulb, OctagonX, Pin, Star, Target, Timer, Users } from 'lucide-react';
+import { Trophy, ArrowLeft, Pencil, X, Volume2, VolumeX, Link, MessageCircle, HelpCircle, Bell, BarChart2, Bot, ClipboardList, Gamepad2, Globe, Lightbulb, OctagonX, Pin, Star, Target, Timer, Users } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
-import { useInfiniteLeaderboard, useMyLeaderboardRank, usePlayerStats } from '../api/queries';
+import { usePlayerStats } from '../api/queries';
 import { apiClient } from '../api/client';
 import { persistenceLayer } from '../persistence/persistenceLayer';
 import { socketHandler } from '../socket/socketHandler';
@@ -12,6 +12,7 @@ import { InstallBanner } from '../components/InstallBanner';
 import { useInstallPrompt } from '../utils/useInstallPrompt';
 import { AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
 import { AvatarDisplay } from '../components/AvatarDisplay';
+import { UsernameField, isValidUsername, isUsernameTakenError, type UsernameStatus } from '../components/UsernameField';
 
 /**
  * LandingScreen – classroom / Nigerian school aesthetic.
@@ -21,8 +22,6 @@ export function LandingScreen() {
   const setHasPassedLanding = useGameStore((s) => s.setHasPassedLanding);
   const session = useGameStore((s) => s.session);
   const onlineCount = useGameStore((s) => s.onlineCount);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [muted, setMuted] = useState(isMuted());
   const { showBanner, installMode, handleInstall, handleConfirmInstalled, handleDismiss } = useInstallPrompt();
@@ -58,6 +57,15 @@ export function LandingScreen() {
         }}
       >
         <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-notifications'))}
+          aria-label="Open notifications"
+          title="Notifications"
+          className="relative w-9 h-9 rounded-xl flex items-center justify-center border transition-all active:scale-90 text-chalk-mark"
+          style={{ background: 'rgba(139,94,60,0.1)', borderColor: 'rgba(139,94,60,0.25)' }}
+        >
+          <Bell className="w-4 h-4" />
+        </button>
+        <button
           onClick={handleToggleMute}
           aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
           className="w-9 h-9 rounded-xl flex items-center justify-center border transition-all active:scale-90 text-chalk-mark"
@@ -67,6 +75,18 @@ export function LandingScreen() {
           }}
         >
           {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+        <button
+          onClick={() => setShowHowToPlay(true)}
+          aria-label="How to play"
+          title="How to play"
+          className="w-9 h-9 rounded-xl flex items-center justify-center border transition-all active:scale-90 text-chalk-mark"
+          style={{
+            background: 'rgba(139,94,60,0.1)',
+            borderColor: 'rgba(139,94,60,0.25)',
+          }}
+        >
+          <HelpCircle className="w-4 h-4" />
         </button>
       </div>
 
@@ -139,41 +159,6 @@ export function LandingScreen() {
               Start Playing
             </motion.button>
 
-            {/* Secondary buttons */}
-            <div className="flex gap-2 mb-3">
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => setShowLeaderboard(true)}
-                className="flex-1 rounded-xl py-3 font-bold text-sm flex items-center justify-center gap-1.5 border font-hand text-chalk-mark"
-                style={{ background: 'rgba(139,94,60,0.08)', borderColor: 'rgba(139,94,60,0.25)' }}
-              >
-                <Trophy className="w-4 h-4" />
-                Board
-              </motion.button>
-
-              {session?.displayName && (
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => setShowProfile(true)}
-                  className="flex-1 rounded-xl py-3 font-bold text-sm flex items-center justify-center gap-1.5 border font-hand text-chalk-mark"
-                  style={{ background: 'rgba(139,94,60,0.08)', borderColor: 'rgba(139,94,60,0.25)' }}
-                >
-                  <User className="w-4 h-4" />
-                  Profile
-                </motion.button>
-              )}
-
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => setShowHowToPlay(true)}
-                className="flex-1 rounded-xl py-3 font-bold text-sm flex items-center justify-center gap-1.5 border font-hand"
-                style={{ background: 'rgba(217,119,6,0.07)', borderColor: 'rgba(217,119,6,0.2)', color: '#92400e' }}
-              >
-                <HelpCircle className="w-4 h-4" />
-                Rules
-              </motion.button>
-            </div>
-
             {/* Save progress by linking Google for named guests */}
             {session?.email == null && session?.displayName != null && (
               <motion.button
@@ -219,12 +204,6 @@ export function LandingScreen() {
           .join('')}
       `}</style>
 
-      <AnimatePresence>
-        {showLeaderboard && <LeaderboardOverlay onClose={() => setShowLeaderboard(false)} />}
-      </AnimatePresence>
-      <AnimatePresence>
-        {showProfile && <ProfileOverlay onClose={() => setShowProfile(false)} />}
-      </AnimatePresence>
       <AnimatePresence>
         {showHowToPlay && <HowToPlaySheet onClose={() => setShowHowToPlay(false)} />}
       </AnimatePresence>
@@ -357,186 +336,17 @@ function HowToPlaySheet({ onClose }: { onClose: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Leaderboard Overlay
-// ─────────────────────────────────────────────────────────────────────────────
-
-function LeaderboardOverlay({ onClose }: { onClose: () => void }) {
-  const session = useGameStore((s) => s.session);
-  const [tab,] = useState<'weekly' | 'alltime'>('alltime');
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  const apiType = tab === 'alltime' ? 'all-time' as const : 'weekly' as const;
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteLeaderboard(apiType);
-  const { data: myRankData } = useMyLeaderboardRank(apiType, !!session?.token);
-
-  const entries = data?.pages.flatMap((p) => p.data.entries) ?? [];
-  const myRank = myRankData?.data.userRank ?? null;
-  const myEntryVisible = myRank ? entries.some((e) => e.id === myRank.id) : false;
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (obs) => { if (obs[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage(); },
-      { threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-      className="absolute inset-0 z-50 flex flex-col overflow-hidden paper-body"
-    >
-      {/* Header */}
-      <div className="px-6 pt-6 pb-4 mb-3 shrink-0" style={{ borderBottom: '1px solid #c8b89a' }}>
-        <button
-          onClick={onClose}
-          className="mb-3 p-2 rounded-xl border transition-all active:scale-95"
-          style={{ background: 'rgba(139,94,60,0.1)', borderColor: '#c8b89a' }}
-        >
-          <ArrowLeft className="w-5 h-5 text-chalk-mark" />
-        </button>
-        <p className="label-section mb-1 flex items-center gap-1.5 text-desk">
-          <Trophy className="w-3.5 h-3.5" /> Class Rankings
-        </p>
-        <h2 className="font-display text-[30px] text-ink-dark leading-none">Leaderboard</h2>
-      </div>
-
-      {/* Tabs */}
-      {/* <div className="px-6 py-3 shrink-0">
-        <div className="flex rounded-xl p-1 gap-1" style={{ background: 'rgba(139,94,60,0.12)', border: '1px solid #c8b89a' }}>
-          {(['weekly', 'alltime'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all font-hand"
-              style={{
-                background: tab === t ? '#6b4423' : 'transparent',
-                color: tab === t ? '#f5f0e8' : '#6b4423',
-              }}
-            >
-              {t === 'weekly' ? 'This Week' : 'All Time'}
-           
-            </button>
-          ))}
-        </div>
-      </div> */}
-
-      {/* List */}
-      <div className="flex-1 overflow-y-auto px-6 scrollbar-mobile-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-sm animate-pulse font-hand text-desk">Loading rankings...</p>
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <ClipboardList className="w-10 h-10 mb-3 text-desk opacity-50" />
-            <p className="text-sm text-center font-hand text-desk">No rankings yet. Be the first to play!</p>
-          </div>
-        ) : (
-          <div className="space-y-2 pb-4">
-            {entries.map((entry, i) => {
-              const rank = i + 1;
-              const score = tab === 'weekly' ? entry.weeklyScore : entry.totalScore;
-              const isYou = entry.id === session?.userId;
-              return (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: Math.min(i * 0.04, 0.4), type: 'spring', bounce: 0, duration: 0.3 }}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border"
-                  style={{
-                    background: isYou ? 'rgba(139,94,60,0.1)' : 'rgba(139,94,60,0.07)',
-                    borderColor: isYou ? '#8b5e3c' : '#c8b89a',
-                    boxShadow: isYou ? '0 0 0 1px rgba(139,94,60,0.2)' : 'none',
-                  }}
-                >
-                  <span
-                    className={`w-8 text-center shrink-0 ${rank > 3 ? 'font-display text-[15px]' : ''} ${isYou ? 'text-chalk-mark' : 'text-desk'}`}
-                  >
-                    {rank <= 3 ? (
-                      <span className={`font-display  font-bold ${rank === 1 ? 'text-school-amber' : rank === 2 ? 'text-slate-400' : 'text-desk'}`}>
-                        {rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'}
-                      </span>
-                    ) : rank}
-                  </span>
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold font-hand text-chalk-mark"
-                    style={{
-                      background: isYou ? 'rgba(107,68,35,0.15)' : 'rgba(139,94,60,0.12)',
-                      border: `1px solid ${isYou ? 'rgba(107,68,35,0.28)' : '#c8b89a'}`,
-                    }}
-                  >
-                    {entry.displayName ? entry.displayName.slice(0, 2).toUpperCase() : '??'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-bold truncate font-hand ${isYou ? 'text-chalk-mark' : 'text-ink-dark'}`}>
-                      {entry.displayName || 'Anonymous'}
-                      {isYou && (
-                        <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-full ml-1.5 text-chalk-mark" style={{ background: 'rgba(139,94,60,0.14)' }}>
-                          you
-                        </span>
-                      )}
-                    </p>
-                    <p className={`text-[12px] font-hand flex items-center gap-1 ${isYou ? 'text-chalk-mark' : 'text-desk'}`}>
-                      {entry.type === 'REGISTERED' ? <><Star className="w-2.5 h-2.5 fill-current" /> Registered</> : 'Guest'}
-                    </p>
-                  </div>
-                  <span className={`font-display text-[18px] ${isYou ? 'text-chalk-mark' : 'text-ink-dark'}`}>
-                    {score.toLocaleString()}
-                  </span>
-                </motion.div>
-              );
-            })}
-            <div ref={sentinelRef} className="py-2 flex justify-center">
-              {isFetchingNextPage && (
-                <p className="text-sm animate-pulse font-hand text-desk">Loading more...</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Pinned: my rank */}
-      {myRank && !myEntryVisible && (
-        <div className="px-6 pt-3 pb-4 shrink-0 border-t border-paper-ruled">
-          <p className="label-section mb-2 text-center text-desk">Your global rank</p>
-          <div className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: 'rgba(139,94,60,0.1)', borderColor: '#8b5e3c' }}>
-            <span className="font-display text-[18px] text-chalk-mark w-12 text-center">
-              #{myRank.rank}
-            </span>
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold font-hand text-chalk-mark" style={{ background: 'rgba(139,94,60,0.14)' }}>
-              {myRank.displayName ? myRank.displayName.slice(0, 2).toUpperCase() : '??'}
-            </div>
-            <p className="flex-1 text-sm font-bold truncate font-hand text-chalk-mark">
-              {myRank.displayName || 'You'}
-            </p>
-            <span className="font-display text-[20px] text-chalk-mark">
-              {tab === 'weekly' ? myRank.weeklyScore.toLocaleString() : myRank.totalScore.toLocaleString()}
-            </span>
-          </div>
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Profile Overlay
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ProfileOverlay({ onClose }: { onClose: () => void }) {
+export function ProfileOverlay({ onClose }: { onClose: () => void }) {
   const session = useGameStore((s) => s.session);
   const setSession = useGameStore((s) => s.setSession);
   const { data, isLoading } = usePlayerStats(!!session?.token);
   const [showEdit, setShowEdit] = useState(false);
   const [editName, setEditName] = useState(session?.displayName ?? '');
+  const [editUsername, setEditUsername] = useState(session?.username ?? '');
+  const [editUsernameStatus, setEditUsernameStatus] = useState<UsernameStatus>(session?.username ? 'checking' : 'idle');
   const [editAvatar, setEditAvatar] = useState(session?.avatarId ?? '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -549,13 +359,17 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
 
   const handleOpenEdit = () => {
     setEditName(session?.displayName ?? '');
+    setEditUsername(session?.username ?? '');
+    setEditUsernameStatus(session?.username ? 'checking' : 'idle');
     setEditAvatar(session?.avatarId ?? '');
     setShowEdit(true);
   };
 
   const handleSaveProfile = async () => {
     const displayName = editName.trim();
-    if (displayName.length < 2 || displayName.length > 20 || !editAvatar || isSavingProfile) return;
+    const username = editUsername.trim();
+    const usernameOkay = !username && !session?.username || isValidUsername(username) && editUsernameStatus === 'available';
+    if (displayName.length < 2 || displayName.length > 20 || !editAvatar || !usernameOkay || isSavingProfile) return;
 
     const currentSession = useGameStore.getState().session;
     if (!currentSession) {
@@ -565,7 +379,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
 
     setIsSavingProfile(true);
     try {
-      const response = await apiClient.updateProfile({ displayName, avatarId: editAvatar });
+      const response = await apiClient.updateProfile({ displayName, avatarId: editAvatar, ...(username ? { username } : {}) });
       const latestSession = useGameStore.getState().session;
       if (!latestSession) {
         showToast('Your session has expired. Please sign in again.', 'error');
@@ -575,13 +389,19 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
       setSession({
         ...latestSession,
         displayName: response.data.displayName || displayName,
+        username: response.data.username ?? latestSession.username,
         avatarId: response.data.avatarId || editAvatar,
       });
       setShowEdit(false);
       showToast('Profile updated!', 'success');
     } catch (error) {
       console.error('[Profile] Failed to update profile:', error);
-      showToast(error instanceof Error ? error.message : 'Could not update your profile. Please try again.', 'error');
+      if (isUsernameTakenError(error)) {
+        setEditUsernameStatus('taken');
+        showToast('That username was just claimed. Choose another one.', 'error');
+      } else {
+        showToast(error instanceof Error ? error.message : 'Could not update your profile. Please try again.', 'error');
+      }
     } finally {
       setIsSavingProfile(false);
     }
@@ -604,6 +424,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
           userId: guestId,
           email: null,
           displayName: null,
+          username: null,
           avatarId: '',
           isAuthenticated: false,
           deviceId,
@@ -698,6 +519,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
                 <p className="font-bold text-lg truncate font-hand text-ink-dark">
                   {session?.displayName || 'Anonymous'}
                 </p>
+                {session?.username && <p className="text-sm font-hand text-chalk-mark">@{session.username}</p>}
                 <p className="text-sm font-hand text-chalk-mark flex items-center gap-1">
                   {session?.isAuthenticated ? <><Star className="w-3.5 h-3.5 fill-current" /> Registered Student</> : 'Guest Pupil'}
                 </p>
@@ -876,6 +698,14 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
               className="mb-4 w-full rounded-xl border-2 bg-transparent px-4 py-3 font-hand text-[17px] text-ink-dark outline-none"
               style={{ borderColor: '#c8b89a', caretColor: '#6b4423' }}
             />
+            <div className="mb-5">
+              <UsernameField
+                value={editUsername}
+                onChange={setEditUsername}
+                currentUsername={session?.username}
+                onStatusChange={setEditUsernameStatus}
+              />
+            </div>
             <p className="mb-2 label-section">Choose Avatar</p>
             <div className="mb-5 max-h-[34dvh] overflow-y-auto overscroll-contain">
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
@@ -907,7 +737,7 @@ function ProfileOverlay({ onClose }: { onClose: () => void }) {
               </button>
               <button
                 onClick={handleSaveProfile}
-                disabled={editName.trim().length < 2 || !editAvatar || isSavingProfile}
+                disabled={editName.trim().length < 2 || !editAvatar || (!!editUsername.trim() && (!isValidUsername(editUsername.trim()) || editUsernameStatus !== 'available')) || (!!session?.username && !editUsername.trim()) || isSavingProfile}
                 className="flex-1 rounded-xl py-3 font-bold btn-primary disabled:opacity-50"
               >
                 {isSavingProfile ? 'Saving...' : 'Save Profile'}

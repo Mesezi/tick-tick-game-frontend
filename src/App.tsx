@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Bell, Check, Home, X } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { ScreenRouter } from './router/ScreenRouter.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -16,14 +16,32 @@ import { ApiError, apiClient } from './api/client';
 import { deriveScreen } from './router/screenRouter';
 import { useAppInit } from './hooks/useAppInit';
 import { useSoundInit } from './hooks/useSoundInit';
+import { BottomDock } from './components/BottomDock';
+import type { DockTab } from './components/BottomDock';
+import { FriendsScreen } from './screens/FriendsScreen';
+import { LeaderboardScreen } from './screens/LeaderboardScreen';
+import { ProfileOverlay } from './screens/LandingScreen';
+import { NotificationsScreen } from './screens/NotificationsScreen';
 
 const REJOIN_TIMEOUT_MS = 15000;
 const INVITE_ROOM_STORAGE_KEY = 'tick-tick-invite-room';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
+type IncomingRoomInviteNotice = {
+  id: string;
+  roomCode: string;
+  inviterName: string;
+  expiresAt?: string;
+};
+
 function App() {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [backendAvailable, setBackendAvailable] = useState<boolean | null>(null);
+  const [dockTab, setDockTab] = useState<DockTab>('play');
+  const [friendRequestCount, setFriendRequestCount] = useState(0);
+  const [roomInviteCount, setRoomInviteCount] = useState(0);
+  const [incomingRoomInvite, setIncomingRoomInvite] = useState<IncomingRoomInviteNotice | null>(null);
+  const [roomInviteBusy, setRoomInviteBusy] = useState(false);
   const isRejoining = useGameStore((s) => s.isRejoining);
   const setIsRejoining = useGameStore((s) => s.setIsRejoining);
   const connectionStatus = useGameStore((s) => s.connection.status);
@@ -66,6 +84,102 @@ function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    const openNotifications = () => setDockTab('notifications');
+    window.addEventListener('open-notifications', openNotifications);
+    return () => window.removeEventListener('open-notifications', openNotifications);
+  }, []);
+
+  useEffect(() => {
+    if (!session?.token) return;
+    let mounted = true;
+    const refreshSocial = async () => {
+      try {
+        const [requestsResponse, invitesResponse] = await Promise.all([
+          apiClient.getFriendRequests('incoming'),
+          apiClient.getRoomInvites(),
+        ]);
+        if (mounted) {
+          setFriendRequestCount(requestsResponse.data?.requests?.length ?? 0);
+          setRoomInviteCount(invitesResponse.data?.invites?.length ?? 0);
+        }
+      } catch (error) {
+        console.warn('[Social] Could not refresh social notifications:', error);
+      }
+    };
+    void refreshSocial();
+    window.addEventListener('social-data-refresh', refreshSocial);
+    const refreshEvents = ['friend-request-received', 'friend-request-updated', 'friendship-removed', 'room-invite-received', 'room-invite-updated'];
+    const handlers = refreshEvents.map((event) => {
+      const handler = (payload?: unknown) => {
+        window.dispatchEvent(new CustomEvent('social-data-refresh'));
+        if (event === 'room-invite-received' && payload && typeof payload === 'object') {
+          const data = payload as {
+            id?: string; inviteId?: string; roomCode?: string;
+            room?: { code?: string }; inviter?: { displayName?: string };
+            expiresAt?: string; invite?: { id?: string; room?: { code?: string }; inviter?: { displayName?: string }; expiresAt?: string };
+          };
+          const noticeId = data.inviteId ?? data.id ?? data.invite?.id;
+          const roomCode = data.roomCode ?? data.room?.code ?? data.invite?.room?.code;
+          if (noticeId && roomCode) {
+            setIncomingRoomInvite({
+              id: noticeId,
+              roomCode,
+              inviterName: data.inviter?.displayName ?? data.invite?.inviter?.displayName ?? 'A friend',
+              expiresAt: data.expiresAt ?? data.invite?.expiresAt,
+            });
+          }
+        }
+      };
+      socketHandler.onEvent(event, handler);
+      return event;
+    });
+    const presenceEvents = ['friend-online', 'friend-offline'];
+    presenceEvents.forEach((event) => socketHandler.onEvent(event, (payload) => window.dispatchEvent(new CustomEvent(event, { detail: payload }))));
+    return () => {
+      mounted = false;
+      window.removeEventListener('social-data-refresh', refreshSocial);
+      [...handlers, ...presenceEvents].forEach((event) => socketHandler.offEvent(event));
+    };
+  }, [session?.token, connectionStatus]);
+
+  const acceptRoomInvite = async () => {
+    if (!incomingRoomInvite || roomInviteBusy) return;
+    if (!socketHandler.isConnected()) {
+      showToast('Reconnect to the game server before accepting this invite.', 'error');
+      return;
+    }
+    setRoomInviteBusy(true);
+    try {
+      const response = await apiClient.respondRoomInvite(incomingRoomInvite.id, 'accept');
+      const roomCode = response.data.room?.code ?? incomingRoomInvite.roomCode;
+      socketHandler.emit('join-room', { roomCode });
+      setIncomingRoomInvite(null);
+      setDockTab('play');
+      window.dispatchEvent(new CustomEvent('social-data-refresh'));
+      showToast(`Joining room ${roomCode}…`, 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not join this room.', 'error');
+    } finally {
+      setRoomInviteBusy(false);
+    }
+  };
+
+  const declineRoomInvite = async () => {
+    if (!incomingRoomInvite || roomInviteBusy) return;
+    setRoomInviteBusy(true);
+    try {
+      await apiClient.respondRoomInvite(incomingRoomInvite.id, 'decline');
+      setIncomingRoomInvite(null);
+      showToast('Invite declined.', 'success');
+      window.dispatchEvent(new CustomEvent('social-data-refresh'));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not decline this invite.', 'error');
+    } finally {
+      setRoomInviteBusy(false);
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -193,7 +307,7 @@ function App() {
   ]);
 
   const activeScreen = deriveScreen({ session, room, round, matchResults, hasPassedLanding });
-  const showNavigation = activeScreen !== 'landing';
+  const showNavigation = activeScreen !== 'landing' || dockTab !== 'play';
   const isBackNavigation = activeScreen === 'avatar-setup' || activeScreen === 'room-lobby';
   const showConnectionProblem = connectionStatus !== 'connected' && !isBooting;
   // A dropped socket is recoverable: Socket.IO reconnects in the background.
@@ -334,19 +448,32 @@ function App() {
             }}
           >
             <button
-              onClick={isBackNavigation ? handleGoBack : handleGoHome}
+              onClick={dockTab !== 'play' ? () => setDockTab('play') : isBackNavigation ? handleGoBack : handleGoHome}
               className="inline-flex h-9 items-center gap-2 rounded-xl border px-3 font-hand text-sm font-bold transition-all active:scale-95"
               style={{
                 color: '#6b4423',
                 background: 'rgba(139,94,60,0.1)',
                 borderColor: 'rgba(139,94,60,0.25)',
               }}
-              aria-label={isBackNavigation ? 'Go back' : 'Go home'}
+              aria-label={dockTab !== 'play' ? 'Back to play' : isBackNavigation ? 'Go back' : 'Go home'}
             >
-              {isBackNavigation
-                ? <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                : <Home className="h-4 w-4" aria-hidden="true" />}
-              {isBackNavigation ? 'Back' : 'Home'}
+              {dockTab !== 'play'
+                ? <><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to {room?.status === 'in_progress' ? 'game' : 'play'}</>
+                : isBackNavigation
+                  ? <><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back</>
+                  : <><Home className="h-4 w-4" aria-hidden="true" /> Home</>}
+            </button>
+
+            <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setDockTab('notifications')}
+              aria-label="Open notifications"
+              title="Notifications"
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl border text-chalk-mark"
+              style={{ background: 'rgba(139,94,60,0.1)', borderColor: 'rgba(139,94,60,0.25)' }}
+            >
+              <Bell className="h-4 w-4" />
+              {roomInviteCount > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c93226] px-1 text-[9px] font-bold leading-none text-white">{roomInviteCount > 9 ? '9+' : roomInviteCount}</span>}
             </button>
 
             {showConnectionProblem && (
@@ -370,6 +497,7 @@ function App() {
                 </span>
               </div>
             )}
+            </div>
           </header>
         )}
 
@@ -413,6 +541,33 @@ function App() {
           </div>
         )}
 
+        <AnimatePresence>
+          {incomingRoomInvite && room?.status !== 'in_progress' && (
+            <motion.aside
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.28 }}
+              className="absolute left-3 right-3 top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] z-[60] mx-auto max-w-lg rounded-2xl border border-[#d4c9b0] bg-[#f8f3e9] p-4 shadow-xl"
+              role="status"
+            >
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-chalk-board">Room invite</p>
+                  <p className="mt-0.5 text-sm text-chalk-mark">{incomingRoomInvite.inviterName} invited you to room {incomingRoomInvite.roomCode}.</p>
+                  {incomingRoomInvite.expiresAt && <p className="mt-1 text-xs text-chalk-mark">Expires {new Date(incomingRoomInvite.expiresAt).toLocaleString()}</p>}
+                </div>
+                <button aria-label="Dismiss invite banner" onClick={() => setIncomingRoomInvite(null)} className="rounded-full p-1 text-chalk-mark"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button disabled={roomInviteBusy} onClick={() => void acceptRoomInvite()} className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-chalk-board px-3 text-sm font-bold text-paper disabled:opacity-50"><Check className="h-4 w-4" />Join room</button>
+                <button disabled={roomInviteBusy} onClick={() => void declineRoomInvite()} className="min-h-10 rounded-xl border border-paper-ruled px-4 text-sm font-bold text-chalk-mark disabled:opacity-50">Decline</button>
+                <button onClick={() => { setDockTab('notifications'); setIncomingRoomInvite(null); }} className="min-h-10 rounded-xl border border-paper-ruled px-3 text-sm font-bold text-chalk-mark">Inbox</button>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
         {/* Main content */}
         {blockGameForNetwork ? (
           <NetworkErrorScreen />
@@ -432,11 +587,24 @@ function App() {
                 className="flex-1 overflow-y-auto flex flex-col scrollbar-mobile-hidden"
               >
                 <ErrorBoundary>
-                  <ScreenRouter />
+                  {dockTab === 'friends' ? <FriendsScreen onRequestCountChange={setFriendRequestCount} />
+                    : dockTab === 'notifications' ? <NotificationsScreen onJoinedRoom={() => setDockTab('play')} />
+                    : dockTab === 'board' ? <LeaderboardScreen />
+                      : dockTab === 'profile' ? <ProfileOverlay onClose={() => setDockTab('play')} />
+                        : <ScreenRouter />}
                 </ErrorBoundary>
               </motion.div>
             )}
           </AnimatePresence>
+        )}
+
+        {!isBooting && !blockGameForNetwork && activeScreen !== 'avatar-setup' && activeScreen !== 'save-progress' && (
+          <BottomDock
+            active={dockTab}
+            inMatch={room?.status === 'in_progress'}
+            friendRequests={friendRequestCount}
+            onSelect={setDockTab}
+          />
         )}
 
         {/* Rejoin prompt */}

@@ -287,10 +287,10 @@ export function LobbyScreen() {
             </p>
           </div>
         )}
-      </div>
 
-      {/* CTA */}
-      <div className="px-5 pb-6 pb-safe pt-3 shrink-0" style={{ borderTop: '1px solid #c8b89a' }}>
+
+          {/* CTA */}
+      <div className="px-5 pb-6 mt-3 pb-safe pt-3 shrink-0" style={{ borderTop: '1px solid #c8b89a' }}>
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handleAction}
@@ -301,6 +301,9 @@ export function LobbyScreen() {
           {isLoading ? 'Connecting...' : lobbyTab === 'create' ? 'Create Room' : 'Join Room'}
         </motion.button>
       </div>
+      </div>
+
+    
     </div>
   );
 }

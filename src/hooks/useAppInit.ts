@@ -23,7 +23,7 @@ export async function loginAsGuest(): Promise<void> {
     const { token, guestId } = await apiClient.guestLogin(deviceId);
     persistenceLayer.saveToken(token);
     useGameStore.getState().setSession({
-      token, userId: guestId, email: null, displayName: null,
+      token, userId: guestId, email: null, displayName: null, username: null,
       avatarId: '', isAuthenticated: false, deviceId,
     });
     identifyUser(guestId, { type: 'GUEST' });
@@ -38,7 +38,7 @@ export async function loginAsGuest(): Promise<void> {
       const { token, guestId } = await apiClient.guestLogin(newDeviceId);
       persistenceLayer.saveToken(token);
       useGameStore.getState().setSession({
-        token, userId: guestId, email: null, displayName: null,
+        token, userId: guestId, email: null, displayName: null, username: null,
         avatarId: '', isAuthenticated: false, deviceId: newDeviceId,
       });
       socketHandler.connect(SOCKET_URL, token);
@@ -93,6 +93,7 @@ export function useAppInit() {
             userId: user.id,
             email: user.email,
             displayName: user.displayName,
+            username: user.username ?? res.user.username ?? null,
             avatarId: user.avatarId ?? '',
             isAuthenticated: true,
             deviceId: persistenceLayer.getDeviceId(),
@@ -119,6 +120,7 @@ export function useAppInit() {
                 userId: user.id,
                 email: user.email,
                 displayName: user.displayName,
+                username: user.username ?? null,
                 avatarId: user.avatarId ?? '',
                 isAuthenticated: user.type === 'GOOGLE',
                 deviceId: persistenceLayer.getDeviceId(),
@@ -168,6 +170,7 @@ export function useAppInit() {
               userId: user.id,
               email: user.email,
               displayName: user.displayName,
+              username: user.username ?? null,
               avatarId: user.avatarId ?? '',
               isAuthenticated: user.type === 'GOOGLE',
               deviceId,
@@ -192,6 +195,7 @@ export function useAppInit() {
           userId: user.id,
           email: user.email,
           displayName: user.displayName,
+          username: user.username ?? null,
           avatarId: user.avatarId ?? '',
           isAuthenticated: user.type === 'GOOGLE',
           deviceId: persistenceLayer.getDeviceId(),
