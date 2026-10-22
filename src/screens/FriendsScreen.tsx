@@ -19,6 +19,7 @@ import {
 import { useGameStore } from "../store/gameStore";
 import { showToast } from "../components/toastStore";
 import { AvatarDisplay } from "../components/AvatarDisplay";
+import { OverlayPortal } from "../components/OverlayPortal";
 
 function requestPerson(request: FriendRequest): FriendUser {
   return (
@@ -257,7 +258,8 @@ export function FriendsScreen({
       </header>
 
       <div
-        className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-[rgba(139,94,60,0.1)] p-1"
+        className="mb-5 grid grid-cols-2 gap-1 rounded-2xl p-1"
+        style={{ background: '#e8dcc4', border: '1px solid #d8c6a8', boxShadow: 'inset 0 1px 2px rgba(93,58,31,0.08)' }}
         role="tablist"
         aria-label="Friends sections"
       >
@@ -265,7 +267,12 @@ export function FriendsScreen({
           role="tab"
           aria-selected={activeTab === "friends"}
           onClick={() => setActiveTab("friends")}
-          className={`min-h-11 rounded-lg px-3 text-sm font-bold transition-colors ${activeTab === "friends" ? "bg-paper text-chalk-board shadow-sm" : "text-chalk-mark"}`}
+          className="min-h-11 rounded-xl px-3 text-sm font-bold transition-all"
+          style={{
+            background: activeTab === 'friends' ? 'linear-gradient(180deg, #8b5e3c, #6b4423)' : 'transparent',
+            color: activeTab === 'friends' ? '#fffaf1' : '#6b4423',
+            boxShadow: activeTab === 'friends' ? '0 3px 6px rgba(74,48,23,0.24), inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+          }}
         >
           Friends
         </button>
@@ -273,11 +280,16 @@ export function FriendsScreen({
           role="tab"
           aria-selected={activeTab === "requests"}
           onClick={() => setActiveTab("requests")}
-          className={`min-h-11 rounded-lg px-3 text-sm font-bold transition-colors ${activeTab === "requests" ? "bg-paper text-chalk-board shadow-sm" : "text-chalk-mark"}`}
+          className="min-h-11 rounded-xl px-3 text-sm font-bold transition-all"
+          style={{
+            background: activeTab === 'requests' ? 'linear-gradient(180deg, #8b5e3c, #6b4423)' : 'transparent',
+            color: activeTab === 'requests' ? '#fffaf1' : '#6b4423',
+            boxShadow: activeTab === 'requests' ? '0 3px 6px rgba(74,48,23,0.24), inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+          }}
         >
           Friend invites
           {incoming.length > 0 && (
-            <span className="ml-2 rounded-full bg-school-red px-1.5 py-0.5 text-xs text-white">
+            <span className={`ml-2 rounded-full px-1.5 py-0.5 text-xs ${activeTab === 'requests' ? 'bg-[#f2b533] text-[#593719]' : 'bg-school-red text-white'}`}>
               {incoming.length}
             </span>
           )}
@@ -551,8 +563,8 @@ export function FriendsScreen({
 
       <AnimatePresence>
         {friendToRemove && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5"
+          <OverlayPortal><motion.div
+            className="pointer-events-auto absolute inset-0 z-[1000] flex items-center justify-center bg-black/40 p-5"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -589,7 +601,7 @@ export function FriendsScreen({
                 >{busy === (friendToRemove.userId ?? friendToRemove.id) ? "Removing…" : "Remove friend"}</button>
               </div>
             </motion.section>
-          </motion.div>
+          </motion.div></OverlayPortal>
         )}
       </AnimatePresence>
     </div>

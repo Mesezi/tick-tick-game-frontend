@@ -6,6 +6,7 @@ import { socketHandler } from '../socket/socketHandler';
 import { apiClient } from '../api/client';
 import { AvatarDisplay } from '../components/AvatarDisplay';
 import { showToast } from '../components/toastStore';
+import { OverlayPortal } from '../components/OverlayPortal';
 
 /**
  * RoomLobbyScreen — classroom attendance register aesthetic.
@@ -191,7 +192,7 @@ export function RoomLobbyScreen() {
               <UserPlus className="h-4 w-4" aria-hidden="true" /> Invite friends
             </button>}
             {showInviteFriends && (
-              <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" role="presentation">
+              <OverlayPortal><div className="pointer-events-auto absolute inset-0 z-[1000] flex items-end justify-center bg-black/40 sm:items-center sm:p-4" role="presentation">
                 <button aria-label="Close friend invites" onClick={() => setShowInviteFriends(false)} className="absolute inset-0 h-full w-full cursor-default" />
                 <section role="dialog" aria-modal="true" aria-labelledby="invite-friends-title" className="relative z-10 flex max-h-[85dvh] w-full max-w-lg flex-col rounded-t-3xl border border-paper-ruled bg-paper p-5 shadow-2xl sm:rounded-2xl">
                   <div className="mb-4 flex items-center justify-between">
@@ -232,7 +233,7 @@ export function RoomLobbyScreen() {
                   </div>
                   {!!sentInvites.length && <div className="mt-4 border-t border-paper-ruled pt-3"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-chalk-mark">Sent from this lobby</p>{sentInvites.map((invite) => <div key={invite.id} className="flex items-center gap-2 py-1 text-sm"><span className="flex-1">{invite.displayName}</span><button onClick={async () => { try { await apiClient.cancelRoomInvite(invite.id); setSentInvites((current) => current.filter((item) => item.id !== invite.id)); showToast('Invite cancelled.', 'success'); } catch (error) { showToast(error instanceof Error ? error.message : 'Could not cancel invite.', 'error'); } }} className="px-2 py-1 font-bold text-school-red">Cancel</button></div>)}</div>}
                 </section>
-              </div>
+              </div></OverlayPortal>
             )}
           </div>
         )}

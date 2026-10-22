@@ -200,7 +200,7 @@ export function GameScreen() {
     );
   }
 
-  const totalSeconds = 90;
+  const totalSeconds = room?.settings.roundDuration ?? 90;
   const timerPct = timer / totalSeconds;
   const timerColor = timer > 30 ? '#6b4423' : timer > 10 ? '#b45309' : '#c0392b';
   const R = 28;

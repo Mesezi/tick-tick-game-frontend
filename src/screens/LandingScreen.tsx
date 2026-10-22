@@ -13,6 +13,7 @@ import { useInstallPrompt } from '../utils/useInstallPrompt';
 import { AVATAR_PORTRAITS, getAvatarPortrait } from '../utils/avatarHelper';
 import { AvatarDisplay } from '../components/AvatarDisplay';
 import { UsernameField, isValidUsername, isUsernameTakenError, type UsernameStatus } from '../components/UsernameField';
+import { OverlayPortal } from '../components/OverlayPortal';
 
 /**
  * LandingScreen – classroom / Nigerian school aesthetic.
@@ -183,7 +184,7 @@ export function LandingScreen() {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => apiClient.redirectToGoogle('login')}
-                className="mt-3 w-full flex items-center justify-center gap-2.5 rounded-xl border px-4 py-3 font-bold font-hand text-chalk-board"
+                className="w-full flex items-center justify-center gap-2.5 rounded-xl border px-4 py-3 font-bold font-hand text-chalk-board"
                 style={{ background: '#fff', borderColor: '#c8b89a' }}
               >
                 <span aria-hidden="true" className="font-bold text-base text-school-red">G</span>
@@ -205,7 +206,7 @@ export function LandingScreen() {
       `}</style>
 
       <AnimatePresence>
-        {showHowToPlay && <HowToPlaySheet onClose={() => setShowHowToPlay(false)} />}
+        {showHowToPlay && <OverlayPortal><HowToPlaySheet onClose={() => setShowHowToPlay(false)} /></OverlayPortal>}
       </AnimatePresence>
 
       <InstallBanner
@@ -229,7 +230,7 @@ function HowToPlaySheet({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-50 flex items-end"
+      className="pointer-events-auto absolute inset-0 z-[1000] flex items-end"
       style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -267,10 +268,10 @@ function HowToPlaySheet({ onClose }: { onClose: () => void }) {
           <div className="space-y-3">
             {[
               { icon: <Target className="w-5 h-5 text-chalk-mark shrink-0" />, title: 'Get a letter + categories', desc: 'Each round gives a random letter and 5 categories (Food, Animal, City, etc). Every answer must start with that letter.' },
-              { icon: <Timer className="w-5 h-5 text-school-amber shrink-0" />, title: 'Type fast — like exam time!', desc: 'You have 90 seconds to fill all categories. Answers save automatically as you type. Sharp sharp!' },
+              { icon: <Timer className="w-5 h-5 text-school-amber shrink-0" />, title: 'Type fast — like exam time!', desc: 'The host chooses 60, 90, or 120 seconds per round, with 90 seconds as the default. Answers save automatically as you type. Sharp sharp!' },
               { icon: <OctagonX className="w-5 h-5 text-school-red shrink-0" />, title: 'Shout STOP!', desc: 'Finished early? Hit STOP to start a 15-second grace period. After that, the round locks — no more changes.' },
               { icon: <Bot className="w-5 h-5 text-chalk-mark shrink-0" />, title: 'AI marks your answers', desc: 'Correct = 10pts. Minor typo = 9pts. Major typo = 7pts. Duplicate answer = 5pts. Wrong/blank = 0pts.' },
-              { icon: <Lightbulb className="w-5 h-5 text-school-amber shrink-0" />, title: 'Be unique — no copy-copy!', desc: 'If two players give the same answer, both get only 5pts instead of 10. Think different, collect more marks.' },
+              { icon: <Lightbulb className="w-5 h-5 text-school-amber shrink-0" />, title: 'Duplicates score 5 points', desc: 'Repeating your own valid answer in another category earns 5 points for each repeated answer. If players give the same answer in the same category, the existing duplicate rule still gives each matching answer 5 points.' },
               { icon: <Globe className="w-5 h-5 text-chalk-mark shrink-0" />, title: 'Nigerian English accepted!', desc: 'The AI understands Pidgin, local slang, and multi-word answers like "Jollof Rice" or "Eba and Egusi".' },
               { icon: <Trophy className="w-5 h-5 text-school-amber shrink-0" />, title: 'Win the match', desc: 'Highest cumulative score after all rounds wins. Top 3 hit the podium and the leaderboard.' },
             ].map((step, i) => (
@@ -301,6 +302,7 @@ function HowToPlaySheet({ onClose }: { onClose: () => void }) {
                 { label: 'Minor typo (clearly right)',    pts: '+9',  color: '#6b4423' },
                 { label: 'Major typo (recognizable)',     pts: '+7',  color: '#d97706' },
                 { label: 'Duplicate (same as classmate)', pts: '+5',  color: '#92400e' },
+                { label: 'Repeated in another category', pts: '+5',  color: '#92400e' },
                 { label: 'Wrong / blank',                 pts: '0',   color: '#c0392b' },
               ].map((s, i) => (
                 <div key={i} className="flex items-center justify-between px-4 py-2.5">
@@ -602,11 +604,11 @@ export function ProfileOverlay({ onClose }: { onClose: () => void }) {
 
       <AnimatePresence>
         {showDeleteConfirm && (
-          <motion.div
+          <OverlayPortal><motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[80] flex items-center justify-center bg-black/60 px-6"
+            className="pointer-events-auto absolute inset-0 z-[1000] flex items-center justify-center bg-black/60 px-6"
             onClick={(event) => {
               if (event.target === event.currentTarget && !isDeleting) setShowDeleteConfirm(false);
             }}
@@ -660,17 +662,17 @@ export function ProfileOverlay({ onClose }: { onClose: () => void }) {
                 </button>
               </div>
             </motion.div>
-          </motion.div>
+          </motion.div></OverlayPortal>
         )}
       </AnimatePresence>
 
       {/* Edit profile sheet */}
       {showEdit && (
-        <motion.div
+        <OverlayPortal><motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-60 flex items-end"
+          className="pointer-events-auto absolute inset-0 z-[1000] flex items-end"
           style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowEdit(false); }}
         >
@@ -744,16 +746,16 @@ export function ProfileOverlay({ onClose }: { onClose: () => void }) {
               </button>
             </div>
           </motion.div>
-        </motion.div>
+        </motion.div></OverlayPortal>
       )}
 
       <AnimatePresence>
         {showContact && (
-          <motion.div
+          <OverlayPortal><motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[70] flex items-end"
+            className="pointer-events-auto absolute inset-0 z-[1000] flex items-end"
             style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
             onClick={(event) => {
               if (event.target === event.currentTarget && !isSendingContact) setShowContact(false);
@@ -837,7 +839,7 @@ export function ProfileOverlay({ onClose }: { onClose: () => void }) {
                 {isSendingContact ? 'Sending...' : 'Send Message'}
               </button>
             </motion.div>
-          </motion.div>
+          </motion.div></OverlayPortal>
         )}
       </AnimatePresence>
     </motion.div>

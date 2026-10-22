@@ -320,6 +320,11 @@ function App() {
   const showNavigation = activeScreen !== 'landing' || dockTab !== 'play';
   const isBackNavigation = activeScreen === 'avatar-setup' || activeScreen === 'room-lobby';
   const showConnectionProblem = connectionStatus !== 'connected' && !isBooting;
+  const connectionLabel = connectionStatus === 'degraded'
+    ? 'Slow connection'
+    : !isOnline || backendAvailable === false
+      ? 'Offline'
+      : 'Reconnecting';
   // A dropped socket is recoverable: Socket.IO reconnects in the background.
   // Only block the app when the device is offline or the initial API health
   // check confirms the backend is unavailable.
@@ -489,23 +494,14 @@ function App() {
 
             {showConnectionProblem && (
               <div
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+                className="flex items-center gap-1.5 rounded-full border px-2.5 py-1"
                 role="status"
-                aria-label={connectionStatus === 'degraded' ? 'Connection slow' : 'Offline'}
+                aria-label={connectionLabel}
+                title={connectionLabel}
+                style={{ background: '#f4ead5', borderColor: '#e2cba4', color: '#72502e' }}
               >
-                <div
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: connectionStatus === 'degraded' ? '#d97706' : '#c0392b',
-                    animation: 'pulse-dot 2s ease-in-out infinite',
-                  }}
-                />
-                <span
-                  className=" font-bold tracking-widest font-hand"
-                  style={{ color: connectionStatus === 'degraded' ? '#d97706' : '#c0392b' }}
-                >
-                  {connectionStatus === 'degraded' ? 'SLOW' : 'OFFLINE'}
-                </span>
+                <span className="h-1.5 w-1.5 rounded-full bg-[#b47a2f]" aria-hidden="true" />
+                <span className="font-hand text-xs font-bold">{connectionLabel}</span>
               </div>
             )}
             </div>
@@ -514,41 +510,19 @@ function App() {
 
         {!showNavigation && (isBooting || showConnectionProblem) && (
           <div
-            className="absolute left-4 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+            className="absolute left-4 z-40 flex items-center gap-1.5 rounded-full border px-2.5 py-1"
             style={{
               top: 'max(16px, env(safe-area-inset-top, 16px))',
-              background: 'rgba(245,240,232,0.9)',
-              border: '1px solid #c8b89a',
+              background: '#f4ead5',
+              borderColor: '#e2cba4',
+              color: '#72502e',
               backdropFilter: 'blur(8px)',
             }}
             role="status"
-            aria-label={
-              isBooting
-                ? 'Connecting'
-                : connectionStatus === 'degraded'
-                  ? 'Connection slow'
-                  : 'Offline'
-            }
+            aria-label={isBooting ? 'Connecting' : connectionLabel}
           >
-            <div
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                background: isBooting || connectionStatus === 'degraded' ? '#d97706' : '#c0392b',
-                animation: 'pulse-dot 2s ease-in-out infinite',
-              }}
-            />
-            <span
-              className="text-sm font-bold tracking-widest font-hand"
-              style={{
-                color: isBooting || connectionStatus === 'degraded' ? '#d97706' : '#c0392b',
-              }}
-            >
-              {isBooting
-                ? 'CONNECTING...'
-                : connectionStatus === 'degraded'
-                  ? 'SLOW'
-                  : 'OFFLINE'}
-            </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-[#b47a2f]" aria-hidden="true" />
+            <span className="font-hand text-xs font-bold">{isBooting ? 'Connecting' : connectionLabel}</span>
           </div>
         )}
 
@@ -619,6 +593,8 @@ function App() {
             onSelect={handleDockSelect}
           />
         )}
+
+        <div id="app-overlay-root" className="pointer-events-none absolute inset-0 z-[1000]" />
 
         {/* Rejoin prompt */}
         <AnimatePresence>

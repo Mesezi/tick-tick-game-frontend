@@ -8,6 +8,7 @@ import { AvatarDisplay } from '../components/AvatarDisplay';
 import { showToast } from '../components/toastStore';
 import { playSound } from '../audio/soundManager';
 import { renderShareCardPng } from '../utils/shareCard';
+import { OverlayPortal } from '../components/OverlayPortal';
 
 const REMATCH_TIMEOUT_S = 30;
 const ROOM_RETENTION_MS = 60_000;
@@ -524,11 +525,11 @@ function RematchOverlay({
   }, [countdown]);
 
   return (
-    <motion.div
+    <OverlayPortal><motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-30 flex items-end"
+      className="pointer-events-auto absolute inset-0 z-[1000] flex items-end"
       style={{ background: 'rgba(0,0,0,0.45)' }}
     >
       <motion.div
@@ -606,6 +607,6 @@ function RematchOverlay({
           </div>
         )}
       </motion.div>
-    </motion.div>
+    </motion.div></OverlayPortal>
   );
 }
