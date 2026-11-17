@@ -19,7 +19,7 @@ export default defineConfig({
         description: 'Play the free Nigerian multiplayer word game with friends online.',
         theme_color: '#6b4423',
         background_color: '#6b4423',
-        display: 'standalone',
+        display: 'fullscreen',
         orientation: 'portrait',
         scope: '/',
         start_url: '/',

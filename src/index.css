@@ -167,11 +167,10 @@
 }
 
 * {
-  /* overscroll-behavior: none; */
+  overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
-  /* touch-action: manipulation; */
   user-select: none;
 }
 
@@ -205,10 +204,12 @@ textarea,
 #root {
   max-width: 100%;
   margin: 0 auto;
+  height: 100dvh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* iOS standalone can report a layout viewport that stops above the home-indicator area.
@@ -234,6 +235,10 @@ body {
   background: #f5f0e8;
   min-height: 100dvh;
   overflow: hidden;
+  position: fixed;
+  width: 100%;
+  /* Prevent iOS bounce scroll that exposes browser chrome */
+  overscroll-behavior: none;
 }
 
 /* iOS standalone reserves this strip for the home indicator. Paint the device
