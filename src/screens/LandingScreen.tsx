@@ -230,7 +230,7 @@ function HowToPlaySheet({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="pointer-events-auto absolute inset-0 z-[1000] flex items-end"
+      className="pointer-events-auto absolute inset-0 z-1000 flex items-end"
       style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -608,7 +608,7 @@ export function ProfileOverlay({ onClose }: { onClose: () => void }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="pointer-events-auto absolute inset-0 z-[1000] flex items-center justify-center bg-black/60 px-6"
+            className="pointer-events-auto absolute inset-0 z-1000 flex items-center justify-center bg-black/60 px-6"
             onClick={(event) => {
               if (event.target === event.currentTarget && !isDeleting) setShowDeleteConfirm(false);
             }}
@@ -672,7 +672,7 @@ export function ProfileOverlay({ onClose }: { onClose: () => void }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="pointer-events-auto absolute inset-0 z-[1000] flex items-end"
+          className="pointer-events-auto absolute inset-0 z-1000 flex items-end"
           style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowEdit(false); }}
         >
@@ -755,7 +755,7 @@ export function ProfileOverlay({ onClose }: { onClose: () => void }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="pointer-events-auto absolute inset-0 z-[1000] flex items-end"
+            className="pointer-events-auto absolute inset-0 z-1000 flex items-end"
             style={{ background: 'rgba(10,20,14,0.75)', backdropFilter: 'blur(4px)' }}
             onClick={(event) => {
               if (event.target === event.currentTarget && !isSendingContact) setShowContact(false);

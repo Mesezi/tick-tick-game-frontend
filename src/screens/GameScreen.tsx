@@ -240,8 +240,11 @@ export function GameScreen() {
 
       {/* Game header */}
       <div
-        className="grid grid-cols-[1fr_1fr_1fr] mb-3 items-center px-5 pt-5 pb-3 shrink-0"
-        style={{ borderBottom: '1px solid #c8b89a' }}
+        className="grid grid-cols-[1fr_1fr_1fr] mb-3 items-center px-5 pb-3 shrink-0"
+        style={{
+          borderBottom: '1px solid #c8b89a',
+          paddingTop: 'max(1.25rem, env(safe-area-inset-top, 1.25rem))',
+        }}
       >
         <div>
           <p className="text-[12px] font-bold tracking-widest uppercase font-hand text-chalk-mark">
@@ -441,8 +444,11 @@ export function GameScreen() {
             className="absolute inset-0 flex flex-col overflow-hidden paper-body"
           >
             <div
-              className="px-5 pt-4 pb-4 shrink-0 text-center"
-              style={{ borderBottom: '1px solid #c8b89a' }}
+              className="px-5 pb-4 shrink-0 text-center"
+              style={{
+                borderBottom: '1px solid #c8b89a',
+                paddingTop: 'max(1rem, env(safe-area-inset-top, 1rem))',
+              }}
             >
               <p className="text-sm mb-2 font-bold font-hand text-chalk-board">
                 Round {displayResults.roundNumber} · Your Answers
@@ -673,8 +679,11 @@ function ResultsTabsView({
     <>
       {/* Header */}
       <div
-        className="px-5 pt-4 pb-3 shrink-0"
-        style={{ borderBottom: '1px solid #c8b89a' }}
+        className="px-5 pb-3 shrink-0"
+        style={{
+          borderBottom: '1px solid #c8b89a',
+          paddingTop: 'max(1rem, env(safe-area-inset-top, 1rem))',
+        }}
       >
         <p className="label-section mb-1 text-chalk-mark">
           Round {displayResults.roundNumber} · Review
