@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, CheckCircle, ClipboardList, Loader2, Minus, Pencil, Trophy, TrendingDown, TrendingUp, Crown } from 'lucide-react';
+import { Bell, CheckCircle, ClipboardList, Home, Loader2, Minus, Pencil, Trophy, TrendingDown, TrendingUp, Crown } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { socketHandler } from '../socket/socketHandler';
 import { persistenceLayer } from '../persistence/persistenceLayer';
@@ -8,6 +8,7 @@ import { createKeyedDebouncedEmit } from '../utils/debouncedEmit';
 import { playSound, playTimerTick } from '../audio/soundManager';
 import { AvatarDisplay } from '../components/AvatarDisplay';
 import { GameToast } from '../components/GameToast';
+import { apiClient } from '../api/client';
 import type { GameToastVariant } from '../components/GameToast';
 import type { RoundResultsPayload } from '../types';
 
@@ -32,6 +33,7 @@ export function GameScreen() {
   const [graceTimer, setGraceTimer] = useState(15);
   const [subPhase, setSubPhase] = useState<GameSubPhase>('input');
   const [rankingsCountdown, setRankingsCountdown] = useState(0);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [gameToast, setGameToast] = useState<{ message: string; variant: GameToastVariant } | null>(null);
   const showGameToast = useCallback((message: string, variant: GameToastVariant = 'info') => {
@@ -192,6 +194,19 @@ export function GameScreen() {
     return round.categories.every((cat) => (answers[cat] ?? '').trim().length > 0);
   }, [round?.categories, answers]);
 
+  const handleGoHome = useCallback(async () => {
+    const store = useGameStore.getState();
+    const currentRoom = store.room;
+    const currentSession = store.session;
+    if (currentRoom?.roomCode) {
+      try { await apiClient.leaveRoom(currentRoom.roomCode); } catch { /* ignore */ }
+    }
+    store.reset();
+    if (currentSession) store.setSession(currentSession);
+    store.setHasPassedLanding(true);
+    setShowExitConfirm(false);
+  }, []);
+
   if (!round) {
     return (
       <div className="flex-1 flex items-center justify-center paper-body">
@@ -235,6 +250,13 @@ export function GameScreen() {
           <p className="text-sm font-bold font-hand text-ink-dark">
             {room?.settings?.categoryPackId || 'Classic Nigeria'}
           </p>
+          <button
+            onClick={() => setShowExitConfirm(true)}
+            className="mt-1 flex items-center gap-1 text-[11px] font-bold font-hand text-desk opacity-60 hover:opacity-100 transition-opacity"
+            aria-label="Leave match"
+          >
+            <Home className="w-3 h-3" /> Leave
+          </button>
         </div>
 
             {/* Letter badge */}
@@ -255,7 +277,7 @@ export function GameScreen() {
 
         {/* Circular chalk timer */}
         <div className="flex justify-end">
-          <div className="relative h-[64px] w-[64px] shrink-0">
+          <div className="relative h-16 w-16 shrink-0">
             <svg
               className="absolute inset-0 block"
               width="64"
@@ -477,6 +499,57 @@ export function GameScreen() {
               rankingsCountdown={rankingsCountdown}
               previousRoundRanks={previousRoundRanks}
             />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Exit confirmation overlay */}
+      <AnimatePresence>
+        {showExitConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-end"
+            style={{ background: 'rgba(26,18,8,0.65)', backdropFilter: 'blur(4px)' }}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.32 }}
+              className="w-full rounded-t-3xl px-6 pt-5 pb-10 paper-body"
+              style={{ borderTop: '2px solid #c8b89a', boxShadow: '0 -8px 32px rgba(0,0,0,0.25)' }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center mb-4">
+                <div className="w-10 h-1 rounded-full bg-paper-ruled" />
+              </div>
+
+              <div className="flex items-center gap-3 mb-2">
+                <Home className="w-5 h-5 text-school-red shrink-0" />
+                <h3 className="font-display text-[20px] text-ink-dark leading-tight">Leave the match?</h3>
+              </div>
+              <p className="text-sm font-hand text-chalk-board mb-6 leading-relaxed">
+                You'll be removed from the room and your answers for this round will be lost. This can't be undone.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowExitConfirm(false)}
+                  className="flex-1 py-3.5 rounded-xl font-bold text-sm btn-ghost font-hand"
+                >
+                  Stay in game
+                </button>
+                <button
+                  onClick={() => void handleGoHome()}
+                  className="flex-1 py-3.5 rounded-xl font-bold text-sm font-hand text-paper"
+                  style={{ background: '#c0392b', boxShadow: '0 4px 12px rgba(192,57,43,0.3)' }}
+                >
+                  Leave
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

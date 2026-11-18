@@ -317,7 +317,7 @@ function App() {
   ]);
 
   const activeScreen = deriveScreen({ session, room, round, matchResults, hasPassedLanding });
-  const showNavigation = activeScreen !== 'landing' || dockTab !== 'play';
+  const showNavigation = (activeScreen !== 'landing' || dockTab !== 'play') && activeScreen !== 'game';
   const isBackNavigation = activeScreen === 'avatar-setup' || activeScreen === 'room-lobby';
   const showConnectionProblem = connectionStatus !== 'connected' && !isBooting;
   const connectionLabel = connectionStatus === 'degraded'
@@ -440,7 +440,7 @@ function App() {
     >
       {/* Phone-frame shell — aged paper */}
       <div
-        className="app-shell-frame relative w-full overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 sm:rounded-3xl sm:shadow-2xl sm:border paper-body sm:max-h-[800px]"
+        className="app-shell-frame relative w-full overflow-hidden flex flex-col sm:max-w-120 md:max-w-135 sm:rounded-3xl sm:shadow-2xl sm:border paper-body sm:max-h-200"
         style={{
           borderColor: '#c8b89a',
           boxShadow: '0 24px 60px rgba(80,50,20,0.45), 0 0 0 1px rgba(139,94,60,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
@@ -533,7 +533,7 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ type: 'spring', bounce: 0, duration: 0.28 }}
-              className="absolute left-3 right-3 top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] z-[60] mx-auto max-w-lg rounded-2xl border border-[#d4c9b0] bg-[#f8f3e9] p-4 shadow-xl"
+              className="absolute left-3 right-3 top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] z-60 mx-auto max-w-lg rounded-2xl border border-[#d4c9b0] bg-[#f8f3e9] p-4 shadow-xl"
               role="status"
               
             >
@@ -584,7 +584,7 @@ function App() {
           </AnimatePresence>
         )}
 
-        {!isBooting && !blockGameForNetwork && activeScreen !== 'avatar-setup' && activeScreen !== 'save-progress' && (
+        {!isBooting && !blockGameForNetwork && activeScreen !== 'avatar-setup' && activeScreen !== 'save-progress' && activeScreen !== 'game' && activeScreen !== 'room-lobby' && (
           <BottomDock
             active={dockTab}
             inMatch={room?.status === 'in_progress'}
@@ -594,7 +594,7 @@ function App() {
           />
         )}
 
-        <div id="app-overlay-root" className="pointer-events-none absolute inset-0 z-[1000]" />
+        <div id="app-overlay-root" className="pointer-events-none absolute inset-0 z-1000" />
 
         {/* Rejoin prompt */}
         <AnimatePresence>
